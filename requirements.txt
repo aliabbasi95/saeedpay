@@ -1,0 +1,2 @@
+sweetify
+django-tinymce

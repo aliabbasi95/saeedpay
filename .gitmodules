@@ -1,0 +1,6 @@
+[submodule "lib/cas_auth"]
+	path = lib/cas_auth
+	url = git:cas_auth
+[submodule "lib/erp_base"]
+	path = lib/erp_base
+	url = git:erp_base

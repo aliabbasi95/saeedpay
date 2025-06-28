@@ -15,8 +15,36 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.conf import settings
+from django.urls import path, include
+
+from lib.cas_auth.admin.utils import has_admin_permission
+
+urlpatterns_main = [
+    path("admin/", admin.site.urls),
+    path("cas-auth/", include("lib.cas_auth.urls")),
+]
+
+api_urlpatterns = [
+]
+
+urlpatterns_main = urlpatterns_main + api_urlpatterns
+
+if not settings.CAS_DEBUG:
+    urlpatterns_main.append(
+        path(
+            "admin/login/",
+            lambda request: redirect(
+                f'/cas/users/user-login/?next={request.META.get("HTTP_REFERER", "/saeedpay/admin/")}&service_name=SAEEDPAY',
+            ),
+        ),
+    )
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("saeedpay/", include(urlpatterns_main)),
 ]
+
+admin.autodiscover()
+admin.site.enable_nav_sidebar = False
+admin.site.has_permission = has_admin_permission
+admin.site.index_title = "Saeed Pay"

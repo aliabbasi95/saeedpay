@@ -1,0 +1,164 @@
+@font-face {
+    font-family: 'iransans';
+    src: url('/public_data/fonts/IranSans/eot/IRANSansWeb.eot');
+    src:
+        url('/public_data/fonts/IranSans/eot/IRANSansWeb.eot?#iefix') format('embedded-opentype'),
+        url('/public_data/fonts/IranSans/woff/IRANSansWeb.woff') format('woff'),
+        url('/public_data/fonts/IranSans/ttf/IRANSansWeb.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+* {
+    font-family: 'iransans', serif !important;
+}
+
+:root {
+    --header-bg: #1769aa;
+    --body-bg: #1B1B1B;
+    --border-color: #2B2B2B;
+    --hairline-color: #2B2B2B;
+    --darkened-bg: #2B2B2B;
+
+    --accent:#e4e5f1;
+    --default-button-bg:#43a047;
+    --default-button-hover-bg:#00bfa5;
+    --button-bg:#00bfa5;
+    --button-hover-bg:#43a047;
+
+
+}
+html[data-theme="dark"] {
+    --body-bg: #1B1B1B;
+    --border-color: #2B2B2B;
+    --hairline-color: #2B2B2B;
+    --darkened-bg: #2B2B2B;
+
+}
+html[data-theme="light"] {
+    --header-bg: #1769aa;
+    --body-bg: #f5f5f5;
+    --accent:#e4e5f1;
+    --default-button-bg:#43a047;
+    --default-button-hover-bg:#00bfa5;
+    --button-bg:#00bfa5;
+    --button-hover-bg:#43a047;
+}
+
+body {
+    background-color: var(--body-bg);
+    color: var(--text-light);
+}
+
+#header {
+    background: var(--header-bg);
+}
+
+div.breadcrumbs {
+    background: #1e88e5;
+}
+
+.module h2, .module caption, .inline-group h2 {
+    background: #1e88e5;
+}
+
+h1#site-name > a {
+    cursor: pointer;
+    color: #2A2A2A;
+}
+
+h1#site-name > a:hover {
+    color: #9394a5;
+}
+
+div.inline-group > fieldset > div:not(.add-row), div.inline-group > div.inline-related > fieldset > table {
+    width: 95% !important;
+    margin: auto !important;
+}
+
+div.inline-group > fieldset > div > h3 {
+    font-size: 1.1rem !important;
+    text-align: center;
+    direction: rtl;
+    background-color: #76193a;
+    color: white;
+}
+
+div.inline-group > fieldset > div > fieldset > h2 {
+    background-color: rgb(56, 104, 143);
+}
+
+div.main > div.content > div#content > h2 {
+    direction: rtl;
+    text-align: left;
+}
+
+fieldset div.form-row div.fieldBox {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.table-fa > thead {
+    align-content: initial;
+}
+
+.app-cas_auth > table > caption,
+.app-single_page > table > caption,
+.app-django_celery_beat > table > caption{
+    width: 100%;
+    margin-left: -3%;
+    padding-left: calc(3% + 8px);
+    background-color: #0C1B1D;
+}
+
+.field-full_plaque {
+    direction: rtl;
+    text-align: left;
+}
+
+.loading-button {
+    background-color: rgba(131, 0, 2, 0.57) !important;
+}
+
+table tr, table th {
+    direction: ltr;
+    text-align: left;
+}
+
+a.inline-deletelink {
+    background: none !important;
+    float: none !important;
+}
+
+div.inline-group ul.errorlist li {
+    font-size: 18px !important;
+    margin-top: 10px !important;
+    margin-bottom: 10px !important;
+}
+
+div.field-products div.readonly {
+    direction: rtl !important;
+    text-align: left !important;
+}
+
+.app-base > table > caption,
+.app-providable > table > caption,
+.app-accounts > table > caption,
+.app-budget > table > caption,
+.app-provider > table > caption,
+.app-purchase > table > caption,
+.app-payment > table > caption,
+.app-report > table > caption {
+    width: 100%;
+    margin-left: -3%;
+    padding-left: calc(3% + 8px);
+}
+.app-purchase ~ .app-purchase > table > caption,
+.app-provider ~ .app-provider > table > caption,
+.app-providable ~ .app-providable > table > caption,
+.app-base ~ .app-base > table > caption {
+    width: 97%;
+    margin-left: 0;
+    padding-left: 8px;
+    background-color: #666666;
+}

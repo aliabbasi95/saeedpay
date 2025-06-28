@@ -1,0 +1,9 @@
+*.pyc
+.idea
+Keys/*
+saeedpay/local_settings.py
+
+venv
+.venv
+*.sqlite3
+*.DS_Store
