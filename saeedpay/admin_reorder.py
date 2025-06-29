@@ -1,5 +1,12 @@
 ADMIN_REORDER = (
     {
+        'app': 'customers',
+        'label': 'Customers',
+        'models': (
+            'customers.Customer',
+        )
+    },
+    {
         'app': 'cas_auth',
         'label': 'API',
         'models': (

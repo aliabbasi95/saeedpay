@@ -36,9 +36,12 @@
     --color-danger: #76193a;
     --color-info: #38688f;
     --color-muted: #666666;
-    --color-caption-dark: #0C1B1D;
+    --color-caption-dark: #1E2A4B;
+    --color-caption-submodule: #5c0000;
 
     /* Buttons */
+    --default-button-bg: var(--color-success);
+    --default-button-hover-bg: var(--color-success-hover);
     --button-bg: var(--color-success-hover);
     --button-hover-bg: var(--color-success);
 
@@ -55,6 +58,10 @@ html[data-theme="light"] {
     --body-bg: #f5f5f5;
     --border-color: #dcdcdc;
     --text-color: #212121;
+    --default-button-bg: var(--color-success);
+    --default-button-hover-bg: #00bfa5;
+    --button-bg: #00bfa5;
+    --button-hover-bg: var(--color-success);
 }
 
 /*----------------------------------------
@@ -173,13 +180,8 @@ a.inline-deletelink {
     .app-single_page,
     .app-django_celery_beat,
     .app-base,
-    .app-providable,
-    .app-accounts,
-    .app-budget,
-    .app-provider,
-    .app-purchase,
-    .app-payment,
-    .app-report
+    .app-customers,
+
 ) > table > caption {
     width: 100%;
     margin-left: -3%;
@@ -188,13 +190,19 @@ a.inline-deletelink {
 }
 
 :is(
-    .app-purchase ~ .app-purchase,
-    .app-provider ~ .app-provider,
-    .app-providable ~ .app-providable,
-    .app-base ~ .app-base
+
 ) > table > caption {
     width: 97%;
     margin-left: 0;
     padding-left: 8px;
     background-color: var(--color-muted);
+}
+:is(
+    .app-cas_auth,
+    .app-django_celery_beat,
+) > table > caption {
+    width: 100%;
+    margin-left: -3%;
+    padding-left: calc(3% + 8px);
+    background-color: var(--color-caption-submodule);
 }
