@@ -4,6 +4,14 @@
 
 {% block extrahead %}
     <link rel="shortcut icon" href="{% static 'images/favicon.png' %}?version=1.0.1" />
+    <script>
+      (function () {
+        const theme = localStorage.getItem("theme") || "auto";
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const finalTheme = theme === "auto" ? (prefersDark ? "dark" : "light") : theme;
+        document.documentElement.setAttribute("data-theme", finalTheme);
+      })();
+    </script>
 {% endblock %}
 
 {% block extrastyle %}

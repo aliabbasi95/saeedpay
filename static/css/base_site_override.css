@@ -1,3 +1,6 @@
+/*----------------------------------------
+  Font Definition
+----------------------------------------*/
 @font-face {
     font-family: 'iransans';
     src: url('/public_data/fonts/IranSans/eot/IRANSansWeb.eot');
@@ -10,68 +13,83 @@
 }
 
 * {
-    font-family: 'iransans', serif !important;
+    font-family: 'iransans', sans-serif !important;
 }
 
+/*----------------------------------------
+  Color Variables
+----------------------------------------*/
 :root {
-    --header-bg: #1769aa;
-    --body-bg: #1B1B1B;
-    --border-color: #2B2B2B;
-    --hairline-color: #2B2B2B;
-    --darkened-bg: #2B2B2B;
+    /* Base Colors */
+    --color-primary: #1769aa;
+    --color-primary-light: #1e88e5;
+    --color-primary-dark: #0f4c81;
 
-    --accent:#e4e5f1;
-    --default-button-bg:#43a047;
-    --default-button-hover-bg:#00bfa5;
-    --button-bg:#00bfa5;
-    --button-hover-bg:#43a047;
+    --color-bg-dark: #1B1B1B;
+    --color-bg-darker: #2B2B2B;
+    --color-text-light: #e4e5f1;
+    --color-text-dark: #2A2A2A;
 
+    /* Accent Colors */
+    --color-success: #43a047;
+    --color-success-hover: #00bfa5;
+    --color-danger: #76193a;
+    --color-info: #38688f;
+    --color-muted: #666666;
+    --color-caption-dark: #0C1B1D;
+
+    /* Buttons */
+    --button-bg: var(--color-success-hover);
+    --button-hover-bg: var(--color-success);
+
+    --header-bg: var(--color-primary);
 
 }
-html[data-theme="dark"] {
-    --body-bg: #1B1B1B;
-    --border-color: #2B2B2B;
-    --hairline-color: #2B2B2B;
-    --darkened-bg: #2B2B2B;
 
-}
+/*----------------------------------------
+  Themes
+----------------------------------------*/
+
 html[data-theme="light"] {
-    --header-bg: #1769aa;
+    --header-bg: var(--color-primary);
     --body-bg: #f5f5f5;
-    --accent:#e4e5f1;
-    --default-button-bg:#43a047;
-    --default-button-hover-bg:#00bfa5;
-    --button-bg:#00bfa5;
-    --button-hover-bg:#43a047;
+    --border-color: #dcdcdc;
+    --text-color: #212121;
 }
 
+/*----------------------------------------
+  Base Layout
+----------------------------------------*/
 body {
     background-color: var(--body-bg);
-    color: var(--text-light);
+    color: var(--text-color);
 }
 
 #header {
-    background: var(--header-bg);
+    background-color: var(--header-bg);
 }
 
-div.breadcrumbs {
-    background: #1e88e5;
+/* Breadcrumbs & Module Titles */
+div.breadcrumbs,
+.module h2,
+.module caption,
+.inline-group h2 {
+    background-color: var(--color-primary-light);
 }
 
-.module h2, .module caption, .inline-group h2 {
-    background: #1e88e5;
-}
-
+/* Site Title */
 h1#site-name > a {
+    color: var(--color-text-dark);
     cursor: pointer;
-    color: #2A2A2A;
 }
 
 h1#site-name > a:hover {
     color: #9394a5;
 }
 
-div.inline-group > fieldset > div:not(.add-row), div.inline-group > div.inline-related > fieldset > table {
+/* Inline Groups */
+div.inline-group > fieldset > div:not(.add-row),
+div.inline-group > div.inline-related > fieldset > table {
     width: 95% !important;
     margin: auto !important;
 }
@@ -80,35 +98,30 @@ div.inline-group > fieldset > div > h3 {
     font-size: 1.1rem !important;
     text-align: center;
     direction: rtl;
-    background-color: #76193a;
+    background-color: var(--color-danger);
     color: white;
 }
 
 div.inline-group > fieldset > div > fieldset > h2 {
-    background-color: rgb(56, 104, 143);
+    background-color: var(--color-info);
+    color: white;
 }
 
+/* Headings */
 div.main > div.content > div#content > h2 {
     direction: rtl;
     text-align: left;
 }
 
+/* Forms */
 fieldset div.form-row div.fieldBox {
-    margin-top: 10px;
-    margin-bottom: 10px;
+    margin: 10px 0;
 }
 
-.table-fa > thead {
-    align-content: initial;
-}
-
-.app-cas_auth > table > caption,
-.app-single_page > table > caption,
-.app-django_celery_beat > table > caption{
-    width: 100%;
-    margin-left: -3%;
-    padding-left: calc(3% + 8px);
-    background-color: #0C1B1D;
+/* Readonly RTL Fields */
+div.field-products div.readonly {
+    direction: rtl !important;
+    text-align: left !important;
 }
 
 .field-full_plaque {
@@ -116,49 +129,72 @@ fieldset div.form-row div.fieldBox {
     text-align: left;
 }
 
+/* Buttons */
 .loading-button {
     background-color: rgba(131, 0, 2, 0.57) !important;
 }
 
+.button, input[type="submit"], input[type="button"] {
+    background-color: var(--button-bg);
+    color: white;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+
+.button:hover, input[type="submit"]:hover, input[type="button"]:hover {
+    background-color: var(--button-hover-bg);
+}
+
+/* Tables */
 table tr, table th {
     direction: ltr;
     text-align: left;
 }
 
+.table-fa > thead {
+    align-content: initial;
+}
+
+/* Error Messages */
+div.inline-group ul.errorlist li {
+    font-size: 18px !important;
+    margin: 10px 0 !important;
+}
+
+/* Delete Links */
 a.inline-deletelink {
     background: none !important;
     float: none !important;
 }
 
-div.inline-group ul.errorlist li {
-    font-size: 18px !important;
-    margin-top: 10px !important;
-    margin-bottom: 10px !important;
-}
-
-div.field-products div.readonly {
-    direction: rtl !important;
-    text-align: left !important;
-}
-
-.app-base > table > caption,
-.app-providable > table > caption,
-.app-accounts > table > caption,
-.app-budget > table > caption,
-.app-provider > table > caption,
-.app-purchase > table > caption,
-.app-payment > table > caption,
-.app-report > table > caption {
+/* Table Captions */
+:is(
+    .app-cas_auth,
+    .app-single_page,
+    .app-django_celery_beat,
+    .app-base,
+    .app-providable,
+    .app-accounts,
+    .app-budget,
+    .app-provider,
+    .app-purchase,
+    .app-payment,
+    .app-report
+) > table > caption {
     width: 100%;
     margin-left: -3%;
     padding-left: calc(3% + 8px);
+    background-color: var(--color-caption-dark);
 }
-.app-purchase ~ .app-purchase > table > caption,
-.app-provider ~ .app-provider > table > caption,
-.app-providable ~ .app-providable > table > caption,
-.app-base ~ .app-base > table > caption {
+
+:is(
+    .app-purchase ~ .app-purchase,
+    .app-provider ~ .app-provider,
+    .app-providable ~ .app-providable,
+    .app-base ~ .app-base
+) > table > caption {
     width: 97%;
     margin-left: 0;
     padding-left: 8px;
-    background-color: #666666;
+    background-color: var(--color-muted);
 }
