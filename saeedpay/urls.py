@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.conf import settings
+from django.shortcuts import redirect
 from django.urls import path, include
 
 from lib.cas_auth.admin.utils import has_admin_permission
@@ -26,6 +27,7 @@ urlpatterns_main = [
 ]
 
 api_urlpatterns = [
+    path("api/customer/", include("customers.api.urls")),
 ]
 
 urlpatterns_main = urlpatterns_main + api_urlpatterns
