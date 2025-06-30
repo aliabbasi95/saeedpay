@@ -33,6 +33,8 @@ DEFAULT_APPS = [
 
     "rest_framework",
     "rest_framework_simplejwt",
+    'rest_framework_simplejwt.token_blacklist',
+
     "django_admin_listfilter_dropdown",
     "admin_searchable_dropdown",
     "corsheaders",
@@ -141,9 +143,12 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=12),
-    "USER_ID_FIELD": "username",
-    "USER_ID_CLAIM": "username"
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=24),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
