@@ -151,6 +151,7 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
+MAX_SESSION_LIFETIME = timedelta(hours=24)
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "cas-authorization",

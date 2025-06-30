@@ -5,6 +5,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from auth_api.models import PhoneOTP
+from auth_api.tokens import CustomRefreshToken
 from customers.models import Customer
 from lib.erp_base.serializers.persian_error_message import \
     PersianValidationErrorMessages
@@ -92,6 +93,7 @@ class RegisterCustomerSerializer(
         return user
 
     def to_representation(self, instance):
+        refresh = CustomRefreshToken.for_user(instance)
         roles = []
         if hasattr(instance, "customer"):
             roles.append("customer")
@@ -99,7 +101,8 @@ class RegisterCustomerSerializer(
             roles.append("seller")
 
         return {
-            **instance.tokens(),
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
             "user_id": instance.id,
             "phone_number": instance.username,
             "roles": roles,

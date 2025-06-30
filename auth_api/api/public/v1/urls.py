@@ -6,6 +6,7 @@ from auth_api.api.public.v1.views import (
     RegisterCustomerView,
     SendOTPView,
     LogoutView,
+    SecureTokenRefreshView,
 )
 
 app_name = "auth_api_public_v1"
@@ -31,4 +32,10 @@ urlpatterns = [
         LogoutView.as_view(),
         name="logout"
     ),
+    path(
+        "refresh/",
+        SecureTokenRefreshView.as_view(),
+        name="token-refresh"
+    ),
+
 ]

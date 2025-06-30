@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from auth_api.tokens import CustomRefreshToken
 from lib.erp_base.serializers.persian_error_message import \
     PersianValidationErrorMessages
 
@@ -40,6 +41,7 @@ class LoginSerializer(PersianValidationErrorMessages, serializers.Serializer):
         return self.user
 
     def to_representation(self, instance):
+        refresh = CustomRefreshToken.for_user(instance)
         roles = []
         if hasattr(instance, "customer"):
             roles.append("customer")
@@ -47,7 +49,8 @@ class LoginSerializer(PersianValidationErrorMessages, serializers.Serializer):
             roles.append("seller")
 
         return {
-            **instance.tokens(),
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
             "user_id": instance.id,
             "phone_number": instance.username,
             "roles": roles,

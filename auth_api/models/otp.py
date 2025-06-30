@@ -52,12 +52,13 @@ class PhoneOTP(BaseModel):
     def send(self):
         if not self.is_alive():
             code = self.generate()
-            send_sms.apply_async(
-                (
-                    self.phone_number,
-                    f"Verification code: {code}"
-                )
-            )
+            print(code)
+            # send_sms.apply_async(
+            #     (
+            #         self.phone_number,
+            #         f"Verification code: {code}"
+            #     )
+            # )
             self.last_send_date = timezone.localtime(timezone.now())
             self.save()
         return True

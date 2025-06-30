@@ -1,13 +1,12 @@
 # auth_api/api/public/v1/views/logout.py
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
+from lib.cas_auth.views import PublicAPIView
 
-class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+
+class LogoutView(PublicAPIView):
 
     def post(self, request):
         refresh_token = request.data.get("refresh")
