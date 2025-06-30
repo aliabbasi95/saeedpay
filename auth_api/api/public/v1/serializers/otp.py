@@ -1,7 +1,7 @@
-# customers/api/public/v1/serializers/otp.py
+# auth_api/api/public/v1/serializers/otp.py
 from rest_framework import serializers
 
-from customers.models import PhoneOTP
+from auth_api.models import PhoneOTP
 
 
 class SendOTPSerializer(serializers.Serializer):

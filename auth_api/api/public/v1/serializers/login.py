@@ -1,4 +1,4 @@
-# customers/api/public/v1/serializers/login.py
+# auth_api/api/public/v1/serializers/login.py
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -40,10 +40,23 @@ class LoginSerializer(PersianValidationErrorMessages, serializers.Serializer):
         return self.user
 
     def to_representation(self, instance):
+        roles = []
+        if hasattr(instance, "customer"):
+            roles.append("customer")
+        if hasattr(instance, "seller"):
+            roles.append("seller")
+
         return {
             **instance.tokens(),
             "user_id": instance.id,
             "phone_number": instance.username,
-            "first_name": getattr(instance.customer, "first_name", ""),
-            "last_name": getattr(instance.customer, "last_name", ""),
+            "roles": roles,
+            "first_name": getattr(
+                instance.customer if 'customer' in roles else instance.seller,
+                "first_name", ""
+            ),
+            "last_name": getattr(
+                instance.customer if 'customer' in roles else instance.seller,
+                "last_name", ""
+            ),
         }

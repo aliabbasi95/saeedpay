@@ -50,6 +50,7 @@ DEFAULT_APPS = [
 
 LOCAL_APPS = [
     "customers",
+    "auth_api",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS

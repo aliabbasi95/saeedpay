@@ -27,7 +27,7 @@ urlpatterns_main = [
 ]
 
 api_urlpatterns = [
-    path("api/customer/", include("customers.api.urls")),
+    path("api/auth/", include("auth_api.api.urls")),
 ]
 
 urlpatterns_main = urlpatterns_main + api_urlpatterns

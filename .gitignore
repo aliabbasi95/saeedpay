@@ -1,3 +1,12 @@
+# Django #
+*.log
+*.pot
+*.pyc
+*.DS_Store
+__pycache__
+db.sqlite3
+media
+
 *.pyc
 .idea
 Keys/*
@@ -7,3 +16,67 @@ venv
 .venv
 *.sqlite3
 *.DS_Store
+
+# Visual Studio Code #
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history
+.vscode/
+
+# mypy
+.mypy_cache/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# celery
+celerybeat-schedule.*
+
+# SageMath parsed files
+*.sage.py
+
+
+# Backup files #
+*.bak
+
+# If you are using PyCharm #
+# User-specific stuff
+.idea
+
+# File-based project format
+*.iws
+
+# IntelliJ
+out/
+
+# JIRA plugin
+atlassian-ide-plugin.xml
+
+# Python #
+*.py[cod]
+*$py.class
+
+
+*/migrations/*

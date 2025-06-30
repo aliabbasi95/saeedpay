@@ -1,13 +1,11 @@
-# customers/models/otp.py
+# auth_api/models/otp.py
 import pyotp
-
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from lib.erp_base.tasks import send_sms
 from lib.erp_base.models.base import BaseModel
-
+from lib.erp_base.tasks import send_sms
 from ..utils.consts import LIFE_DURATION
 
 
@@ -38,7 +36,10 @@ class PhoneOTP(BaseModel):
     def is_alive(self):
         if not self.last_send_date:
             return False
-        elapsed_time = (timezone.localtime(timezone.now()) - timezone.localtime(self.last_send_date)).total_seconds()
+        elapsed_time = (
+                timezone.localtime(timezone.now()) - timezone.localtime(
+            self.last_send_date
+        )).total_seconds()
         return elapsed_time < LIFE_DURATION
 
     def verify(self, code):
@@ -51,10 +52,12 @@ class PhoneOTP(BaseModel):
     def send(self):
         if not self.is_alive():
             code = self.generate()
-            send_sms.apply_async((
-                self.phone_number,
-                f"Verification code: {code}"
-            ))
+            send_sms.apply_async(
+                (
+                    self.phone_number,
+                    f"Verification code: {code}"
+                )
+            )
             self.last_send_date = timezone.localtime(timezone.now())
             self.save()
         return True

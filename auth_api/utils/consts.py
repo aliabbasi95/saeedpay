@@ -1,3 +1,4 @@
+# auth_api/utils/consts.py
 from django.conf import settings
 
 DEFAULT_LIFE_DURATION = 300

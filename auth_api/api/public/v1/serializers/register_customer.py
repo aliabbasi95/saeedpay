@@ -1,17 +1,18 @@
-# customers/api/public/v1/serializers/register.py
+# auth_api/api/public/v1/serializers/register.py
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
-from customers.models import Customer, PhoneOTP
+from auth_api.models import PhoneOTP
+from customers.models import Customer
 from lib.erp_base.serializers.persian_error_message import \
     PersianValidationErrorMessages
 from lib.erp_base.validators.unique_across_models import \
     UniqueAcrossModelsValidator
 
 
-class RegisterSerializer(
+class RegisterCustomerSerializer(
     PersianValidationErrorMessages, serializers.Serializer
 ):
     phone_number = serializers.CharField(
@@ -91,10 +92,23 @@ class RegisterSerializer(
         return user
 
     def to_representation(self, instance):
+        roles = []
+        if hasattr(instance, "customer"):
+            roles.append("customer")
+        if hasattr(instance, "seller"):
+            roles.append("seller")
+
         return {
             **instance.tokens(),
             "user_id": instance.id,
-            "phone_number": instance.customer.phone_number,
-            "first_name": getattr(instance.customer, "first_name", ""),
-            "last_name": getattr(instance.customer, "last_name", ""),
+            "phone_number": instance.username,
+            "roles": roles,
+            "first_name": getattr(
+                instance.customer if 'customer' in roles else instance.seller,
+                "first_name", ""
+            ),
+            "last_name": getattr(
+                instance.customer if 'customer' in roles else instance.seller,
+                "last_name", ""
+            ),
         }
