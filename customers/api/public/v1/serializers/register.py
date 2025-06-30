@@ -1,44 +1,100 @@
 # customers/api/public/v1/serializers/register.py
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, password_validation
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from rest_framework import serializers
 
 from customers.models import Customer, PhoneOTP
+from lib.erp_base.serializers.persian_error_message import \
+    PersianValidationErrorMessages
+from lib.erp_base.validators.unique_across_models import \
+    UniqueAcrossModelsValidator
 
 
-class RegisterSerializer(serializers.Serializer):
-    phone_number = serializers.CharField()
+class RegisterSerializer(
+    PersianValidationErrorMessages, serializers.Serializer
+):
+    phone_number = serializers.CharField(
+        max_length=11,
+        validators=[
+            UniqueAcrossModelsValidator(
+                model_field_pairs=[
+                    (get_user_model(), 'username'),
+                    (Customer, 'phone_number'),
+                ],
+                message="این شماره تلفن قبلاً ثبت شده است."
+            )
+        ]
+    )
     code = serializers.CharField()
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
 
+    def validate_phone_number(self, phone_number):
+        User = get_user_model()
+
+        user_exists = User.objects.filter(username=phone_number).exists()
+        customer_exists = Customer.objects.filter(
+            phone_number=phone_number
+        ).exists()
+
+        if user_exists or customer_exists:
+            raise serializers.ValidationError(
+                "این شماره تلفن قبلاً ثبت شده است."
+            )
+
+        return phone_number
+
+    def validate_password(self, password):
+        try:
+            password_validation.validate_password(password=password)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.messages)
+        return password
+
     def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError(
+                {'confirm_password': 'رمز عبور و تکرار آن یکسان نیستند.'}
+            )
+
         phone_number = data.get("phone_number")
         code = data.get("code")
-        if data['password'] != data['confirm_password']:
-            raise serializers.ValidationError({'password': 'Passwords do not match.'})
+
         try:
             otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
         except PhoneOTP.DoesNotExist:
             raise serializers.ValidationError(
-                {"code": ["Invalid OTP or OTP expired."]}
+                {"code": "کد تایید یافت نشد یا منقضی شده است."}
             )
 
-        if otp_instance and otp_instance.verify(code):
-            return data
-        raise serializers.ValidationError(
-            {"code": ["Invalid OTP or OTP expired."]}
-        )
+        if not otp_instance.verify(code):
+            raise serializers.ValidationError(
+                {"code": "کد تایید اشتباه یا منقضی شده است."}
+            )
+
+        return data
 
     def create(self, validated_data):
         phone_number = validated_data['phone_number']
         password = validated_data['password']
+        User = get_user_model()
 
-        user = get_user_model().objects.create(username=phone_number)
-        user.set_password(password)
-        user.save()
+        with transaction.atomic():
+            user = User.objects.create(username=phone_number)
+            user.set_password(password)
+            user.save()
 
-        Customer.objects.create(user=user, phone_number=phone_number)
+            Customer.objects.create(user=user, phone_number=phone_number)
+
         self.user = user
         return user
+
     def to_representation(self, instance):
-        return instance.tokens()
+        return {
+            **instance.tokens(),
+            "user_id": instance.id,
+            "phone_number": instance.customer.phone_number,
+            "first_name": getattr(instance.customer, "first_name", ""),
+            "last_name": getattr(instance.customer, "last_name", ""),
+        }

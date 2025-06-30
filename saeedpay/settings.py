@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from datetime import timedelta
 
 from corsheaders.defaults import default_headers
-from .admin_reorder import ADMIN_REORDER
 
 try:
     from .local_settings import *
@@ -102,9 +101,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "lib.erp_base.validators.LengthValidator",
+        "OPTIONS": {
+            "min_length": 12
+        }
     },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
@@ -116,7 +117,6 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
