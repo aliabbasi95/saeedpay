@@ -40,6 +40,7 @@ DEFAULT_APPS = [
     "corsheaders",
     "django_celery_beat",
     "import_export",
+    "drf_spectacular",
 
     "sweetify",
     "tinymce",
@@ -141,6 +142,7 @@ REST_FRAMEWORK = {
         "lib.cas_auth.authentication.CASAuthentication",
     ],
     "EXCEPTION_HANDLER": None,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SIMPLE_JWT = {
@@ -194,3 +196,39 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost",
 
 ]
+def spectacular_preprocess_hook(endpoints):
+    from drf_spectacular.openapi import AutoSchema
+
+    def is_compatible(view):
+        try:
+            return isinstance(getattr(view.cls, 'schema', None), AutoSchema)
+        except Exception:
+            return False
+
+    return [
+        (path, path_regex, method, callback)
+        for (path, path_regex, method, callback) in endpoints
+        if is_compatible(callback)
+    ]
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "SaeedPay API",
+    "DESCRIPTION": "مستندات احراز هویت کاربران (مشتری، فروشگاه)",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SECURITY": [{"PublicAuth": []}],
+
+    "COMPONENT_SPLIT_REQUEST": True,
+    "COMPONENTS": {
+        "securitySchemes": {
+            "PublicAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
+        }
+    },
+    "PREPROCESSING_HOOKS": [
+        "saeedpay.settings.spectacular_preprocess_hook"
+    ],
+}

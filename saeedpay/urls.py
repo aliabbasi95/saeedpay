@@ -14,10 +14,15 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
 from django.conf import settings
+from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import path, include
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
 
 from lib.cas_auth.admin.utils import has_admin_permission
 
@@ -30,7 +35,19 @@ api_urlpatterns = [
     path("api/auth/", include("auth_api.api.urls")),
 ]
 
-urlpatterns_main = urlpatterns_main + api_urlpatterns
+schema_urlpatterns = [
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/schema/swagger/",
+        SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"
+    ),
+    path(
+        "api/schema/redoc/", SpectacularRedocView.as_view(url_name="schema"),
+        name="redoc"
+    ),
+]
+
+urlpatterns_main = urlpatterns_main + api_urlpatterns + schema_urlpatterns
 
 if not settings.CAS_DEBUG:
     urlpatterns_main.append(

@@ -1,4 +1,5 @@
 # auth_api/api/public/v1/views/logout.py
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
@@ -6,6 +7,16 @@ from auth_api.api.public.v1.serializers import LogoutSerializer
 from lib.cas_auth.views import PublicAPIView
 
 
+@extend_schema(
+    request=None,
+    responses={
+        205: OpenApiResponse(description="Logout successful."),
+        400: OpenApiResponse(
+            description="Refresh token is missing or invalid."
+        ),
+    },
+    tags=["Authentication"]
+)
 class LogoutView(PublicAPIView):
     serializer_class = LogoutSerializer
 
