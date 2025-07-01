@@ -171,3 +171,26 @@ AUTH_USER_MODEL = "cas_auth.User"
 AUTHENTICATION_BACKENDS = ["lib.cas_auth.backend.CASBackend"]
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1024 * 8
+
+ALLOWED_HOSTS = [
+    "*",
+    "http://172.20.20.134:3000",
+    "http://localhost:3000",
+    "http://172.20.20.134",
+    "http://localhost",
+]
+CSRF_TRUSTED_ORIGINS = [
+    "http://172.20.20.134:3000",
+    "http://localhost:3000",
+    "http://172.20.20.134",
+    "http://localhost",
+
+]
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://172.20.20.134:3000",
+    "http://localhost:3000",
+    "http://172.20.20.134",
+    "http://localhost",
+
+]
