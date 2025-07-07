@@ -52,6 +52,7 @@ DEFAULT_APPS = [
 LOCAL_APPS = [
     "customers",
     "auth_api",
+    "wallets",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS

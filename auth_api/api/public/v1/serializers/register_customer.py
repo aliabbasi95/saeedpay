@@ -12,6 +12,8 @@ from lib.erp_base.serializers.persian_error_message import \
     PersianValidationErrorMessages
 from lib.erp_base.validators.unique_across_models import \
     UniqueAcrossModelsValidator
+from wallets.services import create_default_wallets_for_user
+from wallets.utils.choices import OwnerType
 
 
 class RegisterCustomerSerializer(
@@ -75,8 +77,10 @@ class RegisterCustomerSerializer(
             user, _ = User.objects.get_or_create(username=phone_number)
             user.set_password(password)
             user.save()
-
             Customer.objects.create(user=user, phone_number=phone_number)
+            create_default_wallets_for_user(
+                user, owner_type=OwnerType.CUSTOMER
+            )
 
         self.user = user
         return user
