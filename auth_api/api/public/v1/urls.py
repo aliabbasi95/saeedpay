@@ -33,9 +33,8 @@ urlpatterns = [
         name="logout"
     ),
     path(
-        "refresh/",
+        "token/refresh/",
         SecureTokenRefreshView.as_view(),
         name="token-refresh"
     ),
-
 ]

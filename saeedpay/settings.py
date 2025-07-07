@@ -104,6 +104,9 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "lib.erp_base.validators.HasNumberValidator",
     },
     {
+        "NAME": "lib.erp_base.validators.SymbolValidator",
+    },
+    {
         "NAME": "lib.erp_base.validators.LengthValidator",
         "OPTIONS": {
             "min_length": 12
@@ -196,6 +199,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost",
 
 ]
+
+
 def spectacular_preprocess_hook(endpoints):
     from drf_spectacular.openapi import AutoSchema
 
@@ -210,6 +215,7 @@ def spectacular_preprocess_hook(endpoints):
         for (path, path_regex, method, callback) in endpoints
         if is_compatible(callback)
     ]
+
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaeedPay API",

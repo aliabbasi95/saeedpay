@@ -48,18 +48,18 @@ class LoginSerializer(PersianValidationErrorMessages, serializers.Serializer):
         if hasattr(instance, "seller"):
             roles.append("seller")
 
+        person = None
+        if 'customer' in roles:
+            person = instance.customer
+        elif 'seller' in roles:
+            person = instance.seller
+
         return {
             "access": str(refresh.access_token),
             "refresh": str(refresh),
             "user_id": instance.id,
             "phone_number": instance.username,
             "roles": roles,
-            "first_name": getattr(
-                instance.customer if 'customer' in roles else instance.seller,
-                "first_name", ""
-            ),
-            "last_name": getattr(
-                instance.customer if 'customer' in roles else instance.seller,
-                "last_name", ""
-            ),
+            "first_name": getattr(person, "first_name", ""),
+            "last_name": getattr(person, "last_name", ""),
         }

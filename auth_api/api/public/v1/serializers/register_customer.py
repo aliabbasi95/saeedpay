@@ -1,6 +1,7 @@
 # auth_api/api/public/v1/serializers/register.py
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import RegexValidator
 from django.db import transaction
 from rest_framework import serializers
 
@@ -19,9 +20,12 @@ class RegisterCustomerSerializer(
     phone_number = serializers.CharField(
         max_length=11,
         validators=[
+            RegexValidator(
+                regex=r'^09\d{9}$',
+                message="شماره تلفن معتبر نیست."
+            ),
             UniqueAcrossModelsValidator(
                 model_field_pairs=[
-                    (get_user_model(), 'username'),
                     (Customer, 'phone_number'),
                 ],
                 message="این شماره تلفن قبلاً ثبت شده است."
@@ -31,21 +35,6 @@ class RegisterCustomerSerializer(
     code = serializers.CharField()
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
-
-    def validate_phone_number(self, phone_number):
-        User = get_user_model()
-
-        user_exists = User.objects.filter(username=phone_number).exists()
-        customer_exists = Customer.objects.filter(
-            phone_number=phone_number
-        ).exists()
-
-        if user_exists or customer_exists:
-            raise serializers.ValidationError(
-                "این شماره تلفن قبلاً ثبت شده است."
-            )
-
-        return phone_number
 
     def validate_password(self, password):
         try:
@@ -83,7 +72,7 @@ class RegisterCustomerSerializer(
         User = get_user_model()
 
         with transaction.atomic():
-            user = User.objects.create(username=phone_number)
+            user, _ = User.objects.get_or_create(username=phone_number)
             user.set_password(password)
             user.save()
 

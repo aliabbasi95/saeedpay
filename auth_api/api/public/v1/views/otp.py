@@ -1,4 +1,4 @@
-# auth_api/api/public/v1/views/login.py
+# auth_api/api/public/v1/views/otp.py
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import status
 from rest_framework.permissions import AllowAny

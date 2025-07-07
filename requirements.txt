@@ -2,3 +2,6 @@ sweetify
 django-tinymce
 
 pyotp
+drf-spectacular
+pytest
+pytest-django

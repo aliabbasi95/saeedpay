@@ -1,4 +1,5 @@
 # auth_api/api/public/v1/serializers/otp.py
+from django.core.validators import RegexValidator
 from rest_framework import serializers
 
 from auth_api.models import PhoneOTP
@@ -7,6 +8,12 @@ from auth_api.models import PhoneOTP
 class SendOTPSerializer(serializers.Serializer):
     phone_number = serializers.CharField(
         max_length=11,
+        validators=[
+            RegexValidator(
+                regex=r'^09\d{9}$',
+                message="شماره تلفن معتبر نیست."
+            ),
+        ]
     )
 
     def validate(self, data):
@@ -25,6 +32,7 @@ class SendOTPSerializer(serializers.Serializer):
         )
         if otp_instance.send():
             return validated_data
+        print(1000)
         raise serializers.ValidationError(
             {"phone_number": ["ارسال کد با خطا مواجه شد."]}
         )

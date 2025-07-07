@@ -25,7 +25,22 @@ class LogoutView(PublicAPIView):
 
         try:
             token = RefreshToken(refresh_token)
+            token_user_id = token.get("user_id", None)
+
+            if not token_user_id:
+                self.response_data = {"detail": "user_id در توکن یافت نشد."}
+                self.response_status = status.HTTP_400_BAD_REQUEST
+                return
+
+            if str(self.request.user.id) != str(token_user_id):
+                self.response_data = {
+                    "detail": "توکن متعلق به کاربر جاری نیست."
+                }
+                self.response_status = status.HTTP_400_BAD_REQUEST
+                return
+
             token.blacklist()
+
         except TokenError:
             self.response_data = {"detail": "توکن نامعتبر یا منقضی شده است."}
             self.response_status = status.HTTP_400_BAD_REQUEST
