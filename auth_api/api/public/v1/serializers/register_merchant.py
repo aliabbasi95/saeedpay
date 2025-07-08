@@ -1,4 +1,4 @@
-# auth_api/api/public/v1/serializers/register.py
+# auth_api/api/public/v1/serializers/register_merchant.py
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import RegexValidator
@@ -7,17 +7,17 @@ from rest_framework import serializers
 
 from auth_api.models import PhoneOTP
 from auth_api.tokens import CustomRefreshToken
-from customers.models import Customer
 from lib.erp_base.serializers.persian_error_message import \
     PersianValidationErrorMessages
 from lib.erp_base.validators.unique_across_models import \
     UniqueAcrossModelsValidator
+from merchants.models import Merchant
 from profiles.models import Profile
 from wallets.services import create_default_wallets_for_user
 from wallets.utils.choices import OwnerType
 
 
-class RegisterCustomerSerializer(
+class RegisterMerchantSerializer(
     PersianValidationErrorMessages, serializers.Serializer
 ):
     phone_number = serializers.CharField(
@@ -29,7 +29,7 @@ class RegisterCustomerSerializer(
             ),
             UniqueAcrossModelsValidator(
                 model_field_pairs=[
-                    (Customer, 'phone_number'),
+                    (Merchant, 'phone_number'),
                 ],
                 message="این شماره تلفن قبلاً ثبت شده است."
             )
@@ -51,22 +51,18 @@ class RegisterCustomerSerializer(
             raise serializers.ValidationError(
                 {'confirm_password': 'رمز عبور و تکرار آن یکسان نیستند.'}
             )
-
         phone_number = data.get("phone_number")
         code = data.get("code")
-
         try:
             otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
         except PhoneOTP.DoesNotExist:
             raise serializers.ValidationError(
                 {"code": "کد تایید یافت نشد یا منقضی شده است."}
             )
-
         if not otp_instance.verify(code):
             raise serializers.ValidationError(
                 {"code": "کد تایید اشتباه یا منقضی شده است."}
             )
-
         return data
 
     def create(self, validated_data):
@@ -85,13 +81,12 @@ class RegisterCustomerSerializer(
             if profile.phone_number != phone_number:
                 profile.phone_number = phone_number
                 profile.save()
-            Customer.objects.create(
-                user=user
+            Merchant.objects.create(
+                user=user,
             )
             create_default_wallets_for_user(
-                user, owner_type=OwnerType.CUSTOMER
+                user, owner_type=OwnerType.MERCHANT
             )
-
         self.user = user
         return user
 
@@ -103,7 +98,6 @@ class RegisterCustomerSerializer(
         if hasattr(instance, "merchant"):
             roles.append("merchant")
         profile = getattr(instance, "profile", None)
-
         return {
             "access": str(refresh.access_token),
             "refresh": str(refresh),

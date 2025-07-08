@@ -7,6 +7,7 @@ from auth_api.api.public.v1.views import (
     SendOTPView,
     LogoutView,
     SecureTokenRefreshView,
+    RegisterMerchantView,
 )
 
 app_name = "auth_api_public_v1"
@@ -21,6 +22,11 @@ urlpatterns = [
         "register/customer/",
         RegisterCustomerView.as_view(),
         name="register-customer"
+    ),
+    path(
+        "register/merchant/",
+        RegisterMerchantView.as_view(),
+        name="register-merchant"
     ),
     path(
         "login/",

@@ -3,10 +3,11 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from lib.erp_base.models import BaseModel
 from wallets.utils.choices import WalletKind, OwnerType
 
 
-class Wallet(models.Model):
+class Wallet(BaseModel):
     user = models.ForeignKey(
         get_user_model(), on_delete=models.CASCADE, related_name="wallets"
     )

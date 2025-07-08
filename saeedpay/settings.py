@@ -51,6 +51,7 @@ DEFAULT_APPS = [
 
 LOCAL_APPS = [
     "customers",
+    "profiles",
     "auth_api",
     "wallets",
     "merchants",
