@@ -2,7 +2,10 @@
 from rest_framework.mixins import ListModelMixin
 
 from lib.cas_auth.views import PublicGenericAPIView
-from wallets.api.public.v1.serializers import WalletSerializer
+from wallets.api.public.v1.serializers import (
+    WalletSerializer,
+    WalletListQuerySerializer,
+)
 from wallets.models import Wallet
 
 
@@ -13,9 +16,14 @@ class WalletListView(ListModelMixin, PublicGenericAPIView):
         return False
 
     def get_queryset(self):
+        query_serializer = WalletListQuerySerializer(
+            data=self.request.query_params
+        )
+        query_serializer.is_valid(raise_exception=True)
+        owner_type = query_serializer.validated_data["owner_type"]
+
         qs = Wallet.objects.filter(user=self.request.user).order_by("kind")
 
-        owner_type = self.request.query_params.get("owner_type")
         if owner_type:
             qs = qs.filter(owner_type=owner_type)
         return qs

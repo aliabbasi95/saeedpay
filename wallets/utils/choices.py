@@ -8,7 +8,8 @@ class WalletKind(models.TextChoices):
     CASH = 'cash', _('نقدی')
     CASHBACK = 'cashback', _('بازگشت پول')
     CREDIT = 'credit', _('اعتباری')
+
+
 class OwnerType(models.TextChoices):
     CUSTOMER = 'customer', _('مشتری')
-    STORE = 'store', _('فروشگاه')
-
+    MERCHANT = 'merchant', _('فروشنده')

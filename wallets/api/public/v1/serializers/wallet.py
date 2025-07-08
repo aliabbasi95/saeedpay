@@ -2,15 +2,24 @@
 from rest_framework import serializers
 
 from wallets.models import Wallet
+from wallets.utils.choices import OwnerType
+
+
+class WalletListQuerySerializer(serializers.Serializer):
+    owner_type = serializers.ChoiceField(
+        choices=OwnerType.choices,
+        required=True,
+        label="نوع مالک",
+    )
 
 
 class WalletSerializer(serializers.ModelSerializer):
     kind_display = serializers.CharField(
         source="get_kind_display", read_only=True
-        )
+    )
     owner_type_display = serializers.CharField(
         source="get_owner_type_display", read_only=True
-        )
+    )
 
     class Meta:
         model = Wallet

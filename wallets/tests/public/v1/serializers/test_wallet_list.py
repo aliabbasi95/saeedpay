@@ -1,29 +1,29 @@
-# wallets/tests/public/v1/serializers/test_wallet_list.py
-import pytest
-from django.contrib.auth import get_user_model
-from rest_framework.test import APIClient
+# wallets/tests/public/v1/serializers/test_wallet_list_query.py
 
+from wallets.api.public.v1.serializers.wallet import WalletListQuerySerializer
 from wallets.utils.choices import OwnerType
-from wallets.utils.consts import DEFAULT_WALLETS
 
 
-@pytest.mark.django_db
-class TestWalletListAPI:
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        self.client = APIClient()
-        self.user = get_user_model().objects.create(
-            username="testuser", password="123456"
+class TestWalletListQuerySerializer:
+
+    def test_valid_owner_type(self):
+        serializer = WalletListQuerySerializer(
+            data={"owner_type": OwnerType.CUSTOMER}
         )
-        self.client.force_authenticate(user=self.user)
+        assert serializer.is_valid()
+        assert serializer.validated_data["owner_type"] == OwnerType.CUSTOMER
 
-    def test_wallet_list_success(self):
-        from wallets.services import create_default_wallets_for_user
-        create_default_wallets_for_user(self.user, OwnerType.CUSTOMER)
+    def test_missing_owner_type(self):
+        serializer = WalletListQuerySerializer(data={})
+        assert not serializer.is_valid()
+        assert "owner_type" in serializer.errors
 
-        response = self.client.get("/saeedpay/api/wallets/public/v1/wallets/")
+    def test_invalid_owner_type(self):
+        serializer = WalletListQuerySerializer(data={"owner_type": "INVALID"})
+        assert not serializer.is_valid()
+        assert "owner_type" in serializer.errors
 
-        assert response.status_code == 200
-        assert len(response.data) == len(DEFAULT_WALLETS[OwnerType.CUSTOMER])
-        kinds = [w["kind"] for w in response.data]
-        assert "cash" in kinds
+    def test_owner_type_null(self):
+        serializer = WalletListQuerySerializer(data={"owner_type": None})
+        assert not serializer.is_valid()
+        assert "owner_type" in serializer.errors

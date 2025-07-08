@@ -8,6 +8,6 @@ DEFAULT_WALLETS = {
         WalletKind.CASHBACK,
         WalletKind.CREDIT,
     ],
-    OwnerType.STORE: [
+    OwnerType.MERCHANT: [
     ],
 }
