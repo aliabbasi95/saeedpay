@@ -10,8 +10,6 @@ from auth_api.tokens import CustomRefreshToken
 from customers.models import Customer
 from lib.erp_base.serializers.persian_error_message import \
     PersianValidationErrorMessages
-from lib.erp_base.validators.unique_across_models import \
-    UniqueAcrossModelsValidator
 from profiles.models import Profile
 from wallets.services import create_default_wallets_for_user
 from wallets.utils.choices import OwnerType
@@ -27,12 +25,6 @@ class RegisterCustomerSerializer(
                 regex=r'^09\d{9}$',
                 message="شماره تلفن معتبر نیست."
             ),
-            UniqueAcrossModelsValidator(
-                model_field_pairs=[
-                    (Customer, 'phone_number'),
-                ],
-                message="این شماره تلفن قبلاً ثبت شده است."
-            )
         ]
     )
     code = serializers.CharField()
@@ -53,8 +45,15 @@ class RegisterCustomerSerializer(
             )
 
         phone_number = data.get("phone_number")
+        if Customer.objects.filter(
+                user__username=data['phone_number']
+        ).exists():
+            raise serializers.ValidationError(
+                {
+                    "phone_number": "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است."
+                }
+            )
         code = data.get("code")
-
         try:
             otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
         except PhoneOTP.DoesNotExist:

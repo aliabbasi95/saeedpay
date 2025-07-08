@@ -7,6 +7,7 @@ from rest_framework.test import APIClient
 
 from auth_api.models import PhoneOTP
 from customers.models import Customer
+from profiles.models import Profile
 
 REGISTER_URL = "/saeedpay/api/auth/public/v1/register/customer/"
 
@@ -82,7 +83,8 @@ class TestRegisterCustomerView:
 
     def test_already_registered_customer(self):
         user = get_user_model().objects.create(username="09120004444")
-        Customer.objects.create(user=user, phone_number="09120004444")
+        Profile.objects.create(user=user, phone_number="09120004444")
+        Customer.objects.create(user=user)
         code = self.create_otp("09120004444")
 
         payload = {
@@ -93,7 +95,9 @@ class TestRegisterCustomerView:
         }
         response = self.client.post(REGISTER_URL, payload)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "این شماره تلفن قبلاً ثبت شده است" in str(response.data)
+        assert "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است." in str(
+            response.data
+        )
 
     def test_password_mismatch(self):
         code = self.create_otp("09120005555")
@@ -151,12 +155,11 @@ class TestRegisterCustomerView:
                 "password": "StrongPass123!",
                 "confirm_password": "StrongPass123!"
             }
-            )
+        )
         assert response1.status_code == status.HTTP_201_CREATED
 
         # Remove customer to bypass UniqueAcrossModelsValidator
         get_user_model().objects.filter(username=phone).delete()
-        Customer.objects.filter(phone_number=phone).delete()
 
         # Second attempt (should now fail due to OTP being deleted)
         response2 = self.client.post(
@@ -166,7 +169,33 @@ class TestRegisterCustomerView:
                 "password": "StrongPass123!",
                 "confirm_password": "StrongPass123!"
             }
-            )
+        )
 
         assert response2.status_code == status.HTTP_400_BAD_REQUEST
         assert "کد تایید یافت نشد" in str(response2.data)
+
+    def test_phone_number_with_spaces(self):
+        code = self.create_otp("09123334444")
+        payload = {
+            "phone_number": " 09123334444 ",  # spaces
+            "code": code,
+            "password": "StrongPass123!",
+            "confirm_password": "StrongPass123!"
+        }
+        response = self.client.post(REGISTER_URL, payload)
+        assert response.status_code == status.HTTP_201_CREATED
+        assert "customer" in response.data["roles"]
+
+    def test_profile_phone_number_updated_if_different(self):
+        user = get_user_model().objects.create(username="09124445555")
+        Profile.objects.create(user=user, phone_number="OLD")
+        code = self.create_otp("09124445555")
+        payload = {
+            "phone_number": "09124445555",
+            "code": code,
+            "password": "StrongPass123!",
+            "confirm_password": "StrongPass123!"
+        }
+        res = self.client.post(REGISTER_URL, payload)
+        profile = Profile.objects.get(user=user)
+        assert profile.phone_number == "09124445555"

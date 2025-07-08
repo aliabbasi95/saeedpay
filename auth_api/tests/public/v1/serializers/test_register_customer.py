@@ -7,6 +7,7 @@ from rest_framework.exceptions import ValidationError
 from auth_api.api.public.v1.serializers import RegisterCustomerSerializer
 from auth_api.models import PhoneOTP
 from customers.models import Customer
+from profiles.models import Profile
 
 
 @pytest.mark.django_db
@@ -90,7 +91,8 @@ class TestRegisterCustomerSerializer:
 
     def test_already_registered_customer(self):
         user = get_user_model().objects.create(username="09129998888")
-        Customer.objects.create(user=user, phone_number="09129998888")
+        Profile.objects.create(user=user, phone_number="09120004444")
+        Customer.objects.create(user=user)
         self.create_otp("09129998888")
         serializer = RegisterCustomerSerializer(
             data={
@@ -102,7 +104,9 @@ class TestRegisterCustomerSerializer:
         )
         with pytest.raises(ValidationError) as exc:
             serializer.is_valid(raise_exception=True)
-        assert "این شماره تلفن قبلاً ثبت شده است" in str(exc.value)
+        assert "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است." in str(
+            exc.value
+        )
 
     def test_existing_user_without_customer(self):
         user = get_user_model().objects.create(username="09126667777")
@@ -181,7 +185,8 @@ class TestRegisterCustomerSerializer:
 
     def test_existing_user_with_customer_blocked(self):
         user = get_user_model().objects.create(username="09128889999")
-        Customer.objects.create(user=user, phone_number="09128889999")
+        Profile.objects.create(user=user, phone_number="09120004444")
+        Customer.objects.create(user=user)
         code = self.create_otp("09128889999")
         serializer = RegisterCustomerSerializer(
             data={
@@ -193,7 +198,9 @@ class TestRegisterCustomerSerializer:
         )
         with pytest.raises(ValidationError) as exc:
             serializer.is_valid(raise_exception=True)
-        assert "این شماره تلفن قبلاً ثبت شده است" in str(exc.value)
+        assert "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است." in str(
+            exc.value
+        )
 
     def test_password_without_symbol(self):
         self.create_otp("09125557777")

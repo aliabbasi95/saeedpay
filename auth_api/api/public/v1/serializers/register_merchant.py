@@ -9,8 +9,6 @@ from auth_api.models import PhoneOTP
 from auth_api.tokens import CustomRefreshToken
 from lib.erp_base.serializers.persian_error_message import \
     PersianValidationErrorMessages
-from lib.erp_base.validators.unique_across_models import \
-    UniqueAcrossModelsValidator
 from merchants.models import Merchant
 from profiles.models import Profile
 from wallets.services import create_default_wallets_for_user
@@ -27,12 +25,6 @@ class RegisterMerchantSerializer(
                 regex=r'^09\d{9}$',
                 message="شماره تلفن معتبر نیست."
             ),
-            UniqueAcrossModelsValidator(
-                model_field_pairs=[
-                    (Merchant, 'phone_number'),
-                ],
-                message="این شماره تلفن قبلاً ثبت شده است."
-            )
         ]
     )
     code = serializers.CharField()
@@ -52,6 +44,14 @@ class RegisterMerchantSerializer(
                 {'confirm_password': 'رمز عبور و تکرار آن یکسان نیستند.'}
             )
         phone_number = data.get("phone_number")
+        if Merchant.objects.filter(
+                user__username=phone_number
+        ).exists():
+            raise serializers.ValidationError(
+                {
+                    "phone_number": "این شماره تلفن قبلاً به عنوان فروشنده ثبت شده است."
+                }
+            )
         code = data.get("code")
         try:
             otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
