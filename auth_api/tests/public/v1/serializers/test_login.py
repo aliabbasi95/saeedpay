@@ -4,12 +4,14 @@ from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 
 from auth_api.api.public.v1.serializers import LoginSerializer
+from profiles.models import Profile
 
 
 @pytest.mark.django_db
 class TestLoginSerializer:
     def create_user(self, phone, password, is_active=True):
         user = get_user_model().objects.create(username=phone)
+        Profile.objects.create(user=user, phone_number=phone)
         user.set_password(password)
         user.is_active = is_active
         user.save()

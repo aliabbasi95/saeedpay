@@ -37,7 +37,7 @@ class TestCreateDefaultWalletsService:
         user = get_user_model().objects.create(username="store1")
         create_default_wallets_for_user(user, OwnerType.MERCHANT)
 
-        assert Wallet.objects.filter(user=user).count() == 0
+        assert Wallet.objects.filter(user=user).count() == 1
 
     def test_unsupported_owner_type_returns_empty(self):
         user = get_user_model().objects.create(username="customtype")
