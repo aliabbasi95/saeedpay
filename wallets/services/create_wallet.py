@@ -1,5 +1,5 @@
-from .models import Wallet
-from .utils.consts import DEFAULT_WALLETS
+from wallets.models import Wallet
+from wallets.utils.consts import DEFAULT_WALLETS
 
 
 def create_default_wallets_for_user(user, owner_type):

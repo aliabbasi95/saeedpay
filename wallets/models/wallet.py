@@ -9,13 +9,24 @@ from wallets.utils.choices import WalletKind, OwnerType
 
 class Wallet(BaseModel):
     user = models.ForeignKey(
-        get_user_model(), on_delete=models.CASCADE, related_name="wallets"
+        get_user_model(),
+        on_delete=models.CASCADE,
+        related_name="wallets",
+        verbose_name="کاربر"
     )
-    owner_type = models.CharField(max_length=20, choices=OwnerType.choices)
-
-    kind = models.CharField(max_length=20, choices=WalletKind.choices)
-
-    balance = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    owner_type = models.CharField(
+        max_length=20,
+        choices=OwnerType.choices,
+        verbose_name="نوع کاربر"
+    )
+    kind = models.CharField(
+        max_length=20,
+        choices=WalletKind.choices,
+        verbose_name = _("نوع")
+    )
+    balance = models.BigIntegerField(
+        verbose_name=_("مبلغ")
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

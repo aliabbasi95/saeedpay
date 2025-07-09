@@ -9,5 +9,6 @@ DEFAULT_WALLETS = {
         WalletKind.CREDIT,
     ],
     OwnerType.MERCHANT: [
+        WalletKind.MERCHANT_GATEWAY,
     ],
 }
