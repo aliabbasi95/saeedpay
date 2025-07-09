@@ -10,7 +10,6 @@ from wallets.models import PaymentRequest, Wallet, Transaction
 def create_payment_request(
         merchant, amount, description="", callback_url=None
 ):
-    # فقط روی کیف "merchant" ایجاد شود
     req = PaymentRequest.objects.create(
         merchant=merchant,
         amount=amount,
@@ -30,17 +29,15 @@ def pay_payment_request(request_obj, user, wallet: Wallet):
         raise Exception("موجودی کافی نیست.")
 
     with transaction.atomic():
-        # کسر و واریز
+
         wallet.balance -= request_obj.amount
         wallet.save()
-        # به والت merchant واریز
         merchant_wallet = Wallet.objects.get(
             user=request_obj.merchant, kind='merchant_gateway',
             owner_type='merchant'
         )
         merchant_wallet.balance += request_obj.amount
         merchant_wallet.save()
-        # ثبت تراکنش
         Transaction.objects.create(
             from_wallet=wallet,
             to_wallet=merchant_wallet,

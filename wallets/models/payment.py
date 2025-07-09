@@ -1,5 +1,4 @@
 # wallets/models/payment.py
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -13,7 +12,7 @@ class PaymentRequest(BaseModel):
         get_user_model(),
         on_delete=models.CASCADE,
         related_name="payment_requests",
-        verbose_name=_("مرچنت درخواست‌دهنده")
+        verbose_name=_("فروشنده درخواست‌دهنده")
     )
     amount = models.BigIntegerField(
         verbose_name=_("مبلغ")
@@ -50,10 +49,10 @@ class PaymentRequest(BaseModel):
     )
     paid_at = models.DateTimeField(null=True, blank=True)
 
-
     @property
     def uuid(self):
         return self.guid
+
     def __str__(self):
         return f"درخواست پرداخت #{self.id} - {self.amount} تومان - توسط {self.merchant}"
 

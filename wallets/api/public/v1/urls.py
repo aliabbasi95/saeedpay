@@ -1,7 +1,10 @@
 # wallets/api/public/v1/urls.py
 from django.urls import path
 
-from wallets.api.public.v1.views import WalletListView
+from wallets.api.public.v1.views import (
+    WalletListView,
+    PaymentRequestCreateView,
+)
 
 app_name = "wallets_public_v1"
 
@@ -9,6 +12,11 @@ urlpatterns = [
     path(
         "wallets/",
         WalletListView.as_view(),
+        name="wallet-list"
+    ),
+    path(
+        "payment-request/",
+        PaymentRequestCreateView.as_view(),
         name="wallet-list"
     ),
 ]
