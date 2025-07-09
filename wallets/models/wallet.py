@@ -22,10 +22,11 @@ class Wallet(BaseModel):
     kind = models.CharField(
         max_length=20,
         choices=WalletKind.choices,
-        verbose_name = _("نوع")
+        verbose_name=_("نوع"),
     )
     balance = models.BigIntegerField(
-        verbose_name=_("مبلغ")
+        verbose_name=_("مبلغ"),
+        default=0,
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
