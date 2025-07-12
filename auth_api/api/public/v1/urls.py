@@ -8,6 +8,7 @@ from auth_api.api.public.v1.views import (
     LogoutView,
     SecureTokenRefreshView,
     RegisterMerchantView,
+    SendUserOTPView
 )
 
 app_name = "auth_api_public_v1"
@@ -17,6 +18,11 @@ urlpatterns = [
         "send-otp/",
         SendOTPView.as_view(),
         name="send-otp"
+    ),
+    path(
+        "user/send-otp/",
+        SendUserOTPView.as_view(),
+        name="user-send-otp"
     ),
     path(
         "register/customer/",
