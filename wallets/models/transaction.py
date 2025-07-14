@@ -3,11 +3,25 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
-from wallets.models import Wallet, PaymentRequest
+from wallets.models import Wallet
 from wallets.utils.choices import TransactionStatus
+from wallets.utils.reference import generate_reference_code
 
 
 class Transaction(BaseModel):
+    reference_code = models.CharField(
+        max_length=20,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="کد پیگیری"
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=TransactionStatus.choices,
+        default=TransactionStatus.PENDING,
+        verbose_name=_("وضعیت")
+    )
     from_wallet = models.ForeignKey(
         Wallet,
         on_delete=models.CASCADE,
@@ -24,19 +38,25 @@ class Transaction(BaseModel):
         verbose_name=_("مبلغ")
     )
     payment_request = models.ForeignKey(
-        PaymentRequest,
+        "wallets.PaymentRequest",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         verbose_name = _("مبلغ")
     )
-    status = models.CharField(
-        max_length=16,
-        choices=TransactionStatus.choices,
-        default="success",
-        verbose_name=_("وضعیت")
-    )
+
     description = models.TextField(blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.reference_code:
+            for _ in range(5):
+                code = generate_reference_code(prefix="TRX", random_digits=6)
+                if not Transaction.objects.filter(reference_code=code).exists():
+                    self.reference_code = code
+                    break
+            else:
+                raise Exception("Reference code generation failed. Please try again.")
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = _("تراکنش کیف پول")

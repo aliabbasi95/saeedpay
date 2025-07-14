@@ -14,8 +14,22 @@ class WalletKind(models.TextChoices):
 class OwnerType(models.TextChoices):
     CUSTOMER = "customer", _("مشتری")
     MERCHANT = "merchant", _("فروشنده")
+    SYSTEM = "system", _("سیستم")
+
+
+class PaymentRequestStatus(models.TextChoices):
+    CREATED = "created", _("در انتظار پرداخت کاربر")
+    AWAITING_MERCHANT_CONFIRMATION = "awaiting_merchant", _(
+        "در انتظار تایید فروشنده"
+    )
+    COMPLETED = "completed", _("پرداخت نهایی شده")
+    CANCELLED = "cancelled", _("لغو شده")
+    EXPIRED = "expired", _("منقضی شده")
 
 
 class TransactionStatus(models.TextChoices):
-    SUCCESS = "success", _("موفق")
-    FAILED = "failed", _("ناموفق")
+    PENDING = "pending", "در انتظار تایید"
+    SUCCESS = "success", "موفق"
+    FAILED = "failed", "ناموفق"
+    REVERSED = "reversed", "برگشت‌خورده"
+    ESCROW = "escrow", "escrow"

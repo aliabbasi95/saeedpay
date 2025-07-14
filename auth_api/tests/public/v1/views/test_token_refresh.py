@@ -23,7 +23,6 @@ class TestTokenRefreshAPI:
     def test_refresh_success(self):
         refresh, _ = self.create_refresh_token("09120000001")
         response = self.client.post(REFRESH_URL, {"refresh": refresh})
-        print(response.data)
         assert response.status_code == status.HTTP_200_OK
         assert "access" in response.data
 

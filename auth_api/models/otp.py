@@ -1,5 +1,6 @@
 # auth_api/models/otp.py
 import pyotp
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -52,13 +53,15 @@ class PhoneOTP(BaseModel):
     def send(self):
         if not self.is_alive():
             code = self.generate()
-            print(code)
-            # send_sms.apply_async(
-            #     (
-            #         self.phone_number,
-            #         f"Verification code: {code}"
-            #     )
-            # )
+            if settings.CAS_DEBUG:
+                print(code)
+            else:
+                send_sms.apply_async(
+                    (
+                        self.phone_number,
+                        f"Verification code: {code}"
+                    )
+                )
             self.last_send_date = timezone.localtime(timezone.now())
             self.save()
         return True

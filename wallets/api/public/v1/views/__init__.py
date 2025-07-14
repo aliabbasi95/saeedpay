@@ -1,3 +1,7 @@
 from .wallet import WalletListView
-from .payment_request import PaymentRequestCreateView
-from .payment_confirm import PaymentConfirmView
+from .payment import (
+    PaymentRequestCreateView,
+    PaymentRequestDetailView,
+    PaymentConfirmView,
+    PaymentRequestVerifyView
+)

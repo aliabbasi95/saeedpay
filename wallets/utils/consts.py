@@ -1,5 +1,9 @@
 # wallets/utils/consts.py
+
 from wallets.utils.choices import OwnerType, WalletKind
+
+ESCROW_USER_NAME = "escrow_wallet_user"
+ESCROW_WALLET_KIND = "escrow"
 
 DEFAULT_WALLETS = {
     OwnerType.CUSTOMER: [
@@ -12,3 +16,5 @@ DEFAULT_WALLETS = {
         WalletKind.MERCHANT_GATEWAY,
     ],
 }
+
+FRONTEND_PAYMENT_DETAIL_URL = "dashboard/payment/"

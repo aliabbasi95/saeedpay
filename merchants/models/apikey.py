@@ -19,9 +19,6 @@ class MerchantApiKey(models.Model):
         db_index=True,
         verbose_name="هش کلید"
     )
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
     last_regenerated_at = models.DateTimeField(
         null=True,
         blank=True

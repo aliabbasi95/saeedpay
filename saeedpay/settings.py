@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from datetime import timedelta
 
+from celery.schedules import crontab
 from corsheaders.defaults import default_headers
 
 try:
@@ -170,7 +171,17 @@ CELERY_TIMEZONE = "Asia/Tehran"
 CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_RESULT_BACKEND = "redis"
 CELERY_TASK_DEFAULT_QUEUE = "ariansupply"
-CELERY_BEAT_SCHEDULE = {}
+
+CELERY_BEAT_SCHEDULE = {
+    'expire-pending-payment-requests-every-minute': {
+        'task': 'wallets.tasks.task_expire_pending_payment_requests',
+        'schedule': crontab(minute='*/1'),
+    },
+    'cleanup-cancelled-and-expired-requests-every-hour': {
+        'task': 'wallets.tasks.task_cleanup_cancelled_and_expired_requests',
+        'schedule': crontab(minute=0, hour='*/1'),
+    },
+}
 
 SERVICE_NAME = "SAEEDPAY"
 SERVICE_NAME_FA = "سعید پی"
@@ -179,29 +190,6 @@ AUTH_USER_MODEL = "cas_auth.User"
 AUTHENTICATION_BACKENDS = ["lib.cas_auth.backend.CASBackend"]
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1024 * 8
-
-ALLOWED_HOSTS = [
-    "*",
-    "http://172.20.20.134:3000",
-    "http://localhost:3000",
-    "http://172.20.20.134",
-    "http://localhost",
-]
-CSRF_TRUSTED_ORIGINS = [
-    "http://172.20.20.134:3000",
-    "http://localhost:3000",
-    "http://172.20.20.134",
-    "http://localhost",
-
-]
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://172.20.20.134:3000",
-    "http://localhost:3000",
-    "http://172.20.20.134",
-    "http://localhost",
-
-]
 
 
 def spectacular_preprocess_hook(endpoints):
