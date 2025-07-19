@@ -1,6 +1,7 @@
 # wallets/api/internal/v1/views/payment.py
 from django.conf import settings
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 
 from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
@@ -156,14 +157,22 @@ class PaymentRequestVerifyView(PublicAPIView):
             self.response_data = {"detail": "درخواست پرداخت پیدا نشد."}
             self.response_status = status.HTTP_404_NOT_FOUND
         else:
-            txn = verify_payment_request(payment_request)
-            self.response_data = self.serializer_class(
-                {
-                    "detail": "پرداخت نهایی شد.",
-                    "payment_reference_code": payment_request.reference_code,
-                    "transaction_reference_code": txn.reference_code,
-                    "amount": payment_request.amount
-                }
-            ).data
-            self.response_status = status.HTTP_200_OK
+            try:
+                txn = verify_payment_request(payment_request)
+                self.response_data = self.serializer_class(
+                    {
+                        "detail": "پرداخت نهایی شد.",
+                        "payment_reference_code": payment_request.reference_code,
+                        "transaction_reference_code": txn.reference_code,
+                        "amount": payment_request.amount
+                    }
+                ).data
+                self.response_status = status.HTTP_200_OK
+            except ValidationError as e:
+                message = e.detail[0] if isinstance(e.detail, list) else str(
+                    e.detail
+                    )
+                self.response_data = {"detail": message}
+                self.response_status = status.HTTP_400_BAD_REQUEST
+
         return self.response

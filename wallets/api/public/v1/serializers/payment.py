@@ -5,11 +5,14 @@ from rest_framework import serializers
 
 from auth_api.models import PhoneOTP
 from wallets.models import PaymentRequest
+from wallets.utils.validators import https_only_validator
 
 
 class PaymentRequestCreateSerializer(serializers.Serializer):
     amount = serializers.IntegerField(min_value=1)
-    return_url = serializers.URLField(required=True)
+    return_url = serializers.URLField(
+        required=True, validators=[https_only_validator]
+    )
     description = serializers.CharField(
         required=False, allow_blank=True, max_length=255
     )

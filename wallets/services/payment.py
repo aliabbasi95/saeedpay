@@ -10,7 +10,6 @@ from wallets.models import PaymentRequest, Wallet, Transaction
 from wallets.utils.choices import PaymentRequestStatus, TransactionStatus
 from wallets.utils.consts import ESCROW_WALLET_KIND, ESCROW_USER_NAME
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -41,7 +40,7 @@ def pay_payment_request(request_obj, user, wallet: Wallet):
     with transaction.atomic():
         if wallet.balance < request_obj.amount:
             raise Exception("موجودی کافی نیست.")
-        escrow_wallet= Wallet.objects.get(
+        escrow_wallet = Wallet.objects.get(
             user__username=ESCROW_USER_NAME, kind=ESCROW_WALLET_KIND
         )
         wallet.balance -= request_obj.amount
@@ -77,24 +76,39 @@ def check_and_expire_payment_request(payment_request):
 
 def verify_payment_request(payment_request):
     if payment_request.status != PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION:
-        raise Exception(
-            "فقط پرداخت‌های منتظر تایید مرچنت قابل نهایی‌سازی هستند."
+        raise ValidationError(
+            "پرداخت قابل نهایی‌سازی نیست یا قبلاً تایید شده است."
         )
     with transaction.atomic():
         txn = Transaction.objects.filter(
             payment_request=payment_request, status=TransactionStatus.PENDING
         ).first()
         if not txn:
-            raise Exception("تراکنش پیدا نشد.")
+            raise ValidationError("تراکنش مرتبط با این پرداخت یافت نشد.")
 
         escrow_wallet = txn.to_wallet
-        merchant_wallet = Wallet.objects.get(
-            user=payment_request.merchant, kind='merchant_gateway',
-            owner_type='merchant'
-        )
+        try:
+            merchant_wallet = Wallet.objects.get(
+                user=payment_request.merchant,
+                kind="merchant_gateway",
+                owner_type="merchant"
+            )
+        except Wallet.DoesNotExist:
+            logger.error(
+                f"Merchant wallet not found for user {payment_request.merchant}"
+            )
+            raise ValidationError(
+                "عملیات با خطا مواجه شد. لطفاً بعداً تلاش کنید."
+            )
 
         if escrow_wallet.balance < payment_request.amount:
-            raise Exception("موجودی Escrow کافی نیست.")
+            logger.error(
+                "ESCROW WALLET LOW BALANCE during verify: "
+                f"Need {payment_request.amount}, Available {escrow_wallet.balance}"
+            )
+            raise ValidationError(
+                "عملیات با خطا مواجه شد. لطفاً بعداً تلاش کنید."
+            )
 
         escrow_wallet.balance -= payment_request.amount
         merchant_wallet.balance += payment_request.amount
@@ -123,8 +137,11 @@ def rollback_payment(payment_request):
 
     with transaction.atomic():
         if escrow_wallet.balance < txn.amount:
-            logger.error("ESCROW WALLET LOW BALANCE!")
-            raise Exception("خطا در بازگشت وجه")
+            logger.error(
+                "ESCROW WALLET LOW BALANCE during rollback: "
+                f"Need {txn.amount}, Available {escrow_wallet.balance}"
+            )
+            raise ValidationError("عملیات بازگشت وجه با خطا مواجه شد.")
 
         escrow_wallet.balance -= txn.amount
         customer_wallet.balance += txn.amount
@@ -132,4 +149,5 @@ def rollback_payment(payment_request):
         customer_wallet.save()
 
         txn.status = TransactionStatus.REVERSED
+        txn.description = "وجه به کیف پول مبدا باگشت داده شد."
         txn.save()
