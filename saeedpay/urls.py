@@ -33,6 +33,7 @@ urlpatterns_main = [
 
 api_urlpatterns = [
     path("api/auth/", include("auth_api.api.urls")),
+    path("api/profiles/", include("profiles.api.urls")),
     path("api/wallets/", include("wallets.api.urls")),
     path("api/merchants/", include("merchants.api.urls")),
 ]
