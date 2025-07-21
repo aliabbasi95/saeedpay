@@ -20,6 +20,10 @@ class WalletSerializer(serializers.ModelSerializer):
     owner_type_display = serializers.CharField(
         source="get_owner_type_display", read_only=True
     )
+    available_balance = serializers.ReadOnlyField()
+
+    def get_available_balance(self, obj):
+        return obj.balance - obj.reserved_balance
 
     class Meta:
         model = Wallet
@@ -30,6 +34,7 @@ class WalletSerializer(serializers.ModelSerializer):
             "owner_type",
             "owner_type_display",
             "balance",
+            "available_balance",
             "created_at",
             "updated_at",
         ]

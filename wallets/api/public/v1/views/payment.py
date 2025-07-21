@@ -81,9 +81,11 @@ class PaymentRequestDetailView(PublicGetAPIView):
         user = request.user if request.user and request.user.is_authenticated else None
         if user:
             wallets = Wallet.objects.filter(
-                user=user, owner_type=OwnerType.CUSTOMER,
-                balance__gte=payment_req.amount
+                user=user, owner_type=OwnerType.CUSTOMER
             )
+            wallets = [
+                w for w in wallets if w.available_balance >= payment_req.amount
+            ]
 
             available_wallets = WalletSerializer(data=wallets, many=True)
             available_wallets.is_valid()

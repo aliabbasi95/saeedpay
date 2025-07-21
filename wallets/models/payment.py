@@ -1,6 +1,7 @@
 # wallets/models/payment.py
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
@@ -86,6 +87,8 @@ class PaymentRequest(BaseModel):
         rollback_payment(self)
 
     def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timezone.timedelta(minutes=15)
         if not self.reference_code:
             for _ in range(5):
                 code = generate_reference_code(prefix="PR", random_digits=6)

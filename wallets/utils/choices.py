@@ -9,6 +9,7 @@ class WalletKind(models.TextChoices):
     CASHBACK = "cashback", _("بازگشت پول")
     CREDIT = "credit", _("اعتباری")
     MERCHANT_GATEWAY = "merchant_gateway", _("درگاه فروشگاه")
+    ESCROW = "escrow", "escrow"
 
 
 class OwnerType(models.TextChoices):
@@ -32,4 +33,10 @@ class TransactionStatus(models.TextChoices):
     SUCCESS = "success", "موفق"
     FAILED = "failed", "ناموفق"
     REVERSED = "reversed", "برگشت‌خورده"
-    ESCROW = "escrow", "escrow"
+
+
+class TransferStatus(models.TextChoices):
+    PENDING_CONFIRMATION = "pending_confirmation", "در انتظار تایید گیرنده"
+    SUCCESS = "success", "انجام شده"
+    REJECTED = "rejected", "رد شده"
+    EXPIRED = "expired", "منقضی شده"

@@ -38,7 +38,7 @@ def pay_payment_request(request_obj, user, wallet: Wallet):
         raise Exception("این درخواست منقضی شده است.")
 
     with transaction.atomic():
-        if wallet.balance < request_obj.amount:
+        if wallet.available_balance < request_obj.amount:
             raise Exception("موجودی کافی نیست.")
         escrow_wallet = Wallet.objects.get(
             user__username=ESCROW_USER_NAME, kind=ESCROW_WALLET_KIND

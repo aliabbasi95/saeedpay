@@ -2,7 +2,7 @@ from celery import shared_task
 from django.utils import timezone
 
 from wallets.models import PaymentRequest
-from wallets.services.payment import rollback_payment
+from wallets.services import rollback_payment, expire_pending_transfer_requests
 from wallets.utils.choices import PaymentRequestStatus
 
 
@@ -37,3 +37,8 @@ def task_expire_pending_payment_requests():
 @shared_task
 def task_cleanup_cancelled_and_expired_requests():
     cleanup_cancelled_and_expired_requests()
+
+
+@shared_task
+def task_expire_pending_transfer_requests():
+    expire_pending_transfer_requests()

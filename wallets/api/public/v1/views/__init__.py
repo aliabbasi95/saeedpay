@@ -5,3 +5,8 @@ from .payment import (
     PaymentConfirmView,
     PaymentRequestVerifyView
 )
+from .transfer import (
+    WalletTransferListCreateView,
+    WalletTransferConfirmView,
+    WalletTransferRejectView
+)

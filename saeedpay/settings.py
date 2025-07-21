@@ -123,7 +123,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = 'Asia/Tehran'
 
 USE_I18N = True
 
@@ -153,7 +153,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=900),
     "REFRESH_TOKEN_LIFETIME": timedelta(hours=24),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -180,6 +180,10 @@ CELERY_BEAT_SCHEDULE = {
     'cleanup-cancelled-and-expired-requests-every-hour': {
         'task': 'wallets.tasks.task_cleanup_cancelled_and_expired_requests',
         'schedule': crontab(minute=0, hour='*/1'),
+    },
+    'expire-pending-transfer-every-minute': {
+        'task': 'wallets.tasks.task_expire_pending_transfer_requests',
+        'schedule': crontab(minute='*/1'),
     },
 }
 

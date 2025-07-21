@@ -28,14 +28,22 @@ class Wallet(BaseModel):
         verbose_name=_("مبلغ"),
         default=0,
     )
+    reserved_balance = models.BigIntegerField(
+        verbose_name=_("مبلغ رزروشده"),
+        default=0
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def available_balance(self) -> int:
+        return self.balance - self.reserved_balance
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_kind_display()} ({self.get_owner_type_display()})"
 
     class Meta:
         unique_together = ("user", "owner_type", "kind")
         verbose_name = _("کیف پول")
         verbose_name_plural = _("کیف پول‌ها")
-
-    def __str__(self):
-        return f"{self.user.username} - {self.get_kind_display()} ({self.get_owner_type_display()})"
