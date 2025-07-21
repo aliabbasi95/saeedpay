@@ -29,6 +29,7 @@ class WalletSerializer(serializers.ModelSerializer):
         model = Wallet
         fields = [
             "id",
+            "wallet_number",
             "kind",
             "kind_display",
             "owner_type",

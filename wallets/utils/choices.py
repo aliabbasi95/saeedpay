@@ -6,10 +6,20 @@ from django.utils.translation import gettext_lazy as _
 class WalletKind(models.TextChoices):
     MICRO_CREDIT = "micro_credit", _("اعتباری خرد")
     CASH = "cash", _("نقدی")
-    CASHBACK = "cashback", _("بازگشت پول")
     CREDIT = "credit", _("اعتباری")
+    CASHBACK = "cashback", _("بازگشت پول")
     MERCHANT_GATEWAY = "merchant_gateway", _("درگاه فروشگاه")
     ESCROW = "escrow", "escrow"
+
+
+WALLET_KIND_PREFIX = {
+    "micro_credit": "50",
+    "cash": "60",
+    "credit": "61",
+    "cashback": "62",
+    "merchant_gateway": "63",
+    "escrow": "99",
+}
 
 
 class OwnerType(models.TextChoices):
