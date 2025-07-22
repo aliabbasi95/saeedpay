@@ -9,7 +9,7 @@ from wallets.models.wallet import Wallet
 from wallets.utils.choices import TransferStatus
 from wallets.utils.reference import generate_reference_code
 
-ALLOWED_SENDER_KINDS = ['cash']  # این policy رو بعداً می‌تونی داینامیک‌تر کنی
+ALLOWED_SENDER_KINDS = ['cash']
 ALLOWED_RECEIVER_KINDS = ['cash']
 
 
@@ -17,16 +17,23 @@ def create_wallet_transfer_request(
         sender_wallet: Wallet, amount: int, receiver_wallet: Wallet = None,
         receiver_phone: str = None, description: str = '', creator=None
 ):
-    # 1. Policy kind کیف
     if sender_wallet.kind not in ALLOWED_SENDER_KINDS:
         raise ValidationError("انتقال از این نوع کیف مجاز نیست.")
     if receiver_wallet and receiver_wallet.kind not in ALLOWED_RECEIVER_KINDS:
         raise ValidationError("انتقال به این نوع کیف مجاز نیست.")
 
-    # 2. فرستنده و گیرنده یک نفر نباشند
-    if receiver_wallet and sender_wallet.user == receiver_wallet.user:
+    if (
+            (
+                    receiver_wallet and
+                    sender_wallet.user == receiver_wallet.user)
+            or
+            (
+                    receiver_phone and
+                    hasattr(sender_wallet.user, "profile") and
+                    sender_wallet.user.profile.phone_number == receiver_phone
+            )
+    ):
         raise ValidationError("انتقال بین کیف‌های یک نفر مجاز نیست.")
-    # رزرو امن (atomic + select_for_update)
     with transaction.atomic():
         sender_wallet = Wallet.objects.select_for_update().get(
             pk=sender_wallet.pk
@@ -49,7 +56,6 @@ def create_wallet_transfer_request(
             creator=creator
         )
 
-        # انتقال مستقیم: همزمان برداشت نهایی و انتقال وجه
         if receiver_wallet:
             if sender_wallet.reserved_balance < amount or sender_wallet.balance < amount:
                 raise ValidationError("موجودی کافی نیست.")
@@ -80,7 +86,6 @@ def check_and_expire_transfer_request(transfer_request):
         if transfer_request.status == TransferStatus.PENDING_CONFIRMATION:
             transfer_request.status = TransferStatus.EXPIRED
             transfer_request.save()
-            # مبلغ رزرو باید آزاد شود:
             sender_wallet = transfer_request.sender_wallet
             sender_wallet.balance += transfer_request.amount
             sender_wallet.save()
