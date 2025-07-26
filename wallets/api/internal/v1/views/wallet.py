@@ -1,7 +1,6 @@
 # wallets/api/internal/v1/views/wallet.py
 
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from lib.cas_auth.views import CasAuthAPIView
@@ -15,8 +14,6 @@ from wallets.utils.choices import OwnerType
 
 
 class InternalCustomerWalletListByNationalIdView(CasAuthAPIView):
-    authentication_classes = (AllowAny,)
-    permission_classes = (AllowAny,)
 
     def post(self, request):
         serializer = NationalIdInputSerializer(data=request.data)
