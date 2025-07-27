@@ -10,9 +10,10 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from django.http import Http404
 
 LLM_BASE_URL = getattr(settings, "LLM_BASE_URL", "http://localhost:8001")
-HISTORY_LIMIT = 10
+HISTORY_LIMIT = getattr(settings, "CHATBOT_HISTORY_LIMIT", 4)
 
 
 @extend_schema(
@@ -124,9 +125,16 @@ class ChatView(PublicAPIView):
             JSON response containing the AI's answer
         """
         user = request.user if request.user.is_authenticated else None
-        session = get_object_or_404(
-            ChatSession, id=session_id, user=user, is_active=True
-        )
+        try:
+            session = get_object_or_404(
+                ChatSession, id=session_id, user=user, is_active=True
+            )
+        except Http404:
+            from rest_framework.response import Response
+
+            return Response(
+                {"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND
+            )
 
         # Validate input using serializer
         serializer = self.get_serializer(data=request.data)
@@ -134,6 +142,22 @@ class ChatView(PublicAPIView):
             self.response_data = serializer.errors
             self.response_status = status.HTTP_400_BAD_REQUEST
             return self.response
+
+        # Message limit for anonymous users
+        if user is None:
+            user_message_count = ChatMessage.objects.filter(
+                session=session, sender="user"
+            ).count()
+            if user_message_count >= HISTORY_LIMIT:
+                self.response_data = {
+                    "detail": (
+                        f"Anonymous users are limited to "
+                        f"{HISTORY_LIMIT} messages per session. "
+                        "Please log in to continue chatting."
+                    )
+                }
+                self.response_status = status.HTTP_403_FORBIDDEN
+                return self.response
 
         query = serializer.validated_data["query"]
         # Fetch last N messages
@@ -205,14 +229,16 @@ class UserChatSessionsView(PublicGetAPIView):
                 sessions = ChatSession.objects.filter(
                     user=None, session_key=session_key
                 ).order_by("-created_at")
-        self.response_data = [
-            {
-                "session_id": s.id,
-                "created_at": s.created_at,
-                "is_active": s.is_active,
-            }
-            for s in sessions
-        ]
+        self.response_data = {
+            "sessions": [
+                {
+                    "session_id": s.id,
+                    "created_at": s.created_at,
+                    "is_active": s.is_active,
+                }
+                for s in sessions
+            ]
+        }
         self.response_status = status.HTTP_200_OK
         return self.response
 
@@ -222,16 +248,28 @@ class ChatSessionDetailView(PublicGetAPIView):
     permission_classes = [AllowAny]
 
     def get(self, request, session_id):
-        if request.user.is_authenticated:
-            session = get_object_or_404(
-                ChatSession, id=session_id, user=request.user
-            )
-        else:
-            session_key = request.session.session_key
-            if not session_key:
-                return self.permission_denied(request, message="Not allowed.")
-            session = get_object_or_404(
-                ChatSession, id=session_id, user=None, session_key=session_key
+        try:
+            if request.user.is_authenticated:
+                session = get_object_or_404(
+                    ChatSession, id=session_id, user=request.user
+                )
+            else:
+                session_key = request.session.session_key
+                if not session_key:
+                    return self.permission_denied(
+                        request, message="Not allowed."
+                    )
+                session = get_object_or_404(
+                    ChatSession,
+                    id=session_id,
+                    user=None,
+                    session_key=session_key,
+                )
+        except Http404:
+            from rest_framework.response import Response
+
+            return Response(
+                {"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND
             )
         messages = ChatMessage.objects.filter(session=session).order_by(
             "created_at"
