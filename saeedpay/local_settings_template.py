@@ -24,6 +24,7 @@ DATABASES = {
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
+REDIS_PASSWORD=''
 
 STATIC_ROOT = ''
 MEDIA_ROOT = ''
