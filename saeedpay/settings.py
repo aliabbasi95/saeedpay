@@ -15,6 +15,8 @@ from datetime import timedelta
 from celery.schedules import crontab
 from corsheaders.defaults import default_headers
 
+from chatbot.apps import ChatbotConfig
+
 try:
     from .local_settings import *
 except ImportError:
@@ -56,6 +58,7 @@ LOCAL_APPS = [
     "auth_api",
     "wallets",
     "merchants",
+    "chatbot",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS

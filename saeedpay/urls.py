@@ -29,6 +29,7 @@ from lib.cas_auth.admin.utils import has_admin_permission
 urlpatterns_main = [
     path("admin/", admin.site.urls),
     path("cas-auth/", include("lib.cas_auth.urls")),
+    path("chatbot/", include("chatbot.urls")),
 ]
 
 api_urlpatterns = [

@@ -30,7 +30,7 @@ MEDIA_ROOT = ''
 
 CAS_PUBLICKEY_URL = 'http://erp.ag/cas/static/public_key.pem'
 CAS_URL = 'http://erp.ag/cas'
-CAS_DEBUG = False
+CAS_DEBUG = True
 
 KAVENEGAR_API_KEY = '5130593D'
 KAVENEGAR_NUMBER = ''
@@ -38,3 +38,7 @@ KAVENEGAR_NUMBER = ''
 CAS_TOKEN = '123123j1oi2j3io1'
 
 FRONTEND_BASE_URL = "http://172.20.20.134:3000/"
+
+LLM_BASE_URL = 'http://192.168.20.250:8008/'
+
+CHATBOT_HISTORY_LIMIT = 4
