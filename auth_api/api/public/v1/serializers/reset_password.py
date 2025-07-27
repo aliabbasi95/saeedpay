@@ -5,15 +5,18 @@ from django.core.validators import RegexValidator
 from rest_framework import serializers
 
 from auth_api.models import PhoneOTP
-from lib.erp_base.serializers.persian_error_message import PersianValidationErrorMessages
+from lib.erp_base.serializers.persian_error_message import \
+    PersianValidationErrorMessages
 
 
-class ResetPasswordSerializer(PersianValidationErrorMessages, serializers.Serializer):
+class ResetPasswordSerializer(
+    PersianValidationErrorMessages, serializers.Serializer
+):
     phone_number = serializers.CharField(
         max_length=11,
         validators=[
             RegexValidator(
-                regex=r'^09\d{9}$',
+                regex=r"^09\d{9}$",
                 message="شماره تلفن معتبر نیست."
             ),
         ]
@@ -30,21 +33,24 @@ class ResetPasswordSerializer(PersianValidationErrorMessages, serializers.Serial
         return password
 
     def validate(self, data):
+        data["new_password"] = data["new_password"].strip()
+        data["confirm_password"] = data["confirm_password"].strip()
+
         # Validate password confirmation
-        if data['new_password'] != data['confirm_password']:
+        if data["new_password"] != data["confirm_password"]:
             raise serializers.ValidationError(
-                {'confirm_password': 'رمز عبور جدید و تکرار آن یکسان نیستند.'}
+                {"confirm_password": "رمز عبور جدید و تکرار آن یکسان نیستند."}
             )
 
         phone_number = data.get("phone_number")
-        
+
         # Check if user exists with this phone number
         User = get_user_model()
         if not User.objects.filter(username=phone_number).exists():
             raise serializers.ValidationError(
                 {"phone_number": "کاربری با این شماره تلفن یافت نشد."}
             )
-        
+
         # Validate OTP
         code = data.get("code")
         try:
@@ -62,12 +68,12 @@ class ResetPasswordSerializer(PersianValidationErrorMessages, serializers.Serial
         return data
 
     def save(self, **kwargs):
-        phone_number = self.validated_data['phone_number']
-        new_password = self.validated_data['new_password']
+        phone_number = self.validated_data["phone_number"]
+        new_password = self.validated_data["new_password"]
 
         User = get_user_model()
         user = User.objects.get(username=phone_number)
         user.set_password(new_password)
         user.save()
-        
-        return user 
+
+        return user

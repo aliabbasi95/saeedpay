@@ -153,6 +153,13 @@ REST_FRAMEWORK = {
     ],
     "EXCEPTION_HANDLER": None,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'otp_by_phone': '5/hour',
+    }
 }
 
 SIMPLE_JWT = {

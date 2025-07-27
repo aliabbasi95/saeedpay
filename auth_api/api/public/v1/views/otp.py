@@ -7,6 +7,7 @@ from auth_api.api.public.v1.serializers import (
     SendOTPSerializer,
     SendUserOTPSerializer,
 )
+from auth_api.utils.throttles import OTPPhoneRateThrottle
 from lib.cas_auth.views import PublicAPIView
 
 
@@ -21,11 +22,13 @@ from lib.cas_auth.views import PublicAPIView
 class SendOTPView(PublicAPIView):
     permission_classes = (AllowAny,)
     serializer_class = SendOTPSerializer
+    throttle_classes = [OTPPhoneRateThrottle]
 
     def perform_save(self, serializer):
         serializer.save()
         self.response_data = {"detail": "کد تأیید با موفقیت ارسال شد."}
         self.response_status = status.HTTP_200_OK
+
 
 @extend_schema(
     request=SendUserOTPSerializer,

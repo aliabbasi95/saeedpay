@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny
 
 from auth_api.api.public.v1.serializers import ResetPasswordSerializer
+from auth_api.utils.throttles import OTPPhoneRateThrottle
 from lib.cas_auth.views import PublicAPIView
 
 
@@ -18,8 +19,9 @@ from lib.cas_auth.views import PublicAPIView
 class ResetPasswordView(PublicAPIView):
     permission_classes = (AllowAny,)
     serializer_class = ResetPasswordSerializer
+    throttle_classes = [OTPPhoneRateThrottle]
 
     def perform_save(self, serializer):
         serializer.save()
         self.response_data = {"detail": "رمز عبور با موفقیت بازنشانی شد."}
-        self.response_status = status.HTTP_200_OK 
+        self.response_status = status.HTTP_200_OK
