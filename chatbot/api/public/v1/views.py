@@ -1,16 +1,18 @@
 import requests
 from django.conf import settings
-from rest_framework import status
-from rest_framework import serializers
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
-from chatbot.models import ChatSession, ChatMessage
-from chatbot.serializers import ChatRequestSerializer, ChatResponseSerializer
-from drf_spectacular.utils import extend_schema, OpenApiResponse
-from django.utils import timezone
-from django.shortcuts import get_object_or_404
-from django.db.models import Q
 from django.http import Http404
+from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+from rest_framework import serializers
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+
+from chatbot.api.public.v1.serializers import (
+    ChatRequestSerializer,
+    ChatResponseSerializer,
+)
+from chatbot.models import ChatSession, ChatMessage
+from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
 
 LLM_BASE_URL = getattr(settings, "LLM_BASE_URL", "http://localhost:8001")
 HISTORY_LIMIT = getattr(settings, "CHATBOT_HISTORY_LIMIT", 4)
@@ -89,8 +91,8 @@ class StartChatView(PublicAPIView):
     tags=["chatbot"],
     summary="Send message to AI chatbot",
     description=(
-        "Send a message to the AI chatbot and receive a response. "
-        "The conversation history is maintained within the session context."
+            "Send a message to the AI chatbot and receive a response. "
+            "The conversation history is maintained within the session context."
     ),
     request=ChatRequestSerializer,
     responses={
@@ -185,9 +187,9 @@ class ChatView(PublicAPIView):
             try:
                 data = resp.json()
                 answer = (
-                    data.get("answer")
-                    or data.get("content")
-                    or data.get("response")
+                        data.get("answer")
+                        or data.get("content")
+                        or data.get("response")
                 )
                 if not answer:
                     raise ValueError("No answer in LLM response")

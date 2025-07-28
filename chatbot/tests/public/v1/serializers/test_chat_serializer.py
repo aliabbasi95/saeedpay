@@ -1,6 +1,6 @@
 import pytest
-from chatbot.serializers import ChatRequestSerializer
-from django.conf import settings
+from chatbot.api.public.v1.serializers import ChatRequestSerializer
+
 
 @pytest.mark.django_db
 def test_serializer_validation():
