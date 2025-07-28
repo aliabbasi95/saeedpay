@@ -62,3 +62,10 @@ class Profile(BaseModel):
     class Meta:
         verbose_name = _("پروفایل")
         verbose_name_plural = _("پروفایل‌ها")
+        constraints = [
+            models.UniqueConstraint(
+                fields=['national_id'],
+                name='unique_national_id_not_null',
+                condition=models.Q(national_id__isnull=False)
+            )
+        ]

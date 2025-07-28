@@ -2,7 +2,15 @@
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
+from lib.erp_base.validators import validate_national_id
 from wallets.models import Wallet
+
+
+class NationalIdInputSerializer(serializers.Serializer):
+    national_id = serializers.CharField(
+        max_length=10,
+        validators=[validate_national_id]
+    )
 
 
 class PhoneNumberInputSerializer(serializers.Serializer):

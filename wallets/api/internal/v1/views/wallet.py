@@ -1,37 +1,34 @@
 # wallets/api/internal/v1/views/wallet.py
 
-from django.contrib.auth import get_user_model
 from rest_framework import status
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from lib.cas_auth.views import CasAuthAPIView
+from profiles.models import Profile
 from wallets.api.internal.v1.serializers import (
     WalletSerializer,
-    PhoneNumberInputSerializer,
+    NationalIdInputSerializer,
 )
 from wallets.models import Wallet
 from wallets.utils.choices import OwnerType
 
 
-class InternalCustomerWalletListView(CasAuthAPIView):
-    authentication_classes = (AllowAny,)
-    permission_classes = (AllowAny,)
+class InternalCustomerWalletListByNationalIdView(CasAuthAPIView):
 
     def post(self, request):
-        serializer = PhoneNumberInputSerializer(data=request.data)
+        serializer = NationalIdInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST
             )
-
         try:
-            user = get_user_model().objects.get(
-                username=serializer.validated_data["phone_number"]
+            profile = Profile.objects.get(
+                national_id=serializer.validated_data["national_id"]
             )
-        except get_user_model().DoesNotExist:
+            user = profile.user
+        except Profile.DoesNotExist:
             return Response(
-                {"detail": "کاربری با این شماره پیدا نشد."},
+                {"detail": "کاربری با این کد ملی پیدا نشد."},
                 status=status.HTTP_404_NOT_FOUND
             )
 

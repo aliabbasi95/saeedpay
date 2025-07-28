@@ -1,1 +1,1 @@
-from .wallet import InternalCustomerWalletListView
+from .wallet import InternalCustomerWalletListByNationalIdView
