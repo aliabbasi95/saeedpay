@@ -25,6 +25,11 @@ class MerchantContract(BaseModel):
         help_text="مثلاً [1, 2, 3]",
         verbose_name=_("پریودهای مجاز بازپرداخت (ماه)")
     )
+    interest_rate = models.FloatField(
+        default=0.0,
+        help_text="نرخ بهره سالیانه (درصد)، به عنوان مثال: 18.0",
+        verbose_name=_("نرخ بهره سالیانه (٪)")
+    )
     active = models.BooleanField(
         default=True,
         verbose_name=_("فعال")

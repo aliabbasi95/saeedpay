@@ -7,17 +7,29 @@ def evaluate_user_credit(requested_amount: int, contract) -> int:
 
 
 def calculate_installments(
-        amount: int, duration_months: int, period_months: int
+        amount, duration_months, period_months, annual_interest_rate
 ):
+
     if period_months == 0:
         raise ValueError("پریود اقساط نمی‌تواند صفر باشد.")
 
-    num_installments = ceil(duration_months / period_months)
-    installment_amount = ceil(amount / num_installments)
-    total_repayment = installment_amount * num_installments
+    n = ceil(duration_months / period_months)
+
+    r_annual = annual_interest_rate / 100
+    r_periodic = r_annual / (12 / period_months)
+
+    if r_periodic == 0:
+        installment_amount = ceil(amount / n)
+        total_repayment = installment_amount * n
+    else:
+        factor = (1 + r_periodic) ** n
+        installment_amount = ceil(amount * r_periodic * factor / (factor - 1))
+        total_repayment = installment_amount * n
 
     return {
-        "installment_count": num_installments,
+        "installment_count": n,
         "installment_amount": installment_amount,
         "total_repayment": total_repayment,
+        "period_months": period_months,
+        "interest_rate": annual_interest_rate
     }
