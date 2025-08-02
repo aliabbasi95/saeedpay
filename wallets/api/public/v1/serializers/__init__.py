@@ -16,4 +16,5 @@ from .transfer import (
 from .installment_request import (
     InstallmentRequestCreateSerializer,
     InstallmentRequestDetailSerializer,
+    InstallmentRequestConfirmSerializer,
 )

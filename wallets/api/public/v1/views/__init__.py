@@ -12,5 +12,7 @@ from .transfer import (
 )
 from .installment_request import (
     InstallmentRequestCreateView,
-    InstallmentRequestDetailView
+    InstallmentRequestDetailView,
+    InstallmentCalculationView,
+    InstallmentRequestConfirmView,
 )
