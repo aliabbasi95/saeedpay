@@ -30,6 +30,11 @@ class MerchantContract(BaseModel):
         help_text="نرخ بهره سالیانه (درصد)، به عنوان مثال: 18.0",
         verbose_name=_("نرخ بهره سالیانه (٪)")
     )
+    callback_url = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name=_("آدرس callback برای اطلاع تایید کاربر"),
+    )
     active = models.BooleanField(
         default=True,
         verbose_name=_("فعال")

@@ -3,18 +3,14 @@ from django.urls import path
 
 from wallets.api.public.v1.views import (
     WalletListView,
-    PaymentRequestCreateView,
     PaymentRequestDetailView,
     PaymentConfirmView,
-    PaymentRequestVerifyView,
     WalletTransferConfirmView,
     WalletTransferRejectView,
     WalletTransferListCreateView,
-    InstallmentRequestCreateView,
     InstallmentRequestDetailView,
     InstallmentRequestConfirmView,
     InstallmentCalculationView,
-    InstallmentRequestVerifyView,
 )
 
 app_name = "wallets_public_v1"
@@ -26,11 +22,7 @@ urlpatterns = [
         name="wallet-list"
     ),
     # payment
-    path(
-        "payment-request/",
-        PaymentRequestCreateView.as_view(),
-        name="payment-request-create"
-    ),
+
     path(
         "payment-request/<str:reference_code>/",
         PaymentRequestDetailView.as_view(),
@@ -41,11 +33,7 @@ urlpatterns = [
         PaymentConfirmView.as_view(),
         name="payment-request-confirm"
     ),
-    path(
-        "payment-request/<str:reference_code>/verify/",
-        PaymentRequestVerifyView.as_view(),
-        name="payment-request-verify"
-    ),
+
     # transfer
     path(
         'wallet-transfer/', WalletTransferListCreateView.as_view(),
@@ -62,11 +50,7 @@ urlpatterns = [
         name='wallet-transfer-reject'
     ),
     # installment
-    path(
-        "installment-request/",
-        InstallmentRequestCreateView.as_view(),
-        name="installment-request-create"
-    ),
+
     path(
         "installment-request/<str:reference_code>/",
         InstallmentRequestDetailView.as_view(),
@@ -81,11 +65,6 @@ urlpatterns = [
         "installment-request/<str:reference_code>/confirm/",
         InstallmentRequestConfirmView.as_view(),
         name="installment-request-confirm"
-    ),
-    path(
-        "installment-request/<str:reference_code>/verify/",
-        InstallmentRequestVerifyView.as_view(),
-        name="installment-request-verify"
     ),
 
 ]

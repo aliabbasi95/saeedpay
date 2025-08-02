@@ -1,3 +1,5 @@
+# wallets/api/public/v1/serializers/transaction.py
+
 from rest_framework import serializers
 
 from wallets.models import Transaction
