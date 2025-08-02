@@ -3,7 +3,7 @@
 from rest_framework import serializers
 
 from wallets.models import InstallmentRequest
-from wallets.services.credit import calculate_installments
+from wallets.services import calculate_installments
 
 
 class InstallmentRequestDetailSerializer(serializers.ModelSerializer):

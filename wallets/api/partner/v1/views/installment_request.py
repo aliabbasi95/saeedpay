@@ -12,7 +12,7 @@ from wallets.api.partner.v1.serializers import (
     InstallmentRequestCreateSerializer,
 )
 from wallets.models import InstallmentRequest
-from wallets.services.credit import evaluate_user_credit
+from wallets.services import evaluate_user_credit
 from wallets.utils.choices import InstallmentRequestStatus
 from wallets.utils.consts import FRONTEND_INSTALLMENT_REQUEST_DETAIL_URL
 

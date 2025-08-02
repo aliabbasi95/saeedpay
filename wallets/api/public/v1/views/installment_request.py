@@ -8,6 +8,7 @@ from wallets.api.public.v1.serializers import (
     InstallmentRequestConfirmSerializer,
 )
 from wallets.models import InstallmentRequest
+from wallets.services import notify_merchant_user_confirmed
 from wallets.utils.choices import InstallmentRequestStatus
 
 
@@ -77,6 +78,8 @@ class InstallmentRequestConfirmView(PublicAPIView):
         obj.status = InstallmentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
         obj.user_confirmed_at = timezone.now()
         obj.save()
+
+        notify_merchant_user_confirmed(obj)
 
         self.response_data = {
             "detail": "درخواست اقساطی با موفقیت تایید شد.",
