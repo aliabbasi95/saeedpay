@@ -50,3 +50,13 @@ class TransferStatus(models.TextChoices):
     SUCCESS = "success", "انجام شده"
     REJECTED = "rejected", "رد شده"
     EXPIRED = "expired", "منقضی شده"
+
+
+class InstallmentRequestStatus(models.TextChoices):
+    CREATED = "created", _("در انتظار تایید کاربر")
+    AWAITING_MERCHANT_CONFIRMATION = "awaiting_merchant", _(
+        "در انتظار تایید فروشنده"
+    )
+    COMPLETED = "completed", _("تایید نهایی انجام شد")
+    CANCELLED = "cancelled", _("لغو شده")
+    REJECTED = "rejected", _("رد شده")
