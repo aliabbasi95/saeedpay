@@ -10,3 +10,7 @@ from .transfer import (
     WalletTransferConfirmView,
     WalletTransferRejectView
 )
+from .installment_request import (
+    InstallmentRequestCreateView,
+    InstallmentRequestDetailView
+)

@@ -13,3 +13,7 @@ from .transfer import (
     WalletTransferDetailSerializer,
     WalletTransferConfirmSerializer,
 )
+from .installment_request import (
+    InstallmentRequestCreateSerializer,
+    InstallmentRequestDetailSerializer,
+)

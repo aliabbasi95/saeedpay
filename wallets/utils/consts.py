@@ -18,3 +18,4 @@ DEFAULT_WALLETS = {
 }
 
 FRONTEND_PAYMENT_DETAIL_URL = "dashboard/payment/"
+FRONTEND_INSTALLMENT_REQUEST_DETAIL_URL = "dashboard/payment/"
