@@ -15,4 +15,5 @@ from .installment_request import (
     InstallmentRequestDetailView,
     InstallmentCalculationView,
     InstallmentRequestConfirmView,
+    InstallmentRequestVerifyView,
 )

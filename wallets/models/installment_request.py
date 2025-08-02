@@ -34,10 +34,10 @@ class InstallmentRequest(BaseModel):
     )
     proposal_amount = models.BigIntegerField(
         verbose_name=_("مبلغ پیشنهادی فروشگاه")
-        )
+    )
     credit_limit_amount = models.BigIntegerField(
         verbose_name=_("سقف اعتبار قابل ارائه")
-        )
+    )
     confirmed_amount = models.BigIntegerField(
         null=True,
         blank=True,
@@ -79,7 +79,7 @@ class InstallmentRequest(BaseModel):
                 code = generate_reference_code(prefix="INST", random_digits=6)
                 if not InstallmentRequest.objects.filter(
                         reference_code=code
-                        ).exists():
+                ).exists():
                     self.reference_code = code
                     break
             else:

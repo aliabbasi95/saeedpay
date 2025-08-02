@@ -2,6 +2,7 @@
 from django.conf import settings
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.serializers import Serializer
 
 from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
 from merchants.authentication import MerchantAPIKeyAuthentication
@@ -120,6 +121,42 @@ class InstallmentRequestConfirmView(PublicAPIView):
         self.response_data = {
             "detail": "درخواست اقساطی با موفقیت تایید شد.",
             **data["installment_plan"]
+        }
+        self.response_status = status.HTTP_200_OK
+        return self.response
+
+
+class InstallmentRequestVerifyView(PublicAPIView):
+    serializer_class = Serializer
+    authentication_classes = [MerchantAPIKeyAuthentication]
+    permission_classes = [IsMerchant]
+
+    def post(self, request, reference_code):
+        req = InstallmentRequest.objects.filter(
+            reference_code=reference_code
+        ).first()
+        if not req:
+            self.response_data = {"detail": "درخواست اقساطی یافت نشد."}
+            self.response_status = status.HTTP_404_NOT_FOUND
+            return self.response
+
+        if req.status != InstallmentRequestStatus.AWAITING_MERCHANT_CONFIRMATION:
+            self.response_data = {
+                "detail": "درخواست هنوز توسط کاربر تایید نشده است."
+            }
+            self.response_status = status.HTTP_400_BAD_REQUEST
+            return self.response
+
+        req.status = InstallmentRequestStatus.COMPLETED
+        req.merchant_confirmed_at = timezone.now()
+        req.save()
+
+        self.response_data = {
+            "detail": "درخواست با موفقیت نهایی شد.",
+            "reference_code": req.reference_code,
+            "confirmed_amount": req.confirmed_amount,
+            "duration_months": req.duration_months,
+            "period_months": req.period_months,
         }
         self.response_status = status.HTTP_200_OK
         return self.response

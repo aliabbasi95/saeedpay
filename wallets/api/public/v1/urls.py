@@ -9,9 +9,12 @@ from wallets.api.public.v1.views import (
     PaymentRequestVerifyView,
     WalletTransferConfirmView,
     WalletTransferRejectView,
-    WalletTransferListCreateView, InstallmentRequestCreateView,
-    InstallmentRequestDetailView, InstallmentRequestConfirmView,
+    WalletTransferListCreateView,
+    InstallmentRequestCreateView,
+    InstallmentRequestDetailView,
+    InstallmentRequestConfirmView,
     InstallmentCalculationView,
+    InstallmentRequestVerifyView,
 )
 
 app_name = "wallets_public_v1"
@@ -68,16 +71,21 @@ urlpatterns = [
         "installment-request/<str:reference_code>/",
         InstallmentRequestDetailView.as_view(),
         name="installment-request-detail"
-        ),
+    ),
     path(
         "installment-request/<str:reference_code>/calculate/",
         InstallmentCalculationView.as_view(),
         name="installment-request-calculate"
-        ),
+    ),
     path(
         "installment-request/<str:reference_code>/confirm/",
         InstallmentRequestConfirmView.as_view(),
         name="installment-request-confirm"
-        ),
+    ),
+    path(
+        "installment-request/<str:reference_code>/verify/",
+        InstallmentRequestVerifyView.as_view(),
+        name="installment-request-verify"
+    ),
 
 ]
