@@ -151,7 +151,6 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "lib.cas_auth.authentication.CASAuthentication",
     ],
-    "EXCEPTION_HANDLER": None,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
@@ -159,6 +158,8 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'otp_by_phone': '5/hour',
+        'anon': '100/hour',
+        'user': '100/hour',
     }
 }
 
