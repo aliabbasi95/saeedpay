@@ -1,5 +1,7 @@
 # wallets/api/public/v1/views/installment_request.py
+
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import status
 
 from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
@@ -12,6 +14,12 @@ from wallets.services import notify_merchant_user_confirmed
 from wallets.utils.choices import InstallmentRequestStatus
 
 
+@extend_schema(
+    responses=InstallmentRequestDetailSerializer,
+    tags=["Wallet · Installment Requests (Public)"],
+    summary="دریافت اطلاعات درخواست اقساطی",
+    description="دریافت اطلاعات اولیه درخواست اقساطی با استفاده از کد پیگیری"
+)
 class InstallmentRequestDetailView(PublicGetAPIView):
     serializer_class = InstallmentRequestDetailSerializer
 
@@ -29,6 +37,13 @@ class InstallmentRequestDetailView(PublicGetAPIView):
         return self.response
 
 
+@extend_schema(
+    request=InstallmentRequestConfirmSerializer,
+    responses={200: OpenApiResponse(description="خروجی شبیه‌سازی اقساط")},
+    tags=["Wallet · Installment Requests (Public)"],
+    summary="محاسبه اقساط قبل از تایید",
+    description="محاسبه جدول اقساط براساس اطلاعات ورودی کاربر، بدون ذخیره‌سازی"
+)
 class InstallmentCalculationView(PublicAPIView):
     serializer_class = InstallmentRequestConfirmSerializer
 
@@ -52,6 +67,17 @@ class InstallmentCalculationView(PublicAPIView):
         return self.response
 
 
+@extend_schema(
+    request=InstallmentRequestConfirmSerializer,
+    responses={
+        200: OpenApiResponse(
+            description="درخواست تایید شد و منتظر تایید فروشنده است"
+        )
+    },
+    tags=["Wallet · Installment Requests (Public)"],
+    summary="تایید نهایی درخواست اقساطی توسط کاربر",
+    description="کاربر پس از بررسی جدول اقساط، درخواست خود را تایید می‌کند تا برای تایید نهایی به فروشگاه ارسال شود"
+)
 class InstallmentRequestConfirmView(PublicAPIView):
     serializer_class = InstallmentRequestConfirmSerializer
 

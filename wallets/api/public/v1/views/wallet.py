@@ -1,5 +1,7 @@
 # wallets/api/public/v1/views/wallet.py
 
+from drf_spectacular.utils import extend_schema
+
 from lib.cas_auth.views import PublicListAPIView
 from wallets.api.public.v1.serializers import (
     WalletSerializer,
@@ -8,6 +10,11 @@ from wallets.api.public.v1.serializers import (
 from wallets.models import Wallet
 
 
+@extend_schema(
+    tags=["Wallet · Wallets"],
+    summary="لیست کیف پول‌های کاربر",
+    description="بازگرداندن لیست کیف پول‌ها با امکان فیلتر براساس نوع مالک"
+)
 class WalletListView(PublicListAPIView):
     serializer_class = WalletSerializer
 

@@ -1,5 +1,7 @@
 # wallets/api/partner/v1/views/installment_request.py
+
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.serializers import Serializer
 
@@ -16,6 +18,12 @@ from wallets.utils.choices import InstallmentRequestStatus
 from wallets.utils.consts import FRONTEND_INSTALLMENT_REQUEST_DETAIL_URL
 
 
+@extend_schema(
+    request=InstallmentRequestCreateSerializer,
+    tags=["Wallet · Installment Requests (Partner)"],
+    summary="ایجاد درخواست اقساطی از سمت فروشگاه",
+    description="فروشگاه با استفاده از API Key یک درخواست اقساطی برای مشتری ثبت می‌کند"
+)
 class InstallmentRequestCreateView(PublicAPIView):
     authentication_classes = [MerchantAPIKeyAuthentication]
     permission_classes = [IsMerchant]
@@ -49,6 +57,12 @@ class InstallmentRequestCreateView(PublicAPIView):
         self.response_status = status.HTTP_201_CREATED
 
 
+@extend_schema(
+    responses=InstallmentRequestDetailSerializer,
+    tags=["Wallet · Installment Requests (Partner)"],
+    summary="دریافت اطلاعات درخواست اقساطی",
+    description="مشاهده اطلاعات درخواست اقساطی ایجاد شده توسط فروشگاه با کد پیگیری"
+)
 class InstallmentRequestRetrieveView(PublicGetAPIView):
     authentication_classes = [MerchantAPIKeyAuthentication]
     permission_classes = [IsMerchant]
@@ -71,6 +85,11 @@ class InstallmentRequestRetrieveView(PublicGetAPIView):
         return self.response
 
 
+@extend_schema(
+    tags=["Wallet · Installment Requests (Partner)"],
+    summary="تایید نهایی درخواست اقساطی توسط فروشگاه",
+    description="تایید فروشگاه برای نهایی‌سازی درخواست اقساطی پس از تایید کاربر"
+)
 class InstallmentRequestVerifyView(PublicAPIView):
     serializer_class = Serializer
     authentication_classes = [MerchantAPIKeyAuthentication]

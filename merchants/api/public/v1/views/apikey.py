@@ -1,4 +1,6 @@
 # merchants/api/public/v1/views/apikey.py
+
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
@@ -9,6 +11,11 @@ from merchants.permissions import IsMerchant
 from merchants.services import regenerate_merchant_api_key
 
 
+@extend_schema(
+    tags=["Merchant · API Key"],
+    summary="تولید مجدد API Key",
+    description="تولید مجدد API Key امن برای فروشگاه لاگین‌شده"
+)
 class MerchantApiKeyRegenerateView(PublicAPIView):
     permission_classes = [IsAuthenticated, IsMerchant]
     serializer_class = MerchantApiKeyRegenerateResponseSerializer

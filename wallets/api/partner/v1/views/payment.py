@@ -1,5 +1,7 @@
 # wallets/api/partner/v1/views/payment.py
+
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
@@ -19,6 +21,13 @@ from wallets.services.payment import (
 from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
 
 
+@extend_schema(
+    request=PaymentRequestCreateSerializer,
+    responses=PaymentRequestCreateResponseSerializer,
+    tags=["Wallet · Payment Requests (Partner)"],
+    summary="ایجاد درخواست پرداخت",
+    description="ایجاد یک درخواست پرداخت توسط فروشگاه با استفاده از API Key"
+)
 class PaymentRequestCreateView(PublicAPIView):
     authentication_classes = [MerchantAPIKeyAuthentication]
     permission_classes = [IsMerchant]
@@ -48,6 +57,12 @@ class PaymentRequestCreateView(PublicAPIView):
         self.response_status = status.HTTP_201_CREATED
 
 
+@extend_schema(
+    responses=PaymentVerifyResponseSerializer,
+    tags=["Wallet · Payment Requests (Partner)"],
+    summary="تایید نهایی پرداخت",
+    description="پس از پرداخت موفق توسط مشتری، فروشگاه با این API پرداخت را تایید نهایی می‌کند"
+)
 class PaymentRequestVerifyView(PublicAPIView):
     authentication_classes = [MerchantAPIKeyAuthentication]
     permission_classes = [IsMerchant]

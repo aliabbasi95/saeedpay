@@ -1,6 +1,8 @@
 # wallets/api/public/v1/views/payment.py
+
 from rest_framework import status
 from rest_framework.permissions import AllowAny
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
 from wallets.api.public.v1.serializers import (
@@ -15,7 +17,12 @@ from wallets.services.payment import (
 )
 from wallets.utils.choices import OwnerType
 
-
+@extend_schema(
+    responses=PaymentRequestDetailSerializer,
+    tags=["Wallet · Payment Requests"],
+    summary="دریافت اطلاعات درخواست پرداخت",
+    description="بازگرداندن اطلاعات کامل درخواست پرداخت به همراه لیست کیف پول‌هایی که موجودی کافی دارند"
+)
 class PaymentRequestDetailView(PublicGetAPIView):
     permission_classes = [AllowAny]
     serializer_class = PaymentRequestDetailSerializer
@@ -58,7 +65,13 @@ class PaymentRequestDetailView(PublicGetAPIView):
 
         return self.response
 
-
+@extend_schema(
+    request=PaymentConfirmSerializer,
+    responses={200: PaymentConfirmResponseSerializer},
+    tags=["Wallet · Payment Requests"],
+    summary="تایید و انجام پرداخت",
+    description="پرداخت درخواست با استفاده از کیف پول انتخاب‌شده توسط کاربر"
+)
 class PaymentConfirmView(PublicAPIView):
     serializer_class = PaymentConfirmSerializer
 
