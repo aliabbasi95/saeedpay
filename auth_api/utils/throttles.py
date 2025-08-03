@@ -4,7 +4,6 @@ from rest_framework.throttling import SimpleRateThrottle
 
 class OTPPhoneRateThrottle(SimpleRateThrottle):
     scope = "otp_by_phone"
-    rate = "3/minute"
 
     def get_cache_key(self, request, view):
         phone = request.data.get("phone_number")
