@@ -44,9 +44,11 @@ class InstallmentRequestCreateSerializer(serializers.Serializer):
         data["contract"] = contract
         return data
 
+
 class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = InstallmentRequest
+        ref_name = "PartnerInstallmentRequestDetail"
         fields = [
             "reference_code",
             "proposal_amount",

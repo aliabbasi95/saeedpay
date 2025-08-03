@@ -16,14 +16,46 @@ class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    min_credit = serializers.IntegerField(
+        source="contract.min_credit_per_user",
+        read_only=True
+    )
+    max_credit = serializers.IntegerField(
+        source="contract.max_credit_per_user",
+        read_only=True
+    )
+    min_repayment_months = serializers.IntegerField(
+        source="contract.min_repayment_months",
+        read_only=True
+    )
+    max_repayment_months = serializers.IntegerField(
+        source="contract.max_repayment_months",
+        read_only=True
+    )
+    allowed_periods = serializers.ListField(
+        source="contract.allowed_period_months",
+        read_only=True
+    )
+    interest_rate = serializers.FloatField(
+        source="contract.interest_rate",
+        read_only=True
+    )
+
     class Meta:
         model = InstallmentRequest
+        ref_name = "PublicInstallmentRequestDetail"
         fields = [
             "reference_code",
             "merchant_name",
             "credit_limit_amount",
             "status",
-            "return_url"
+            "return_url",
+            "min_credit",
+            "max_credit",
+            "min_repayment_months",
+            "max_repayment_months",
+            "allowed_periods",
+            "interest_rate",
         ]
 
 

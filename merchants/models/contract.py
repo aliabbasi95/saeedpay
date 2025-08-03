@@ -17,8 +17,16 @@ class MerchantContract(BaseModel):
     max_credit_per_user = models.BigIntegerField(
         verbose_name=_("سقف اعتبار برای هر کاربر")
     )
+    min_credit_per_user = models.BigIntegerField(
+        default=0,
+        verbose_name=_("حداقل اعتبار برای هر کاربر")
+    )
     max_repayment_months = models.PositiveIntegerField(
         verbose_name=_("حداکثر مدت بازپرداخت (ماه)")
+    )
+    min_repayment_months = models.PositiveIntegerField(
+        default=1,
+        verbose_name=_("حداقل مدت بازپرداخت (ماه)")
     )
     allowed_period_months = models.JSONField(
         default=list,
