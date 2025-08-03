@@ -12,7 +12,7 @@ from wallets.api.partner.v1.serializers import (
     InstallmentRequestCreateSerializer,
 )
 from wallets.models import InstallmentRequest
-from wallets.services import evaluate_user_credit
+from wallets.services import evaluate_user_credit, finalize_installment_request
 from wallets.utils.choices import InstallmentRequestStatus
 from wallets.utils.consts import FRONTEND_INSTALLMENT_REQUEST_DETAIL_URL
 
@@ -96,6 +96,8 @@ class InstallmentRequestVerifyView(PublicAPIView):
         req.status = InstallmentRequestStatus.COMPLETED
         req.merchant_confirmed_at = timezone.now()
         req.save()
+
+        finalize_installment_request(req)
 
         self.response_data = {
             "detail": "درخواست با موفقیت نهایی شد.",
