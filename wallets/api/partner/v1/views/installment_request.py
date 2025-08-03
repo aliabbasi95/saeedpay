@@ -1,6 +1,5 @@
 # wallets/api/partner/v1/views/installment_request.py
 from django.conf import settings
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.serializers import Serializer
 
@@ -92,10 +91,6 @@ class InstallmentRequestVerifyView(PublicAPIView):
             }
             self.response_status = status.HTTP_400_BAD_REQUEST
             return self.response
-
-        req.status = InstallmentRequestStatus.COMPLETED
-        req.merchant_confirmed_at = timezone.now()
-        req.save()
 
         finalize_installment_request(req)
 
