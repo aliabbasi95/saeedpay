@@ -1,7 +1,6 @@
 # wallets/api/public/v1/views/wallet.py
-from rest_framework.mixins import ListModelMixin
 
-from lib.cas_auth.views import PublicGenericAPIView
+from lib.cas_auth.views import PublicListAPIView
 from wallets.api.public.v1.serializers import (
     WalletSerializer,
     WalletListQuerySerializer,
@@ -9,7 +8,7 @@ from wallets.api.public.v1.serializers import (
 from wallets.models import Wallet
 
 
-class WalletListView(ListModelMixin, PublicGenericAPIView):
+class WalletListView(PublicListAPIView):
     serializer_class = WalletSerializer
 
     def allow_post(self, request):
@@ -27,6 +26,3 @@ class WalletListView(ListModelMixin, PublicGenericAPIView):
         if owner_type:
             qs = qs.filter(owner_type=owner_type)
         return qs
-
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
