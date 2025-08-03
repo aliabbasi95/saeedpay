@@ -42,7 +42,8 @@ class TestSendOTPSerializer:
         assert "کد تایید شما ارسال شده است" in str(exc.value)
 
     def test_send_failure_raises_error(self, monkeypatch):
-        def fake_send(self): return False
+        def fake_send(self):
+            return False
 
         monkeypatch.setattr(PhoneOTP, "send", fake_send)
 

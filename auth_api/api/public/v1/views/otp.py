@@ -17,12 +17,14 @@ from lib.cas_auth.views import PublicAPIView
         200: OpenApiResponse(description="OTP sent successfully."),
         400: OpenApiResponse(description="OTP already sent."),
     },
-    tags=["Authentication"]
+    tags=["Authentication"],
 )
 class SendOTPView(PublicAPIView):
     permission_classes = (AllowAny,)
     serializer_class = SendOTPSerializer
-    throttle_classes = [OTPPhoneRateThrottle]
+    throttle_classes = PublicAPIView.throttle_classes + [
+        OTPPhoneRateThrottle,
+    ]
 
     def perform_save(self, serializer):
         serializer.save()
@@ -36,11 +38,14 @@ class SendOTPView(PublicAPIView):
         200: OpenApiResponse(description="OTP sent successfully."),
         400: OpenApiResponse(description="OTP already sent."),
     },
-    tags=["Authentication"]
+    tags=["Authentication"],
 )
 class SendUserOTPView(PublicAPIView):
     permission_classes = (AllowAny,)
     serializer_class = SendUserOTPSerializer
+    throttle_classes = PublicAPIView.throttle_classes + [
+        OTPPhoneRateThrottle,
+    ]
 
     def perform_save(self, serializer):
         serializer.save()

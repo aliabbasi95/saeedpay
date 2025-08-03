@@ -47,7 +47,8 @@ class TestSendOTPView:
         assert response.data["detail"] == "کد تأیید با موفقیت ارسال شد."
 
     def test_send_failure_simulated(self, monkeypatch):
-        def fake_send(self): return False
+        def fake_send(self):
+            return False
 
         monkeypatch.setattr(PhoneOTP, "send", fake_send)
 
@@ -66,4 +67,3 @@ class TestSendOTPView:
         response = self.client.post(SEND_OTP_URL, {"phone_number": "abc123"})
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "phone_number" in response.data
-

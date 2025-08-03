@@ -22,8 +22,7 @@ class PhoneOTP(BaseModel):
         verbose_name=_("کلید محرمانه"),
     )
     last_send_date = models.DateTimeField(
-        null=True,
-        verbose_name=_("تاریخ و زمان آخرین ارسال")
+        null=True, verbose_name=_("تاریخ و زمان آخرین ارسال")
     )
 
     def generate(self, new_secret: bool = False):
@@ -38,9 +37,9 @@ class PhoneOTP(BaseModel):
         if not self.last_send_date:
             return False
         elapsed_time = (
-                timezone.localtime(timezone.now()) - timezone.localtime(
-            self.last_send_date
-        )).total_seconds()
+            timezone.localtime(timezone.now())
+            - timezone.localtime(self.last_send_date)
+        ).total_seconds()
         return elapsed_time < LIFE_DURATION
 
     def verify(self, code):
@@ -57,10 +56,7 @@ class PhoneOTP(BaseModel):
                 print(code)
             else:
                 send_sms.apply_async(
-                    (
-                        self.phone_number,
-                        f"Verification code: {code}"
-                    )
+                    (self.phone_number, f"Verification code: {code}")
                 )
             self.last_send_date = timezone.localtime(timezone.now())
             self.save()
