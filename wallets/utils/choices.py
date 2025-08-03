@@ -73,3 +73,9 @@ class InstallmentSourceType(models.TextChoices):
     PAYMENT_REQUEST = "payment_request", _("پرداخت با اعتبار داخلی")
     # OFFLINE_PURCHASE = "offline", _("خرید حضوری")
     # STORE_ORDER = "store_order", _("سفارش فروشگاه داخلی")
+
+
+class InstallmentStatus(models.TextChoices):
+    UNPAID = "unpaid", _("پرداخت‌نشده")
+    PAID = "paid", _("پرداخت‌شده")
+    OVERDUE = "overdue", _("سررسید گذشته")
