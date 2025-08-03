@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from wallets.models import InstallmentRequest
 from wallets.services import calculate_installments
+from wallets.utils.choices import InstallmentRequestStatus
 
 
 class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
@@ -66,8 +67,9 @@ class InstallmentRequestConfirmSerializer(serializers.Serializer):
 
     def validate(self, data):
         request_obj = self.context["installment_request"]
+        contract = request_obj.contract
 
-        if request_obj.status != "created":
+        if request_obj.status != InstallmentRequestStatus.CREATED:
             raise serializers.ValidationError(
                 "این درخواست قبلاً تایید شده است."
             )
@@ -77,19 +79,28 @@ class InstallmentRequestConfirmSerializer(serializers.Serializer):
                 "مقدار انتخاب‌شده بیش از سقف اعتبار مجاز است."
             )
 
-        allowed_periods = request_obj.contract.allowed_period_months
-        if data["period_months"] not in allowed_periods:
-            raise serializers.ValidationError("پریود انتخابی نامعتبر است.")
+        if data["confirmed_amount"] < contract.min_credit_per_user:
+            raise serializers.ValidationError(
+                "مقدار انتخاب‌شده کمتر از حداقل اعتبار مجاز است."
+            )
 
-        if data["duration_months"] > request_obj.contract.max_repayment_months:
+        if data["duration_months"] > contract.max_repayment_months:
             raise serializers.ValidationError(
                 "مدت بازپرداخت بیش از حد مجاز است."
+            )
+
+        if data["duration_months"] < contract.min_repayment_months:
+            raise serializers.ValidationError(
+                "مدت بازپرداخت کمتر از حداقل مجاز است."
             )
 
         if data["period_months"] > data["duration_months"]:
             raise serializers.ValidationError(
                 "پریود بازپرداخت نمی‌تواند بزرگ‌تر از مدت بازپرداخت باشد."
             )
+
+        if data["period_months"] not in contract.allowed_period_months:
+            raise serializers.ValidationError("پریود انتخابی نامعتبر است.")
 
         data["installment_plan"] = calculate_installments(
             data["confirmed_amount"],
