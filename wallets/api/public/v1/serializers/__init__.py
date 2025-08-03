@@ -14,3 +14,5 @@ from .installment_request import (
     InstallmentRequestDetailSerializer,
     InstallmentRequestConfirmSerializer,
 )
+from .installment import InstallmentSerializer
+from .installment_plan import InstallmentPlanSerializer

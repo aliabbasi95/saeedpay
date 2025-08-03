@@ -13,3 +13,9 @@ from .installment_request import (
     InstallmentCalculationView,
     InstallmentRequestConfirmView,
 )
+from .installment_plan import InstallmentPlanListView
+from .installment import (
+    InstallmentListView,
+    InstallmentsByPlanView,
+    InstallmentDetailView
+)

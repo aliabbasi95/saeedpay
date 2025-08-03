@@ -1,4 +1,5 @@
 # wallets/api/public/v1/urls.py
+
 from django.urls import path
 
 from wallets.api.public.v1.views import (
@@ -11,6 +12,10 @@ from wallets.api.public.v1.views import (
     InstallmentRequestDetailView,
     InstallmentRequestConfirmView,
     InstallmentCalculationView,
+    InstallmentPlanListView,
+    InstallmentsByPlanView,
+    InstallmentListView,
+    InstallmentDetailView,
 )
 
 app_name = "wallets_public_v1"
@@ -66,5 +71,26 @@ urlpatterns = [
         InstallmentRequestConfirmView.as_view(),
         name="installment-request-confirm"
     ),
-
+    # installment plans
+    path(
+        "installment-plans/",
+        InstallmentPlanListView.as_view(),
+        name="installment-plan-list"
+    ),
+    path(
+        "installment-plans/<int:plan_id>/installments/",
+        InstallmentsByPlanView.as_view(),
+        name="installments-by-plan"
+    ),
+    # installments
+    path(
+        "installments/",
+        InstallmentListView.as_view(),
+        name="installment-list"
+    ),
+    path(
+        "installments/<int:pk>/",
+        InstallmentDetailView.as_view(),
+        name="installment-detail"
+    ),
 ]
