@@ -3,13 +3,21 @@ from django.utils import timezone
 
 from wallets.models import InstallmentPlan, InstallmentRequest
 from wallets.services import generate_installments_for_plan
-from wallets.utils.choices import InstallmentRequestStatus
+from wallets.utils.choices import (
+    InstallmentRequestStatus,
+    InstallmentSourceType,
+)
 
 
 @transaction.atomic
 def finalize_installment_request(request: InstallmentRequest):
-    if request.installmentplan_set.exists():
-        return request.installmentplan_set.first()
+    existing_plan = InstallmentPlan.objects.filter(
+        source_type=InstallmentSourceType.BNPL,
+        source_object_id=request.id
+    ).first()
+
+    if existing_plan:
+        return existing_plan
 
     plan = InstallmentPlan.objects.create(
         user=request.customer.user,

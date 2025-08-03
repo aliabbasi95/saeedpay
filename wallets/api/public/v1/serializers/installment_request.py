@@ -86,6 +86,11 @@ class InstallmentRequestConfirmSerializer(serializers.Serializer):
                 "مدت بازپرداخت بیش از حد مجاز است."
             )
 
+        if data["period_months"] > data["duration_months"]:
+            raise serializers.ValidationError(
+                "پریود بازپرداخت نمی‌تواند بزرگ‌تر از مدت بازپرداخت باشد."
+            )
+
         data["installment_plan"] = calculate_installments(
             data["confirmed_amount"],
             data["duration_months"],
