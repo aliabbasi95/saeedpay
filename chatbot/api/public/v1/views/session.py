@@ -2,13 +2,63 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from lib.cas_auth.views import PublicGetAPIView
 from chatbot.models import ChatSession, ChatMessage
 
 
+@extend_schema(
+    tags=["chatbot"],
+    summary="List user chat sessions",
+    description="""
+    List chat sessions belonging to the current user (if authenticated) or \
+the current anonymous session (if not authenticated). Sessions are ordered by \
+creation time descending.
+    """,
+    responses={
+        200: OpenApiResponse(
+            description=(
+                "A list of chat sessions for the user or anonymous session."
+            ),
+            response={
+                "type": "object",
+                "properties": {
+                    "sessions": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "session_id": {
+                                    "type": "integer",
+                                    "description": "Session ID",
+                                },
+                                "created_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "description": (
+                                        "Session creation timestamp"
+                                    ),
+                                },
+                                "is_active": {
+                                    "type": "boolean",
+                                    "description": (
+                                        "Whether the session is active"
+                                    ),
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        ),
+        403: OpenApiResponse(description="Not allowed for this user/session."),
+    },
+)
 class UserChatSessionsView(PublicGetAPIView):
-    """List chat sessions belonging to the current user (or anonymous session)."""
+    """
+    List chat sessions belonging to the current user (or anonymous session).
+    """
 
     serializer_class = serializers.Serializer
     permission_classes = [AllowAny]
@@ -41,6 +91,62 @@ class UserChatSessionsView(PublicGetAPIView):
         return self.response
 
 
+@extend_schema(
+    tags=["chatbot"],
+    summary="Retrieve chat session details",
+    description="""
+    Retrieve a single chat session and its messages. Only accessible to the \
+session owner (authenticated user or anonymous session).
+    """,
+    responses={
+        200: OpenApiResponse(
+            description="Chat session details with messages.",
+            response={
+                "type": "object",
+                "properties": {
+                    "session_id": {
+                        "type": "integer",
+                        "description": "Session ID",
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Session creation timestamp",
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "description": "Whether the session is active",
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "sender": {
+                                    "type": "string",
+                                    "description": "Sender (user or ai)",
+                                },
+                                "content": {
+                                    "type": "string",
+                                    "description": "Message content",
+                                },
+                                "created_at": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "description": (
+                                        "Message creation timestamp"
+                                    ),
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        ),
+        404: OpenApiResponse(description="Chat session not found."),
+        403: OpenApiResponse(description="Not allowed for this user/session."),
+    },
+)
 class ChatSessionDetailView(PublicGetAPIView):
     """Retrieve a single chat session with its messages."""
 
@@ -60,7 +166,10 @@ class ChatSessionDetailView(PublicGetAPIView):
                         request, message="Not allowed."
                     )
                 session = get_object_or_404(
-                    ChatSession, id=session_id, user=None, session_key=session_key
+                    ChatSession,
+                    id=session_id,
+                    user=None,
+                    session_key=session_key,
                 )
         except Http404:
             from rest_framework.response import Response
@@ -86,4 +195,4 @@ class ChatSessionDetailView(PublicGetAPIView):
             ],
         }
         self.response_status = status.HTTP_200_OK
-        return self.response 
+        return self.response

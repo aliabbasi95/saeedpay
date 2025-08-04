@@ -29,7 +29,6 @@ from lib.cas_auth.admin.utils import has_admin_permission
 urlpatterns_main = [
     path("admin/", admin.site.urls),
     path("cas-auth/", include("lib.cas_auth.urls")),
-    path("chatbot/", include("chatbot.urls")),
 ]
 
 api_urlpatterns = [
@@ -37,6 +36,7 @@ api_urlpatterns = [
     path("api/profiles/", include("profiles.api.urls")),
     path("api/wallets/", include("wallets.api.urls")),
     path("api/merchants/", include("merchants.api.urls")),
+    path("api/chatbot/", include("chatbot.api.urls")),
 ]
 
 schema_urlpatterns = [

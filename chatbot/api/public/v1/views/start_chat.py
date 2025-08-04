@@ -14,13 +14,12 @@ SESSION_LIMIT_ANONYMOUS = getattr(settings, "CHATBOT_SESSION_LIMIT", 2)
 @extend_schema(
     tags=["chatbot"],
     summary="Start a new chat session",
-    description="""
-    Create a new chat session for communicating with the AI chatbot.
-    If the user is authenticated, the session will be associated with the user.
-    If the user is not authenticated, the session will be associated with the
-    session key.
-    If the session key is not found, the session will be created with the user
-    set to None.
+    description="""\
+    Create a new chat session for communicating with the AI chatbot. If the \
+user is authenticated, the session will be associated with the user. If the \
+user is not authenticated, the session will be associated with the session \
+key. If the session key is not found, the session will be created with the \
+user set to None.
     """,
     responses={
         201: OpenApiResponse(
@@ -74,7 +73,8 @@ class StartChatView(PublicAPIView):
                 self.response_status = status.HTTP_403_FORBIDDEN
                 return self.response
 
-        # Ensure session exists and retrieve the session key (already created above for anonymous)
+        # Ensure session exists and retrieve the session key
+        # (already created above for anonymous)
         if not request.session.session_key:
             request.session.create()
         session_key = request.session.session_key
@@ -101,4 +101,4 @@ class StartChatView(PublicAPIView):
             "created_at": session.created_at,
         }
         self.response_status = status.HTTP_201_CREATED
-        return self.response 
+        return self.response

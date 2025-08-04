@@ -37,7 +37,6 @@ class ChatView(PublicAPIView):
 
     serializer_class = ChatRequestSerializer
     permission_classes = [AllowAny]
-    
 
     def post(self, request, session_id):
         """Proxy the user message to the LLM service and return its answer."""
@@ -92,7 +91,9 @@ class ChatView(PublicAPIView):
         ]
 
         # Persist the user message
-        ChatMessage.objects.create(session=session, sender="user", message=query)
+        ChatMessage.objects.create(
+            session=session, sender="user", message=query
+        )
 
         payload = {"history": history, "query": query}
 
@@ -120,9 +121,13 @@ class ChatView(PublicAPIView):
                     raise ValueError("No answer in LLM response")
 
             # Save AI response
-            ChatMessage.objects.create(session=session, sender="ai", message=answer)
+            ChatMessage.objects.create(
+                session=session, sender="ai", message=answer
+            )
 
-            response_serializer = ChatResponseSerializer(data={"answer": answer})
+            response_serializer = ChatResponseSerializer(
+                data={"answer": answer}
+            )
             response_serializer.is_valid(raise_exception=True)
             self.response_data = response_serializer.data
             self.response_status = status.HTTP_200_OK
@@ -130,4 +135,4 @@ class ChatView(PublicAPIView):
             self.response_data = {"detail": f"LLM error: {str(exc)}"}
             self.response_status = status.HTTP_502_BAD_GATEWAY
 
-        return self.response 
+        return self.response
