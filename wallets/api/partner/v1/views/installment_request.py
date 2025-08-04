@@ -6,7 +6,6 @@ from rest_framework import status
 from rest_framework.serializers import Serializer
 
 from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
-from merchants.authentication import MerchantAPIKeyAuthentication
 from merchants.permissions import IsMerchant
 from store.authentication import StoreApiKeyAuthentication
 from wallets.api.partner.v1.serializers import (

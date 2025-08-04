@@ -24,6 +24,8 @@ class Store(
         verbose_name=_("نام فروشگاه")
     )
     code = models.CharField(
+        null=True,
+        blank=True,
         max_length=20,
         unique=True,
         verbose_name=_("کد فروشگاه")

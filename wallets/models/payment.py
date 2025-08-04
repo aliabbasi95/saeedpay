@@ -1,21 +1,23 @@
 # wallets/models/payment.py
-from django.contrib.auth import get_user_model
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
+from store.models import Store
 from wallets.models.wallet import Wallet
 from wallets.utils.choices import PaymentRequestStatus
 from wallets.utils.reference import generate_reference_code
+from django.contrib.auth import get_user_model
 
 
 class PaymentRequest(BaseModel):
-    merchant = models.ForeignKey(
-        get_user_model(),
+    store = models.ForeignKey(
+        Store,
         on_delete=models.CASCADE,
         related_name="payment_requests",
-        verbose_name=_("فروشنده درخواست‌دهنده")
+        verbose_name=_("فروشگاه درخواست‌دهنده")
     )
     status = models.CharField(
         max_length=32,
@@ -104,7 +106,7 @@ class PaymentRequest(BaseModel):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"درخواست پرداخت #{self.id} - {self.amount} تومان - توسط {self.merchant}"
+        return f"درخواست پرداخت #{self.id} - {self.amount} تومان - فروشگاه {self.store.name}"
 
     class Meta:
         verbose_name = _("درخواست پرداخت")

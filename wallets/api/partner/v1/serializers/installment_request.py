@@ -2,7 +2,6 @@
 
 from rest_framework import serializers
 
-from merchants.models import MerchantContract
 from profiles.models.profile import Profile
 from store.models import StoreContract
 from wallets.models import InstallmentRequest

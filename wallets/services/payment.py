@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 def create_payment_request(
-        merchant, amount, return_url, description=""
+        store, amount, return_url, description=""
 ):
     expires_at = timezone.now() + timedelta(minutes=10)
     req = PaymentRequest.objects.create(
-        merchant=merchant,
+        store=store,
         amount=amount,
         expires_at=expires_at,
         status=PaymentRequestStatus.CREATED,
@@ -89,13 +89,13 @@ def verify_payment_request(payment_request):
         escrow_wallet = txn.to_wallet
         try:
             merchant_wallet = Wallet.objects.get(
-                user=payment_request.merchant,
+                user=payment_request.store.merchant.user,
                 kind="merchant_gateway",
                 owner_type="merchant"
             )
         except Wallet.DoesNotExist:
             logger.error(
-                f"Merchant wallet not found for user {payment_request.merchant}"
+                f"Merchant wallet not found for user {payment_request.store.merchant.user}"
             )
             raise ValidationError(
                 "عملیات با خطا مواجه شد. لطفاً بعداً تلاش کنید."
