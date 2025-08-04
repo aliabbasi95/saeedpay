@@ -1,13 +1,13 @@
-# customers/admin/customer.py
+# merchants/admin/merchant.py
 
 from django.contrib import admin
 
-from customers.models import Customer
 from lib.erp_base.admin import BaseAdmin
+from merchants.models import Merchant
 
 
-@admin.register(Customer)
-class CustomerAdmin(BaseAdmin):
+@admin.register(Merchant)
+class MerchantAdmin(BaseAdmin):
     list_display = [
         "id",
         "user",

@@ -12,20 +12,22 @@ class StoreContractAdmin(
     dynamic_cardboard_model_admin(StoreContract, BaseAdmin)
 ):
     list_display = [
+        "id",
         "store",
         "interest_rate",
         "max_credit_per_user",
-        "get_status",
         "contract_reviewer_verifier",
-        "contract_reviewer_verification_time"
+        "contract_reviewer_verification_time",
+        "get_status",
+        "active",
     ]
     list_filter = ["active", "status"]
-    readonly_fields = ["contract_reviewer_verifier",
-                       "contract_reviewer_verification_time"]
+    search_fields = ["store__name", "store__code"]
+
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = ((None, {
-            "fields": ("store", "get_status", "status", "active")
+            "fields": ("store", "get_status", "active")
         }), ("اعتبارات و بازپرداخت", {
             "fields": (
                 "min_credit_per_user",
@@ -45,7 +47,10 @@ class StoreContractAdmin(
         return fieldsets
 
     def get_readonly_fields(self, request, obj=None):
-        rfs = super().get_readonly_fields(
+        rfs = ("get_status",)
+        if request.user.is_superuser:
+            return rfs
+        rfs += super().get_readonly_fields(
             request, obj=obj, user_roles={
                 "contract_reviewer": (
                         obj and

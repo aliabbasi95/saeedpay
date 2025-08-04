@@ -10,14 +10,16 @@ from store.models import Store
 @admin.register(Store)
 class StoreAdmin(dynamic_cardboard_model_admin(Store, BaseAdmin)):
     list_display = [
+        "id",
         "name",
+        "code",
         "merchant",
-        "verification_status",
-        "verified_by",
-        "verified_at"
+        "is_active",
+        "get_status",
+        "store_reviewer_verifier",
+        "jalali_verification_time",
     ]
-    list_filter = ["verification_status", "is_active"]
-    readonly_fields = ["verified_by", "verified_at"]
+    list_filter = ["is_active"]
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = ((None, {
@@ -40,8 +42,9 @@ class StoreAdmin(dynamic_cardboard_model_admin(Store, BaseAdmin)):
         return fieldsets
 
     def get_readonly_fields(self, request, obj=None):
-        rfs = ()
-
+        rfs = ("get_status",)
+        if request.user.is_superuser:
+            return rfs
         rfs += super(StoreAdmin, self).get_readonly_fields(
             request, obj=obj, user_roles={
                 "store_reviewer": (

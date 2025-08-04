@@ -180,6 +180,7 @@ a.inline-deletelink {
     .app-single_page,
     .app-django_celery_beat,
     .app-base,
+    .app-store,
     .app-customers,
 
 ) > table > caption {
