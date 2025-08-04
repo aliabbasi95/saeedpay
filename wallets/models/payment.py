@@ -15,6 +15,7 @@ from django.contrib.auth import get_user_model
 class PaymentRequest(BaseModel):
     store = models.ForeignKey(
         Store,
+        null=True,
         on_delete=models.CASCADE,
         related_name="payment_requests",
         verbose_name=_("فروشگاه درخواست‌دهنده")
