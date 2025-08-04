@@ -1,10 +1,17 @@
 # profiles/api/public/v1/views/profile.py
 
+from drf_spectacular.utils import extend_schema
+
 from lib.cas_auth.views import PublicAPIView
 from profiles.api.public.v1.serializers import ProfileSerializer
 from profiles.models.profile import Profile
 
 
+@extend_schema(
+    tags=["Profile"],
+    summary="دریافت اطلاعات پروفایل",
+    description="بررسی یا ایجاد و بازگردانی اطلاعات پروفایل کاربر لاگین‌شده"
+)
 class ProfileView(PublicAPIView):
     serializer_class = ProfileSerializer
 

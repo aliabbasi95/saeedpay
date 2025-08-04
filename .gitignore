@@ -79,3 +79,5 @@ atlassian-ide-plugin.xml
 *$py.class
 
 
+celerybeat-schedule
+celerybeat-schedule.db

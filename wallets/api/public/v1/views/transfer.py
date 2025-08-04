@@ -1,6 +1,7 @@
 # wallets/api/public/v1/views/transfer.py
 
 from django.db import models
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
@@ -20,6 +21,11 @@ from wallets.services.transfer import check_and_expire_transfer_request
 from wallets.utils.choices import TransferStatus
 
 
+@extend_schema(
+    tags=["Wallet · Transfers"],
+    summary="لیست یا ایجاد انتقال کیف پول",
+    description="درخواست ایجاد انتقال کیف پول یا مشاهده لیست انتقال‌های مرتبط با کاربر"
+)
 class WalletTransferListCreateView(PublicAPIView):
     serializer_class = WalletTransferCreateSerializer
 
@@ -32,7 +38,7 @@ class WalletTransferListCreateView(PublicAPIView):
         if role == "sender":
             queryset = WalletTransferRequest.objects.filter(
                 sender_wallet__user=user
-                )
+            )
         elif role == "receiver":
             queryset = WalletTransferRequest.objects.filter(
                 models.Q(receiver_wallet__user=user) |
@@ -70,6 +76,13 @@ class WalletTransferListCreateView(PublicAPIView):
         self.response_status = status.HTTP_201_CREATED
 
 
+@extend_schema(
+    request=WalletTransferConfirmSerializer,
+    responses={200: WalletTransferDetailSerializer},
+    tags=["Wallet · Transfers"],
+    summary="تایید انتقال کیف پول",
+    description="تایید انتقال برای کیف پول دریافتی یا شماره موبایل ثبت‌شده"
+)
 class WalletTransferConfirmView(PublicAPIView):
     serializer_class = WalletTransferConfirmSerializer
 
@@ -134,6 +147,12 @@ class WalletTransferConfirmView(PublicAPIView):
         return self.response
 
 
+@extend_schema(
+    responses={200: WalletTransferDetailSerializer},
+    tags=["Wallet · Transfers"],
+    summary="رد انتقال کیف پول",
+    description="رد کردن درخواست انتقال دریافتی توسط کاربر"
+)
 class WalletTransferRejectView(PublicAPIView):
     serializer_class = WalletTransferDetailSerializer
 
