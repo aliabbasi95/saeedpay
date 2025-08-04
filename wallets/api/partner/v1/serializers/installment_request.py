@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from merchants.models import MerchantContract
 from profiles.models.profile import Profile
+from store.models import StoreContract
 from wallets.models import InstallmentRequest
 from wallets.utils.validators import https_only_validator
 
@@ -16,15 +17,15 @@ class InstallmentRequestCreateSerializer(serializers.Serializer):
     )
 
     def validate(self, data):
-        merchant = self.context["request"].user.merchant
+        store = self.context["request"].store
         national_id = data["national_id"]
         amount = data["amount"]
 
         try:
-            contract = MerchantContract.objects.filter(
-                merchant=merchant, active=True
+            contract = StoreContract.objects.filter(
+                store=store, active=True
             ).latest("created_at")
-        except MerchantContract.DoesNotExist:
+        except StoreContract.DoesNotExist:
             raise serializers.ValidationError(
                 "قرارداد فعالی برای فروشگاه یافت نشد."
             )

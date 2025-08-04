@@ -10,7 +10,7 @@ from wallets.api.public.v1.serializers import (
     InstallmentRequestConfirmSerializer,
 )
 from wallets.models import InstallmentRequest
-from wallets.services import notify_merchant_user_confirmed
+from wallets.services import notify_store_user_confirmed
 from wallets.utils.choices import InstallmentRequestStatus
 
 
@@ -25,7 +25,8 @@ class InstallmentRequestDetailView(PublicGetAPIView):
 
     def get(self, request, reference_code):
         obj = InstallmentRequest.objects.filter(
-            reference_code=reference_code
+            reference_code=reference_code,
+            customer=request.user.customer
         ).first()
         if not obj:
             self.response_data = {"detail": "درخواست اقساطی یافت نشد."}
@@ -105,7 +106,7 @@ class InstallmentRequestConfirmView(PublicAPIView):
         obj.user_confirmed_at = timezone.now()
         obj.save()
 
-        notify_merchant_user_confirmed(obj)
+        notify_store_user_confirmed(obj)
 
         self.response_data = {
             "detail": "درخواست اقساطی با موفقیت تایید شد.",
