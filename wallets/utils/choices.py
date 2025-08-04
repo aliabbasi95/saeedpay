@@ -50,3 +50,32 @@ class TransferStatus(models.TextChoices):
     SUCCESS = "success", "انجام شده"
     REJECTED = "rejected", "رد شده"
     EXPIRED = "expired", "منقضی شده"
+
+
+class InstallmentRequestStatus(models.TextChoices):
+    CREATED = "created", _("در انتظار تایید کاربر")
+    AWAITING_MERCHANT_CONFIRMATION = "awaiting_merchant", _(
+        "در انتظار تایید فروشنده"
+    )
+    COMPLETED = "completed", _("تایید نهایی انجام شد")
+    CANCELLED = "cancelled", _("لغو شده")
+    REJECTED = "rejected", _("رد شده")
+
+
+class InstallmentPlanStatus(models.TextChoices):
+    ACTIVE = "active", _("فعال")
+    COMPLETED = "completed", _("پرداخت‌شده کامل")
+    CANCELLED = "cancelled", _("لغو شده")
+
+
+class InstallmentSourceType(models.TextChoices):
+    BNPL = "bnpl", _("درخواست فروشگاه (BNPL)")
+    PAYMENT_REQUEST = "payment_request", _("پرداخت با اعتبار داخلی")
+    # OFFLINE_PURCHASE = "offline", _("خرید حضوری")
+    # STORE_ORDER = "store_order", _("سفارش فروشگاه داخلی")
+
+
+class InstallmentStatus(models.TextChoices):
+    UNPAID = "unpaid", _("پرداخت‌نشده")
+    PAID = "paid", _("پرداخت‌شده")
+    OVERDUE = "overdue", _("سررسید گذشته")
