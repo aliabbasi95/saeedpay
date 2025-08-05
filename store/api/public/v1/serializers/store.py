@@ -1,3 +1,5 @@
+# store/api/public/v1/serializers/store.py
+
 from rest_framework import serializers
 
 from store.models import Store
