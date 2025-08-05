@@ -1,17 +1,20 @@
 # merchants/models/apikey.py
+
 import hashlib
 import secrets
 
 from django.db import models
 from django.utils import timezone
 
+from store.models import Store
 
-class MerchantApiKey(models.Model):
-    merchant = models.OneToOneField(
-        "merchants.Merchant",
+
+class StoreApiKey(models.Model):
+    store = models.OneToOneField(
+        Store,
         on_delete=models.CASCADE,
         related_name="api_key",
-        verbose_name="فروشنده"
+        verbose_name="فروشگاه"
     )
     key_hash = models.CharField(
         max_length=128,

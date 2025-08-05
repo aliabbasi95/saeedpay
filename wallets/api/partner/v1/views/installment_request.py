@@ -6,8 +6,8 @@ from rest_framework import status
 from rest_framework.serializers import Serializer
 
 from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
-from merchants.authentication import MerchantAPIKeyAuthentication
 from merchants.permissions import IsMerchant
+from store.authentication import StoreApiKeyAuthentication
 from wallets.api.partner.v1.serializers import (
     InstallmentRequestDetailSerializer,
     InstallmentRequestCreateSerializer,
@@ -20,12 +20,12 @@ from wallets.utils.consts import FRONTEND_INSTALLMENT_REQUEST_DETAIL_URL
 
 @extend_schema(
     request=InstallmentRequestCreateSerializer,
-    tags=["Wallet · Installment Requests (Partner)"],
+    tags=["Wallet · Installment Requests (Store API)"],
     summary="ایجاد درخواست اقساطی از سمت فروشگاه",
     description="فروشگاه با استفاده از API Key یک درخواست اقساطی برای مشتری ثبت می‌کند"
 )
 class InstallmentRequestCreateView(PublicAPIView):
-    authentication_classes = [MerchantAPIKeyAuthentication]
+    authentication_classes = [StoreApiKeyAuthentication]
     permission_classes = [IsMerchant]
     serializer_class = InstallmentRequestCreateSerializer
 
@@ -34,8 +34,9 @@ class InstallmentRequestCreateView(PublicAPIView):
         credit_limit_amount = evaluate_user_credit(
             data["amount"], data["contract"]
         )
+
         req = InstallmentRequest.objects.create(
-            merchant=self.request.user.merchant,
+            store=self.request.store,
             customer=data["customer"],
             national_id=data["national_id"],
             proposal_amount=data["amount"],
@@ -64,14 +65,14 @@ class InstallmentRequestCreateView(PublicAPIView):
     description="مشاهده اطلاعات درخواست اقساطی ایجاد شده توسط فروشگاه با کد پیگیری"
 )
 class InstallmentRequestRetrieveView(PublicGetAPIView):
-    authentication_classes = [MerchantAPIKeyAuthentication]
+    authentication_classes = [StoreApiKeyAuthentication]
     permission_classes = [IsMerchant]
     serializer_class = InstallmentRequestDetailSerializer
 
     def get(self, request, reference_code):
         qs = InstallmentRequest.objects.filter(
             reference_code=reference_code,
-            merchant=request.user.merchant
+            store=request.store
         )
         obj = qs.first()
 
@@ -91,13 +92,14 @@ class InstallmentRequestRetrieveView(PublicGetAPIView):
     description="تایید فروشگاه برای نهایی‌سازی درخواست اقساطی پس از تایید کاربر"
 )
 class InstallmentRequestVerifyView(PublicAPIView):
+    authentication_classes = [StoreApiKeyAuthentication]
     serializer_class = Serializer
-    authentication_classes = [MerchantAPIKeyAuthentication]
     permission_classes = [IsMerchant]
 
     def post(self, request, reference_code):
         req = InstallmentRequest.objects.filter(
-            reference_code=reference_code
+            reference_code=reference_code,
+            store=request.store
         ).first()
         if not req:
             self.response_data = {"detail": "درخواست اقساطی یافت نشد."}

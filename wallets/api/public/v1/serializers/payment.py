@@ -8,11 +8,11 @@ from wallets.models import PaymentRequest
 
 
 class PaymentRequestDetailSerializer(serializers.ModelSerializer):
-    merchant_shop_name = serializers.CharField(
-        source='merchant.merchant.shop_name', read_only=True
+    store_name = serializers.CharField(
+        source='store.name', read_only=True
     )
-    merchant_id = serializers.IntegerField(
-        source='merchant.id', read_only=True
+    store_id = serializers.IntegerField(
+        source='store.id', read_only=True
     )
     status = serializers.CharField(read_only=True)
 
@@ -22,8 +22,8 @@ class PaymentRequestDetailSerializer(serializers.ModelSerializer):
             "reference_code",
             "amount",
             "description",
-            "merchant_id",
-            "merchant_shop_name",
+            "store_id",
+            "store_name",
             "status",
             "expires_at",
         ]

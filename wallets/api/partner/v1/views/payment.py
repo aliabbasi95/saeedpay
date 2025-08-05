@@ -6,8 +6,8 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 
 from lib.cas_auth.views import PublicAPIView
-from merchants.authentication import MerchantAPIKeyAuthentication
 from merchants.permissions import IsMerchant
+from store.authentication import StoreApiKeyAuthentication
 from wallets.api.partner.v1.serializers import (
     PaymentRequestCreateSerializer,
     PaymentRequestCreateResponseSerializer,
@@ -29,14 +29,14 @@ from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
     description="ایجاد یک درخواست پرداخت توسط فروشگاه با استفاده از API Key"
 )
 class PaymentRequestCreateView(PublicAPIView):
-    authentication_classes = [MerchantAPIKeyAuthentication]
+    authentication_classes = [StoreApiKeyAuthentication]
     permission_classes = [IsMerchant]
     serializer_class = PaymentRequestCreateSerializer
 
     def perform_save(self, serializer):
-        merchant = self.request.user
+        store = self.request.store
         req = create_payment_request(
-            merchant=merchant,
+            store=store,
             amount=serializer.validated_data["amount"],
             return_url=serializer.validated_data.get("return_url"),
             description=serializer.validated_data.get("description", ""),
@@ -64,7 +64,7 @@ class PaymentRequestCreateView(PublicAPIView):
     description="پس از پرداخت موفق توسط مشتری، فروشگاه با این API پرداخت را تایید نهایی می‌کند"
 )
 class PaymentRequestVerifyView(PublicAPIView):
-    authentication_classes = [MerchantAPIKeyAuthentication]
+    authentication_classes = [StoreApiKeyAuthentication]
     permission_classes = [IsMerchant]
     serializer_class = PaymentVerifyResponseSerializer
 

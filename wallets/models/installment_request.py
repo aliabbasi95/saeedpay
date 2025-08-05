@@ -5,14 +5,16 @@ from django.utils.translation import gettext_lazy as _
 
 from customers.models import Customer
 from lib.erp_base.models import BaseModel
-from merchants.models import Merchant, MerchantContract
+from store.models import Store, StoreContract
 from wallets.utils.choices import InstallmentRequestStatus
 from wallets.utils.reference import generate_reference_code
 
 
 class InstallmentRequest(BaseModel):
-    merchant = models.ForeignKey(
-        Merchant, on_delete=models.CASCADE,
+    store = models.ForeignKey(
+        Store,
+        null=True,
+        on_delete=models.CASCADE,
         related_name="installment_requests",
         verbose_name=_("فروشگاه")
     )
@@ -41,13 +43,13 @@ class InstallmentRequest(BaseModel):
     confirmed_amount = models.BigIntegerField(
         null=True,
         blank=True,
-        verbose_name=_("مبلغ تایید شده توسط کاربر")
+        verbose_name=_("مبلغ تایید شده توسط مشتری")
     )
     contract = models.ForeignKey(
-        MerchantContract,
+        StoreContract,
         on_delete=models.PROTECT,
         related_name="installment_requests",
-        verbose_name=_("قرارداد استفاده شده")
+        verbose_name=_("قرارداد فروشگاه")
     )
     duration_months = models.PositiveIntegerField(
         null=True,
@@ -60,9 +62,7 @@ class InstallmentRequest(BaseModel):
         verbose_name=_("پریود بازپرداخت (ماه)")
     )
     return_url = models.URLField(
-        blank=False,
-        null=False,
-        verbose_name=_("آدرس بازگشت (return_url)")
+        verbose_name=_("آدرس بازگشت")
     )
     status = models.CharField(
         max_length=32,
@@ -71,7 +71,7 @@ class InstallmentRequest(BaseModel):
         verbose_name=_("وضعیت")
     )
     user_confirmed_at = models.DateTimeField(null=True, blank=True)
-    merchant_confirmed_at = models.DateTimeField(null=True, blank=True)
+    store_confirmed_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.reference_code:

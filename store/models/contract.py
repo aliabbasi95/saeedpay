@@ -1,18 +1,23 @@
-# merchants/models/contract.py
+# store/models/contract.py
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from lib.erp_base.models import BaseModel
-from merchants.models.merchant import Merchant
+from lib.erp_base.models import dynamic_cardboard
+from store.models.store import Store
 
 
-class MerchantContract(BaseModel):
-    merchant = models.ForeignKey(
-        Merchant,
+class StoreContract(
+    dynamic_cardboard(
+        [("contract_reviewer", "کارشناس بررسی قرارداد")],
+        'store_contract',
+    )
+):
+    store = models.OneToOneField(
+        Store,
         on_delete=models.CASCADE,
-        related_name="contracts",
-        verbose_name=_("فروشنده"),
+        related_name="contract",
+        verbose_name=_("فروشگاه"),
     )
     max_credit_per_user = models.BigIntegerField(
         verbose_name=_("سقف اعتبار برای هر کاربر")
@@ -39,8 +44,6 @@ class MerchantContract(BaseModel):
         verbose_name=_("نرخ بهره سالیانه (٪)")
     )
     callback_url = models.URLField(
-        blank=True,
-        null=True,
         verbose_name=_("آدرس callback برای اطلاع تایید کاربر"),
     )
     active = models.BooleanField(
@@ -48,8 +51,17 @@ class MerchantContract(BaseModel):
         verbose_name=_("فعال")
     )
 
+    def save(self, *args, **kwargs):
+        if not self.store.status or self.store.status < len(
+                self.store.ROLES
+        ) + 1:
+            raise Exception(
+                "قرارداد فقط برای فروشگاه‌های تاییدشده قابل ثبت است."
+            )
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"قرارداد فروشگاه {self.merchant.shop_name}"
+        return f"قرارداد فروشگاه {self.store.name}"
 
     class Meta:
         verbose_name = _("قرارداد فروشگاه")

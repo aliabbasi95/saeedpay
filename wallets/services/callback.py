@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def notify_merchant_user_confirmed(installment_request):
+def notify_store_user_confirmed(installment_request):
     url = installment_request.contract.callback_url
     if not url:
         return

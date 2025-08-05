@@ -13,29 +13,10 @@ class Merchant(BaseModel):
         related_name="merchant",
         verbose_name=_("کاربر")
     )
-    shop_name = models.CharField(
-        blank=True,
-        max_length=100,
-        verbose_name="نام فروشگاه",
-    )
-    shop_code = models.CharField(
-        blank=True,
-        max_length=20,
-        verbose_name="کد فروشگاه",
-    )
-    shop_address = models.TextField(
-        blank=True,
-        verbose_name="آدرس فروشگاه",
-    )
-    license_number = models.CharField(
-        blank=True,
-        max_length=50,
-        verbose_name="شماره مجوز",
-    )
 
     class Meta:
         verbose_name = _("فروشنده")
         verbose_name_plural = _("فروشنده‌ها")
 
     def __str__(self):
-        return f"فروشنده: {self.shop_name} ({self.user.username})"
+        return f"فروشنده: ({self.user.username})"

@@ -1,13 +1,14 @@
-# merchants/authentication.py
+# store/authentication.py
+
 import hashlib
 
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
-from merchants.models import MerchantApiKey
+from store.models import StoreApiKey
 
 
-class MerchantAPIKeyAuthentication(BaseAuthentication):
+class StoreApiKeyAuthentication(BaseAuthentication):
     keyword = "ApiKey"
 
     def authenticate(self, request):
@@ -19,11 +20,13 @@ class MerchantAPIKeyAuthentication(BaseAuthentication):
         key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
 
         try:
-            api_key_obj = MerchantApiKey.objects.get(
+            api_key_obj = StoreApiKey.objects.get(
                 key_hash=key_hash, is_active=True
             )
-        except MerchantApiKey.DoesNotExist:
+        except StoreApiKey.DoesNotExist:
             raise AuthenticationFailed("Invalid API Key")
 
-        user = api_key_obj.merchant.user
+        user = api_key_obj.store.merchant.user
+        request.store = api_key_obj.store
+        request.store_api_key = api_key_obj
         return (user, None)

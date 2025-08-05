@@ -10,7 +10,7 @@ from .transfer import (
     reject_wallet_transfer_request,
     expire_pending_transfer_requests,
 )
-from .callback import notify_merchant_user_confirmed
+from .callback import notify_store_user_confirmed
 from .credit import evaluate_user_credit, calculate_installments
 from .installment import pay_installment, generate_installments_for_plan
 from .installment_request import finalize_installment_request

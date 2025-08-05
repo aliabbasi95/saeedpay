@@ -8,8 +8,8 @@ from wallets.utils.choices import InstallmentRequestStatus
 
 
 class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
-    merchant_name = serializers.CharField(
-        source="merchant.shop_name",
+    store_name = serializers.CharField(
+        source="store.name",
         read_only=True
     )
     status = serializers.CharField(
@@ -47,7 +47,7 @@ class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
         ref_name = "PublicInstallmentRequestDetail"
         fields = [
             "reference_code",
-            "merchant_name",
+            "store_name",
             "credit_limit_amount",
             "status",
             "return_url",
