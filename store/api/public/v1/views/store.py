@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 
@@ -10,6 +11,11 @@ from store.api.public.v1.serializers import (
 from store.models import Store
 
 
+@extend_schema(
+    tags=["Store · Management"],
+    summary="مدیریت فروشگاه‌ها توسط فروشنده",
+    description="ایجاد، مشاهده، و ویرایش فروشگاه‌های متعلق به فروشنده جاری"
+)
 class StoreViewSet(PublicModelViewSet):
     permission_classes = [IsAuthenticated, IsMerchant]
 
