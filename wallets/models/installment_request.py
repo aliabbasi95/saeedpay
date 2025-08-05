@@ -6,7 +6,10 @@ from django.utils.translation import gettext_lazy as _
 from customers.models import Customer
 from lib.erp_base.models import BaseModel
 from store.models import Store, StoreContract
-from wallets.utils.choices import InstallmentRequestStatus
+from wallets.utils.choices import (
+    InstallmentRequestStatus,
+    InstallmentSourceType,
+)
 from wallets.utils.reference import generate_reference_code
 
 
@@ -87,6 +90,13 @@ class InstallmentRequest(BaseModel):
                     "Reference code generation failed. Please try again."
                 )
         super().save(*args, **kwargs)
+
+    def get_installment_plan(self):
+        from wallets.models import InstallmentPlan
+        return InstallmentPlan.objects.filter(
+            source_type=InstallmentSourceType.BNPL,
+            source_object_id=self.id
+        ).first()
 
     def __str__(self):
         return f"{self.customer} - {self.requested_amount} تومان ({self.get_status_display()})"

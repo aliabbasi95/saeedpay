@@ -4,7 +4,11 @@ from rest_framework import serializers
 
 from profiles.models.profile import Profile
 from store.models import StoreContract
+from wallets.api.public.v1.serializers import InstallmentSerializer
 from wallets.models import InstallmentRequest
+from wallets.utils.choices import (
+    InstallmentRequestStatus,
+)
 from wallets.utils.validators import https_only_validator
 
 
@@ -46,6 +50,17 @@ class InstallmentRequestCreateSerializer(serializers.Serializer):
 
 
 class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
+    installments = serializers.SerializerMethodField()
+
+    def get_installments(self, obj):
+        if obj.status != InstallmentRequestStatus.COMPLETED:
+            return None
+        plan = obj.get_installment_plan()
+        if not plan:
+            return None
+        installments = plan.installments.order_by("due_date")
+        return InstallmentSerializer(installments, many=True).data
+
     class Meta:
         model = InstallmentRequest
         ref_name = "PartnerInstallmentRequestDetail"
@@ -58,4 +73,5 @@ class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
             "period_months",
             "status",
             "user_confirmed_at",
+            "installments",
         ]
