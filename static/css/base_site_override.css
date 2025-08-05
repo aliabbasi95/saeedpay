@@ -47,6 +47,7 @@
 
     --header-bg: var(--color-primary);
 
+    --text-color: #212121;
 }
 
 /*----------------------------------------
@@ -63,15 +64,25 @@ html[data-theme="light"] {
     --button-bg: #00bfa5;
     --button-hover-bg: var(--color-success);
 }
-
+html[data-theme="dark"] {
+    --body-bg: var(--color-bg-dark);
+    --text-color: var(--color-text-light);
+    --border-color: #444;
+    --header-bg: var(--color-primary-dark);
+    --default-button-bg: var(--color-success);
+    --default-button-hover-bg: var(--color-success-hover);
+    --button-bg: var(--color-success-hover);
+    --button-hover-bg: var(--color-success);
+}
 /*----------------------------------------
   Base Layout
 ----------------------------------------*/
 body {
     background-color: var(--body-bg);
-    color: var(--text-color);
 }
-
+body, td, th, p, div {
+    color: var(--text-color) !important;
+}
 #header {
     background-color: var(--header-bg);
 }
@@ -206,4 +217,11 @@ a.inline-deletelink {
     margin-left: -3%;
     padding-left: calc(3% + 8px);
     background-color: var(--color-caption-submodule);
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text-color: var(--color-text-light);
+        --body-bg: var(--color-bg-dark);
+        --header-bg: var(--color-primary-dark);
+    }
 }
