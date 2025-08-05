@@ -3,3 +3,4 @@ from .apikey import (
     StoreApiKeyRegenerateRequestSerializer,
 )
 from .store import StoreSerializer, StoreCreateSerializer
+from .contract import StoreContractSerializer

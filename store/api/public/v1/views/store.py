@@ -1,8 +1,14 @@
+# store/api/public/v1/views/store.py
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.mixins import (
+    CreateModelMixin, ListModelMixin,
+    RetrieveModelMixin, UpdateModelMixin,
+)
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.viewsets import GenericViewSet
 
-from lib.cas_auth.views import PublicModelViewSet
 from merchants.permissions import IsMerchant
 from store.api.public.v1.serializers import (
     StoreSerializer,
@@ -16,7 +22,13 @@ from store.models import Store
     summary="مدیریت فروشگاه‌ها توسط فروشنده",
     description="ایجاد، مشاهده، و ویرایش فروشگاه‌های متعلق به فروشنده جاری"
 )
-class StoreViewSet(PublicModelViewSet):
+class StoreViewSet(
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+    GenericViewSet
+):
     permission_classes = [IsAuthenticated, IsMerchant]
 
     def get_queryset(self):

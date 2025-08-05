@@ -1,11 +1,8 @@
 # wallets/api/public/v1/views/installment.py
 
 from drf_spectacular.utils import extend_schema
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 
-from lib.cas_auth.views import (
-    PublicRetrieveAPIView,
-    PublicListAPIView,
-)
 from wallets.api.public.v1.serializers.installment import InstallmentSerializer
 from wallets.models import Installment
 
@@ -15,7 +12,7 @@ from wallets.models import Installment
     summary="لیست همه اقساط کاربر",
     description="دریافت تمام اقساط متعلق به کاربر، مرتب‌شده بر اساس تاریخ سررسید"
 )
-class InstallmentListView(PublicListAPIView):
+class InstallmentListView(ListAPIView):
     serializer_class = InstallmentSerializer
 
     def get_queryset(self):
@@ -29,7 +26,7 @@ class InstallmentListView(PublicListAPIView):
     summary="لیست اقساط مرتبط با یک برنامه خاص",
     description="دریافت لیست اقساط برای برنامه اقساطی مشخص‌شده با شناسه plan_id"
 )
-class InstallmentsByPlanView(PublicListAPIView):
+class InstallmentsByPlanView(ListAPIView):
     serializer_class = InstallmentSerializer
 
     def get_queryset(self):
@@ -44,7 +41,7 @@ class InstallmentsByPlanView(PublicListAPIView):
     summary="جزئیات یک قسط",
     description="دریافت اطلاعات کامل یک قسط شامل تاریخ، مبلغ، وضعیت، جریمه و تراکنش مرتبط"
 )
-class InstallmentDetailView(PublicRetrieveAPIView):
+class InstallmentDetailView(RetrieveAPIView):
     serializer_class = InstallmentSerializer
 
     def get_queryset(self):
