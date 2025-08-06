@@ -96,7 +96,7 @@ class InstallmentRequest(BaseModel):
         ).first()
 
     def __str__(self):
-        return f"{self.customer} - {self.requested_amount} تومان ({self.get_status_display()})"
+        return f"{self.customer} - {self.proposal_amount} تومان ({self.get_status_display()})"
 
     class Meta:
         verbose_name = _("درخواست خرید اقساطی")
