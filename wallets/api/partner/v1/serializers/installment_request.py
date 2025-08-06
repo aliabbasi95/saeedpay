@@ -29,17 +29,13 @@ class InstallmentRequestCreateSerializer(serializers.Serializer):
                 "قرارداد فعالی برای فروشگاه یافت نشد."
             )
 
-        if amount > contract.max_credit_per_user:
-            raise serializers.ValidationError(
-                "مبلغ بیش از سقف اعتبار مجاز است."
-            )
-
         try:
             profile = Profile.objects.get(national_id=national_id)
             customer = profile.user.customer
         except Exception:
             raise serializers.ValidationError("مشتری با این کد ملی یافت نشد.")
 
+        data["amount"] = min(amount, contract.max_credit_per_user)
         data["customer"] = customer
         data["contract"] = contract
         return data
