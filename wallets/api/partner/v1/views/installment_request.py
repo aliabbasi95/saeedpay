@@ -7,6 +7,7 @@ from rest_framework.serializers import Serializer
 
 from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
 from merchants.permissions import IsMerchant
+from profiles.models import Profile
 from store.authentication import StoreApiKeyAuthentication
 from wallets.api.partner.v1.serializers import (
     InstallmentRequestDetailSerializer,
@@ -35,9 +36,17 @@ class InstallmentRequestCreateView(PublicAPIView):
             data["amount"], data["contract"]
         )
 
+        try:
+            profile = Profile.objects.get(national_id=data["national_id"])
+            customer = profile.user.customer
+        except Exception:
+            self.response_data = {"detail": "مشتری با این کد ملی یافت نشد."}
+            self.response_status = status.HTTP_404_NOT_FOUND
+            return
+
         req = InstallmentRequest.objects.create(
             store=self.request.store,
-            customer=data["customer"],
+            customer=customer,
             national_id=data["national_id"],
             proposal_amount=data["amount"],
             credit_limit_amount=credit_limit_amount,
