@@ -19,6 +19,13 @@ ADMIN_REORDER = (
         ),
     },
     {
+        "app": "wallets",
+        "label": "کیف پول",
+        "models": (
+            "wallets.InstallmentRequest",
+        ),
+    },
+    {
         'app': 'cas_auth',
         'label': 'API',
         'models': (
