@@ -64,9 +64,6 @@ class InstallmentRequest(BaseModel):
         blank=True,
         verbose_name=_("پریود بازپرداخت (ماه)")
     )
-    return_url = models.URLField(
-        verbose_name=_("آدرس بازگشت")
-    )
     status = models.CharField(
         max_length=32,
         choices=InstallmentRequestStatus.choices,

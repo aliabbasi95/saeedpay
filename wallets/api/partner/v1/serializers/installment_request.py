@@ -9,15 +9,11 @@ from wallets.models import InstallmentRequest
 from wallets.utils.choices import (
     InstallmentRequestStatus,
 )
-from wallets.utils.validators import https_only_validator
 
 
 class InstallmentRequestCreateSerializer(serializers.Serializer):
     national_id = serializers.CharField(max_length=10)
     amount = serializers.IntegerField(min_value=1)
-    return_url = serializers.URLField(
-        required=True, validators=[https_only_validator]
-    )
 
     def validate(self, data):
         store = self.context["request"].store

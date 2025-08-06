@@ -50,7 +50,6 @@ class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
             "store_name",
             "credit_limit_amount",
             "status",
-            "return_url",
             "min_credit",
             "max_credit",
             "min_repayment_months",

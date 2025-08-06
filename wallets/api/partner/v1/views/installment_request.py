@@ -40,7 +40,6 @@ class InstallmentRequestCreateView(PublicAPIView):
             customer=data["customer"],
             national_id=data["national_id"],
             proposal_amount=data["amount"],
-            return_url=data["return_url"],
             credit_limit_amount=credit_limit_amount,
             contract=data["contract"],
         )
@@ -52,7 +51,6 @@ class InstallmentRequestCreateView(PublicAPIView):
             "proposal_amount": req.proposal_amount,
             "credit_limit_amount": req.credit_limit_amount,
             "payment_url": payment_url,
-            "return_url": req.return_url,
             "status": req.status,
         }
         self.response_status = status.HTTP_201_CREATED
