@@ -6,7 +6,6 @@ from rest_framework import status
 from rest_framework.serializers import Serializer
 
 from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
-from lib.erp_base.exceptions.api import ConflictError
 from merchants.permissions import IsMerchant
 from profiles.models import Profile
 from store.authentication import StoreApiKeyAuthentication
