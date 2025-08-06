@@ -9,7 +9,7 @@ from chatbot.models import ChatSession, ChatMessage
 
 
 @extend_schema(
-    tags=["chatbot"],
+    tags=["Chatbot"],
     summary="List user chat sessions",
     description="""
     List chat sessions belonging to the current user (if authenticated) or \
@@ -92,7 +92,7 @@ class UserChatSessionsView(PublicGetAPIView):
 
 
 @extend_schema(
-    tags=["chatbot"],
+    tags=["Chatbot"],
     summary="Retrieve chat session details",
     description="""
     Retrieve a single chat session and its messages. Only accessible to the \

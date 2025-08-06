@@ -44,3 +44,5 @@ LLM_BASE_URL = 'http://192.168.20.250:8008/'
 
 CHATBOT_HISTORY_LIMIT = 4
 CHATBOT_SESSION_LIMIT = 2
+# Card Validator Configuration
+CARD_VALIDATOR_MOCK = True  # Set to False for production validation

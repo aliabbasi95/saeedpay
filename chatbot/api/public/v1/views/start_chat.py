@@ -12,7 +12,7 @@ SESSION_LIMIT_ANONYMOUS = getattr(settings, "CHATBOT_SESSION_LIMIT", 2)
 
 
 @extend_schema(
-    tags=["chatbot"],
+    tags=["Chatbot"],
     summary="Start a new chat session",
     description="""\
     Create a new chat session for communicating with the AI chatbot. If the \

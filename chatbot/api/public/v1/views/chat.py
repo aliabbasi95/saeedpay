@@ -18,7 +18,7 @@ HISTORY_LIMIT = getattr(settings, "CHATBOT_HISTORY_LIMIT", 4)
 
 
 @extend_schema(
-    tags=["chatbot"],
+    tags=["Chatbot"],
     summary="Send message to AI chatbot",
     description=(
         "Send a message to the AI chatbot and receive a response. "
