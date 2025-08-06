@@ -49,7 +49,9 @@ class InstallmentRequestCreateView(PublicAPIView):
         if InstallmentRequest.objects.filter(
                 store=store, external_guid=external_guid
         ).exists():
-            raise ConflictError("درخواست با این شناسه قبلاً ثبت شده است.")
+            self.response_data = {"detail": "درخواست تکراری است."}
+            self.response_status = 409
+            return
 
         req = InstallmentRequest.objects.create(
             store=store,
