@@ -114,7 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "lib.erp_base.validators.LengthValidator",
         "OPTIONS": {
-            "min_length": 12
+            "min_length": 8
         }
     },
 ]
