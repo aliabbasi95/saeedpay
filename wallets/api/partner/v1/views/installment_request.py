@@ -1,4 +1,5 @@
 # wallets/api/partner/v1/views/installment_request.py
+from urllib.parse import urlencode
 
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
@@ -61,7 +62,8 @@ class InstallmentRequestCreateView(PublicAPIView):
             credit_limit_amount=credit_limit_amount,
             contract=data["contract"],
         )
-        payment_url = f"{settings.FRONTEND_BASE_URL}{FRONTEND_INSTALLMENT_REQUEST_DETAIL_URL}{req.reference_code}/"
+        query_string = urlencode({"reference_code": req.reference_code})
+        payment_url = f"{settings.FRONTEND_BASE_URL}{FRONTEND_INSTALLMENT_REQUEST_DETAIL_URL}?{query_string}"
 
         self.response_data = {
             "installment_request_id": req.id,
