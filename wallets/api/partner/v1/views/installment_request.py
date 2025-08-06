@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.serializers import Serializer
 
 from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
+from lib.erp_base.exceptions.api import ConflictError
 from merchants.permissions import IsMerchant
 from profiles.models import Profile
 from store.authentication import StoreApiKeyAuthentication
@@ -31,10 +32,12 @@ class InstallmentRequestCreateView(PublicAPIView):
     serializer_class = InstallmentRequestCreateSerializer
 
     def perform_save(self, serializer):
+        store = self.request.store
         data = serializer.validated_data
         credit_limit_amount = evaluate_user_credit(
             data["amount"], data["contract"]
         )
+        external_guid = data["guid"]
 
         try:
             profile = Profile.objects.get(national_id=data["national_id"])
@@ -43,11 +46,16 @@ class InstallmentRequestCreateView(PublicAPIView):
             self.response_data = {"detail": "مشتری با این کد ملی یافت نشد."}
             self.response_status = status.HTTP_404_NOT_FOUND
             return
+        if InstallmentRequest.objects.filter(
+                store=store, external_guid=external_guid
+        ).exists():
+            raise ConflictError("درخواست با این شناسه قبلاً ثبت شده است.")
 
         req = InstallmentRequest.objects.create(
-            store=self.request.store,
+            store=store,
             customer=customer,
             national_id=data["national_id"],
+            external_guid=external_guid,
             proposal_amount=data["amount"],
             credit_limit_amount=credit_limit_amount,
             contract=data["contract"],

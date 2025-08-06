@@ -72,6 +72,11 @@ class InstallmentRequest(BaseModel):
     )
     user_confirmed_at = models.DateTimeField(null=True, blank=True)
     store_confirmed_at = models.DateTimeField(null=True, blank=True)
+    external_guid = models.CharField(
+        max_length=64,
+        verbose_name=_("شناسه خارجی (سیستم فروشگاه)"),
+        help_text="GUID اختصاصی ارسال‌شده از سیستم فروشگاه"
+    )
 
     def save(self, *args, **kwargs):
         if not self.reference_code:

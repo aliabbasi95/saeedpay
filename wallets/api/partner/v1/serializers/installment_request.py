@@ -14,10 +14,10 @@ from wallets.utils.choices import (
 class InstallmentRequestCreateSerializer(serializers.Serializer):
     national_id = serializers.CharField(max_length=10)
     amount = serializers.IntegerField(min_value=1)
+    guid = serializers.CharField(max_length=64)
 
     def validate(self, data):
         store = self.context["request"].store
-        national_id = data["national_id"]
         amount = data["amount"]
 
         try:
