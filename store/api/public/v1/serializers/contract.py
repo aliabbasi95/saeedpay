@@ -16,5 +16,4 @@ class StoreContractSerializer(serializers.ModelSerializer):
             "min_repayment_months",
             "allowed_period_months",
             "interest_rate",
-            "callback_url",
         ]
