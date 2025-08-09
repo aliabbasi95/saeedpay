@@ -48,7 +48,7 @@ class InstallmentRequestAdmin(admin.ModelAdmin):
         }),
         (_("مبالغ و تاییدات"), {
             "fields": (
-                "proposal_amount", "credit_limit_amount", "confirmed_amount",
+                "proposal_amount", "confirmed_amount",
                 "store_confirmed_at", "user_confirmed_at"
             )
         }),

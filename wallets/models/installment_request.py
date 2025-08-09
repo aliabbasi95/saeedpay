@@ -40,9 +40,6 @@ class InstallmentRequest(BaseModel):
     proposal_amount = models.BigIntegerField(
         verbose_name=_("مبلغ پیشنهادی فروشگاه")
     )
-    credit_limit_amount = models.BigIntegerField(
-        verbose_name=_("سقف اعتبار قابل ارائه")
-    )
     confirmed_amount = models.BigIntegerField(
         null=True,
         blank=True,

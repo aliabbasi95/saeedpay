@@ -48,7 +48,6 @@ class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
         fields = [
             "reference_code",
             "store_name",
-            "credit_limit_amount",
             "status",
             "min_credit",
             "max_credit",
@@ -73,7 +72,7 @@ class InstallmentRequestConfirmSerializer(serializers.Serializer):
                 "این درخواست قبلاً تایید شده است."
             )
 
-        if data["confirmed_amount"] > request_obj.credit_limit_amount:
+        if data["confirmed_amount"] > request_obj.proposal_amount:
             raise serializers.ValidationError(
                 "مقدار انتخاب‌شده بیش از سقف اعتبار مجاز است."
             )

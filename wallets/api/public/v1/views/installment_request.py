@@ -25,7 +25,7 @@ class InstallmentRequestDetailView(PublicGetAPIView):
     def get(self, request, reference_code):
         obj = InstallmentRequest.objects.filter(
             reference_code=reference_code,
-            customer=request.user.customer
+            # customer=request.user.customer
         ).first()
         if not obj:
             self.response_data = {"detail": "درخواست اقساطی یافت نشد."}

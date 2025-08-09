@@ -39,9 +39,6 @@ class InstallmentRequestCreateView(PublicAPIView):
     def perform_save(self, serializer):
         store = self.request.store
         data = serializer.validated_data
-        credit_limit_amount = evaluate_user_credit(
-            data["amount"], data["contract"]
-        )
         external_guid = data["guid"]
 
         try:
@@ -64,7 +61,6 @@ class InstallmentRequestCreateView(PublicAPIView):
             national_id=data["national_id"],
             external_guid=external_guid,
             proposal_amount=data["amount"],
-            credit_limit_amount=credit_limit_amount,
             contract=data["contract"],
         )
         query_string = urlencode({"reference_code": req.reference_code})
@@ -74,7 +70,6 @@ class InstallmentRequestCreateView(PublicAPIView):
             "installment_request_id": req.id,
             "reference_code": req.reference_code,
             "proposal_amount": req.proposal_amount,
-            "credit_limit_amount": req.credit_limit_amount,
             "payment_url": payment_url,
             "status": req.status,
         }

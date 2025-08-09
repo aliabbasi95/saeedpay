@@ -55,7 +55,6 @@ class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
         fields = [
             "reference_code",
             "proposal_amount",
-            "credit_limit_amount",
             "confirmed_amount",
             "duration_months",
             "period_months",
