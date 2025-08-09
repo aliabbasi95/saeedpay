@@ -2,7 +2,11 @@
 from urllib.parse import urlencode
 
 from django.conf import settings
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    extend_schema, OpenApiParameter,
+    OpenApiResponse,
+)
 from rest_framework import status
 from rest_framework.serializers import Serializer
 
@@ -13,6 +17,7 @@ from store.authentication import StoreApiKeyAuthentication
 from wallets.api.partner.v1.serializers import (
     InstallmentRequestDetailSerializer,
     InstallmentRequestCreateSerializer,
+    InstallmentRequestVerifyResponseSerializer,
 )
 from wallets.models import InstallmentRequest
 from wallets.services import evaluate_user_credit, finalize_installment_request
@@ -107,7 +112,21 @@ class InstallmentRequestRetrieveView(PublicGetAPIView):
 @extend_schema(
     tags=["Wallet · Installment Requests (Partner)"],
     summary="تایید نهایی درخواست اقساطی توسط فروشگاه",
-    description="تایید فروشگاه برای نهایی‌سازی درخواست اقساطی پس از تایید کاربر"
+    description="تایید فروشگاه برای نهایی‌سازی درخواست اقساطی پس از تایید کاربر",
+    request=None,  # ← بدنه‌ای نداریم
+    parameters=[
+        OpenApiParameter(
+            name="reference_code",
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.PATH,
+            description="کد مرجع یکتای درخواست اقساطی"
+        )
+    ],
+    responses={
+        200: OpenApiResponse(InstallmentRequestVerifyResponseSerializer),
+        400: OpenApiResponse(description="درخواست هنوز توسط کاربر تایید نشده است."),
+        404: OpenApiResponse(description="درخواست اقساطی یافت نشد.")
+    }
 )
 class InstallmentRequestVerifyView(PublicAPIView):
     authentication_classes = [StoreApiKeyAuthentication]
@@ -133,12 +152,12 @@ class InstallmentRequestVerifyView(PublicAPIView):
 
         finalize_installment_request(req)
 
-        self.response_data = {
+        self.response_data = InstallmentRequestVerifyResponseSerializer({
             "detail": "درخواست با موفقیت نهایی شد.",
             "reference_code": req.reference_code,
             "confirmed_amount": req.confirmed_amount,
             "duration_months": req.duration_months,
             "period_months": req.period_months,
-        }
+        }).data
         self.response_status = status.HTTP_200_OK
         return self.response

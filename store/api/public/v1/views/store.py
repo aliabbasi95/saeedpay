@@ -30,12 +30,17 @@ class StoreViewSet(
     GenericViewSet
 ):
     permission_classes = [IsAuthenticated, IsMerchant]
+    queryset = Store.objects.none()
+    serializer_class = StoreSerializer
 
     def get_queryset(self):
-        return Store.objects.filter(merchant=self.request.user.merchant)
+        user = getattr(getattr(self, "request", None), "user", None)
+        if not user or not hasattr(user, "merchant"):
+            return Store.objects.none()
+        return Store.objects.filter(merchant=user.merchant)
 
     def get_serializer_class(self):
-        if self.action == "create":
+        if getattr(self, "action", None) == "create":
             return StoreCreateSerializer
         return StoreSerializer
 

@@ -84,4 +84,4 @@ class InstallmentPlan(BaseModel):
         verbose_name_plural = _("برنامه‌های اقساطی")
 
     def __str__(self):
-        return f"Plan #{self.id} for {self.user} - {self.total_amount} تومان"
+        return f"Plan #{self.id} for {self.user} - {self.total_amount} ریال"

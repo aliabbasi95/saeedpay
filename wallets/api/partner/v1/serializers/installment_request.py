@@ -1,8 +1,8 @@
 # wallets/api/partner/v1/serializers/installment_request.py
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from profiles.models.profile import Profile
 from store.models import StoreContract
 from wallets.api.public.v1.serializers import InstallmentSerializer
 from wallets.models import InstallmentRequest
@@ -37,6 +37,9 @@ class InstallmentRequestCreateSerializer(serializers.Serializer):
 class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
     installments = serializers.SerializerMethodField()
 
+    @extend_schema_field(
+        serializers.ListField(child=InstallmentSerializer())
+    )
     def get_installments(self, obj):
         if obj.status != InstallmentRequestStatus.COMPLETED:
             return None
@@ -60,3 +63,11 @@ class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
             "user_confirmed_at",
             "installments",
         ]
+
+
+class InstallmentRequestVerifyResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    reference_code = serializers.CharField()
+    confirmed_amount = serializers.IntegerField()
+    duration_months = serializers.IntegerField()
+    period_months = serializers.IntegerField()

@@ -76,7 +76,7 @@ class WalletTransferRequest(BaseModel):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"انتقال از {self.sender_wallet} به {self.receiver_wallet or self.receiver_phone_number} - {self.amount} تومان"
+        return f"انتقال از {self.sender_wallet} به {self.receiver_wallet or self.receiver_phone_number} - {self.amount} ریال"
 
     class Meta:
         verbose_name = "درخواست انتقال کیف"

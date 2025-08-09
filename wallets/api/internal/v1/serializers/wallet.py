@@ -37,3 +37,4 @@ class WalletSerializer(serializers.ModelSerializer):
             "balance",
         ]
         read_only_fields = fields
+        ref_name = "InternalWallet"

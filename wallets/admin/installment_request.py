@@ -66,13 +66,13 @@ class InstallmentRequestAdmin(admin.ModelAdmin):
     customer_name.short_description = _("نام مشتری")
 
     def proposal_amount_display(self, obj):
-        return f"{obj.proposal_amount:,} تومان"
+        return f"{obj.proposal_amount:,} ریال"
 
     proposal_amount_display.short_description = _("مبلغ پیشنهادی")
 
     def confirmed_amount_display(self, obj):
         if obj.confirmed_amount:
-            return f"{obj.confirmed_amount:,} تومان"
+            return f"{obj.confirmed_amount:,} ریال"
         return "-"
 
     confirmed_amount_display.short_description = _("مبلغ تایید شده")

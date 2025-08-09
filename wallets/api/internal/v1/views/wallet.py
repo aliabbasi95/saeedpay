@@ -14,6 +14,7 @@ from wallets.utils.choices import OwnerType
 
 
 class InternalCustomerWalletListByNationalIdView(CasAuthAPIView):
+    serializer_class = WalletSerializer
 
     def post(self, request):
         serializer = NationalIdInputSerializer(data=request.data)
@@ -35,5 +36,5 @@ class InternalCustomerWalletListByNationalIdView(CasAuthAPIView):
         wallets = Wallet.objects.filter(
             user=user, owner_type=OwnerType.CUSTOMER
         ).order_by("kind")
-        wallet_serializer = WalletSerializer(wallets, many=True)
+        wallet_serializer = self.get_serializer(wallets, many=True)
         return Response(wallet_serializer.data, status=status.HTTP_200_OK)

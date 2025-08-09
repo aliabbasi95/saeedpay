@@ -6,4 +6,5 @@ from .payment import (
 from .installment_request import (
     InstallmentRequestCreateSerializer,
     InstallmentRequestDetailSerializer,
+    InstallmentRequestVerifyResponseSerializer,
 )
