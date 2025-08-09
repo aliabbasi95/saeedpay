@@ -129,6 +129,7 @@ class InstallmentRequestUnderwriteSerializer(serializers.Serializer):
         req.period_months = self.validated_data["period_months"]
         req.requested_at = timezone.localtime(timezone.now())
         req.mark_underwriting()
+        req.save()
 
         run_underwriting_for_request.delay(req.id)
 
@@ -137,6 +138,56 @@ class InstallmentRequestUnderwriteSerializer(serializers.Serializer):
             "reference_code": req.reference_code,
             "message": "اعتبارسنجی آغاز شد؛ لطفاً بعداً نتیجه را بررسی کنید.",
         }
+
+
+class InstallmentRequestCalculationSerializer(serializers.Serializer):
+    duration_months = serializers.IntegerField(min_value=1)
+    period_months = serializers.IntegerField(min_value=1)
+
+    def validate(self, data):
+        req: InstallmentRequest = self.context["installment_request"]
+        c = req.contract
+
+        # قیود قرارداد
+        if data["duration_months"] < c.min_repayment_months:
+            raise serializers.ValidationError(
+                "مدت بازپرداخت کمتر از حداقل مجاز است."
+            )
+        if data["duration_months"] > c.max_repayment_months:
+            raise serializers.ValidationError(
+                "مدت بازپرداخت بیش از حد مجاز است."
+            )
+        if data["period_months"] not in c.allowed_period_months:
+            raise serializers.ValidationError("پریود انتخابی نامعتبر است.")
+        if data["period_months"] > data["duration_months"]:
+            raise serializers.ValidationError(
+                "پریود از مدت بازپرداخت بزرگ‌تر است."
+            )
+        if req.system_approved_amount and req.status == InstallmentRequestStatus.VALIDATED:
+            amount = req.system_approved_amount
+        elif req.user_requested_amount:
+            amount = req.user_requested_amount
+        else:
+            amount = req.store_proposed_amount
+        amount = max(c.min_credit_per_user, min(amount, c.max_credit_per_user))
+
+        data["amount_for_preview"] = amount
+        return data
+
+    def preview(self):
+        req: InstallmentRequest = self.context["installment_request"]
+        amount = self.validated_data["amount_for_preview"]
+        duration = self.validated_data["duration_months"]
+        period = self.validated_data["period_months"]
+        ir = req.contract.interest_rate
+
+        plan = calculate_installments(
+            amount=amount,
+            duration_months=duration,
+            period_months=period,
+            annual_interest_rate=ir,
+        )
+        return plan
 
 
 class InstallmentRequestConfirmSerializer(serializers.Serializer):
@@ -155,7 +206,10 @@ class InstallmentRequestConfirmSerializer(serializers.Serializer):
     def confirm(self):
         req: InstallmentRequest = self.context["installment_request"]
         req.mark_user_accepted()
-
+        print(            req.system_approved_amount,
+            req.duration_months,
+            req.period_months,
+            req.contract.interest_rate)
         plan_preview = calculate_installments(
             req.system_approved_amount,
             req.duration_months,

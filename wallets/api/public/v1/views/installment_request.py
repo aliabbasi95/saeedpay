@@ -9,6 +9,7 @@ from wallets.api.public.v1.serializers import (
     InstallmentRequestConfirmSerializer,
     InstallmentRequestUnderwriteSerializer,
     InstallmentRequestListItemSerializer,
+    InstallmentRequestCalculationSerializer,
 )
 from wallets.models import InstallmentRequest
 
@@ -45,14 +46,18 @@ class InstallmentRequestDetailView(generics.RetrieveAPIView):
 
 
 @extend_schema(
-    request=InstallmentRequestConfirmSerializer,
-    responses={200: OpenApiResponse(description="خروجی شبیه‌سازی اقساط")},
     tags=["Wallet · Installment Requests (Public)"],
-    summary="محاسبه اقساط قبل از تایید",
-    description="محاسبه جدول اقساط براساس اطلاعات ورودی کاربر، بدون ذخیره‌سازی"
+    summary="محاسبه اقساط + دیتیل درخواست (بدون نیاز به VALIDATED)",
+    description=(
+        "این endpoint بر اساس وضعیت فعلی درخواست مبلغ مناسب را برای پیش‌نمایش انتخاب می‌کند:\n"
+        "- اگر VALIDATED باشد، از مبلغ تاییدشده سیستم استفاده می‌کند.\n"
+        "- در غیر این صورت از مبلغ درخواست‌شده کاربر یا مبلغ پیشنهادی فروشگاه استفاده می‌کند.\n"
+        "هیچ داده‌ای ذخیره نمی‌شود."
+    ),
+    request=InstallmentRequestCalculationSerializer,
 )
 class InstallmentCalculationView(PublicAPIView):
-    serializer_class = InstallmentRequestConfirmSerializer
+    serializer_class = InstallmentRequestCalculationSerializer
 
     def post(self, request, reference_code):
         obj = InstallmentRequest.objects.filter(
@@ -63,16 +68,22 @@ class InstallmentCalculationView(PublicAPIView):
             self.response_data = {"detail": "درخواست اقساطی یافت نشد."}
             self.response_status = status.HTTP_404_NOT_FOUND
             return self.response
-        serializer = self.get_serializer(
+
+        ser = self.get_serializer(
             data=request.data,
             context={"installment_request": obj}
         )
-        serializer.is_valid(raise_exception=True)
+        ser.is_valid(raise_exception=True)
 
-        self.response_data = serializer.validated_data["installment_plan"]
+        detail = InstallmentRequestDetailSerializer(obj).data
+        preview = ser.preview()
+
+        self.response_data = {
+            "request": detail,
+            "installment_preview": preview
+        }
         self.response_status = status.HTTP_200_OK
         return self.response
-
 
 @extend_schema(
     tags=["Wallet · Installment Requests (Public)"],

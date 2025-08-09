@@ -14,6 +14,7 @@ from .installment import InstallmentSerializer
 from .installment_request import (
     InstallmentRequestListItemSerializer,
     InstallmentRequestDetailSerializer,
+    InstallmentRequestCalculationSerializer,
     InstallmentRequestConfirmSerializer,
     InstallmentRequestUnderwriteSerializer,
 )

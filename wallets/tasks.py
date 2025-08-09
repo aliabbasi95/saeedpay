@@ -64,9 +64,7 @@ def run_underwriting_for_request(self, request_id: int):
             }:
                 return
 
-            base_amount = req.user_requested_amount or req.store_proposed_amount
-
-            approved = evaluate_user_credit(base_amount, req.contract)
+            approved = evaluate_user_credit(req.user_requested_amount, req.contract)
             req.mark_validated(approved_amount=approved)
     except InstallmentRequest.DoesNotExist:
         return
