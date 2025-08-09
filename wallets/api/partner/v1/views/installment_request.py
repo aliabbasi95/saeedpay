@@ -15,12 +15,13 @@ from merchants.permissions import IsMerchant
 from profiles.models import Profile
 from store.authentication import StoreApiKeyAuthentication
 from wallets.api.partner.v1.serializers import (
-    InstallmentRequestDetailSerializer,
     InstallmentRequestCreateSerializer,
     InstallmentRequestVerifyResponseSerializer,
 )
+from wallets.api.public.v1.serializers import \
+    InstallmentRequestDetailSerializer
 from wallets.models import InstallmentRequest
-from wallets.services import evaluate_user_credit, finalize_installment_request
+from wallets.services import finalize_installment_request
 from wallets.utils.choices import InstallmentRequestStatus
 from wallets.utils.consts import FRONTEND_INSTALLMENT_REQUEST_DETAIL_URL
 
@@ -60,7 +61,7 @@ class InstallmentRequestCreateView(PublicAPIView):
             customer=customer,
             national_id=data["national_id"],
             external_guid=external_guid,
-            proposal_amount=data["amount"],
+            store_proposed_amount=data["amount"],
             contract=data["contract"],
         )
         query_string = urlencode({"reference_code": req.reference_code})
@@ -69,7 +70,7 @@ class InstallmentRequestCreateView(PublicAPIView):
         self.response_data = {
             "installment_request_id": req.id,
             "reference_code": req.reference_code,
-            "proposal_amount": req.proposal_amount,
+            "store_proposed_amount": req.store_proposed_amount,
             "payment_url": payment_url,
             "status": req.status,
         }
@@ -119,7 +120,9 @@ class InstallmentRequestRetrieveView(PublicGetAPIView):
     ],
     responses={
         200: OpenApiResponse(InstallmentRequestVerifyResponseSerializer),
-        400: OpenApiResponse(description="درخواست هنوز توسط کاربر تایید نشده است."),
+        400: OpenApiResponse(
+            description="درخواست هنوز توسط کاربر تایید نشده است."
+        ),
         404: OpenApiResponse(description="درخواست اقساطی یافت نشد.")
     }
 )
@@ -147,12 +150,14 @@ class InstallmentRequestVerifyView(PublicAPIView):
 
         finalize_installment_request(req)
 
-        self.response_data = InstallmentRequestVerifyResponseSerializer({
-            "detail": "درخواست با موفقیت نهایی شد.",
-            "reference_code": req.reference_code,
-            "confirmed_amount": req.confirmed_amount,
-            "duration_months": req.duration_months,
-            "period_months": req.period_months,
-        }).data
+        self.response_data = InstallmentRequestVerifyResponseSerializer(
+            {
+                "detail": "درخواست با موفقیت نهایی شد.",
+                "reference_code": req.reference_code,
+                "confirmed_amount": req.confirmed_amount,
+                "duration_months": req.duration_months,
+                "period_months": req.period_months,
+            }
+        ).data
         self.response_status = status.HTTP_200_OK
         return self.response

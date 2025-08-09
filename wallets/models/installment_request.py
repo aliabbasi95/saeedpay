@@ -1,6 +1,7 @@
 # wallets/models/installment_request.py
 
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from customers.models import Customer
@@ -37,14 +38,39 @@ class InstallmentRequest(BaseModel):
         max_length=10,
         verbose_name=_("کد ملی")
     )
-    proposal_amount = models.BigIntegerField(
+    store_proposed_amount = models.BigIntegerField(
         verbose_name=_("مبلغ پیشنهادی فروشگاه")
     )
-    confirmed_amount = models.BigIntegerField(
-        null=True,
-        blank=True,
-        verbose_name=_("مبلغ تایید شده توسط مشتری")
+
+    user_requested_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name=_("مبلغ درخواستی کاربر (قبل از اعتبارسنجی)")
     )
+
+    system_approved_amount = models.BigIntegerField(
+        null=True, blank=True,
+        verbose_name=_("مبلغ تاییدشده توسط سیستم (نتیجه اعتبارسنجی)")
+    )
+    requested_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("زمان ثبت درخواست کاربر")
+    )
+    evaluated_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("زمان انجام اعتبارسنجی")
+    )
+    user_confirmed_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("زمان تایید کاربر")
+    )
+    store_confirmed_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("زمان تایید فروشگاه")
+    )
+
+    cancelled_at = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("زمان لغو")
+    )
+    cancel_reason = models.CharField(
+        max_length=255, blank=True, verbose_name=_("دلیل لغو")
+    )
+
     contract = models.ForeignKey(
         StoreContract,
         on_delete=models.PROTECT,
@@ -67,8 +93,6 @@ class InstallmentRequest(BaseModel):
         default=InstallmentRequestStatus.CREATED,
         verbose_name=_("وضعیت")
     )
-    user_confirmed_at = models.DateTimeField(null=True, blank=True)
-    store_confirmed_at = models.DateTimeField(null=True, blank=True)
     external_guid = models.CharField(
         max_length=64,
         verbose_name=_("شناسه خارجی (سیستم فروشگاه)"),
@@ -89,6 +113,45 @@ class InstallmentRequest(BaseModel):
                     "Reference code generation failed. Please try again."
                 )
         super().save(*args, **kwargs)
+
+    # --- State helpers ---
+    def mark_underwriting(self):
+        self.status = InstallmentRequestStatus.UNDERWRITING
+        self.save(update_fields=["status", "updated_at"])
+
+    def mark_validated(self, approved_amount: int):
+        self.system_approved_amount = approved_amount
+        self.evaluated_at = timezone.localtime(timezone.now())
+        self.status = InstallmentRequestStatus.VALIDATED
+        self.save(
+            update_fields=["system_approved_amount", "evaluated_at", "status",
+                           "updated_at"]
+        )
+
+    def mark_user_accepted(self):
+        self.status = InstallmentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        self.user_confirmed_at = timezone.localtime(timezone.now())
+        self.save(update_fields=["status", "user_confirmed_at", "updated_at"])
+
+    def mark_cancelled(self, reason: str = ""):
+        self.status = InstallmentRequestStatus.CANCELLED
+        self.cancelled_at = timezone.localtime(timezone.now())
+        self.cancel_reason = reason or ""
+        self.save(
+            update_fields=[
+                "status",
+                "cancelled_at",
+                "cancel_reason",
+                "updated_at"
+            ]
+        )
+
+    def can_cancel(self) -> bool:
+        return self.status in {
+            InstallmentRequestStatus.CREATED,
+            InstallmentRequestStatus.UNDERWRITING,
+            InstallmentRequestStatus.VALIDATED,
+        }
 
     def get_installment_plan(self):
         from wallets.models import InstallmentPlan

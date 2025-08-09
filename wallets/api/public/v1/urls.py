@@ -16,6 +16,9 @@ from wallets.api.public.v1.views import (
     InstallmentsByPlanView,
     InstallmentListView,
     InstallmentDetailView,
+    InstallmentRequestListView,
+    InstallmentUnderwriteView,
+    InstallmentRequestCancelView,
 )
 
 app_name = "wallets_public_v1"
@@ -57,20 +60,37 @@ urlpatterns = [
     # installment
 
     path(
-        "installment-request/<str:reference_code>/",
+        "installment-requests/",
+        InstallmentRequestListView.as_view(),
+        name="installment-request-list"
+    ),
+    path(
+        "installment-requests/<str:reference_code>/",
         InstallmentRequestDetailView.as_view(),
         name="installment-request-detail"
     ),
+    path(
+        "installment-requests/<str:reference_code>/prepare/",
+        InstallmentUnderwriteView.as_view(),
+        name="installment-request-underwrite"
+    ),
+    path(
+        "installment-requests/<str:reference_code>/confirm/",
+        InstallmentRequestConfirmView.as_view(),
+        name="installment-request-confirm"
+    ),
+    path(
+        "installment-requests/<str:reference_code>/cancel/",
+        InstallmentRequestCancelView.as_view(),
+        name="installment-request-cancel"
+    ),
+
     path(
         "installment-request/<str:reference_code>/calculate/",
         InstallmentCalculationView.as_view(),
         name="installment-request-calculate"
     ),
-    path(
-        "installment-request/<str:reference_code>/confirm/",
-        InstallmentRequestConfirmView.as_view(),
-        name="installment-request-confirm"
-    ),
+
     # installment plans
     path(
         "installment-plans/",

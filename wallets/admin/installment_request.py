@@ -1,10 +1,9 @@
-# wallets/admin/installment_request.py
-
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from wallets.models import InstallmentRequest
+from wallets.utils.choices import InstallmentRequestStatus
 
 
 @admin.register(InstallmentRequest)
@@ -15,18 +14,22 @@ class InstallmentRequestAdmin(admin.ModelAdmin):
         "customer_name",
         "national_id",
         "store",
-        "proposal_amount_display",
-        "confirmed_amount_display",
+        "store_proposed_amount_display",
+        "user_requested_amount_display",
+        "system_approved_amount_display",
         "status_colored",
-        "store_confirmed_at",
+        "evaluated_at",
         "user_confirmed_at",
+        "store_confirmed_at",
         "view_plan_link",
     ]
     list_filter = [
         "status",
         "store",
-        "store_confirmed_at",
+        "evaluated_at",
         "user_confirmed_at",
+        "store_confirmed_at",
+        "cancelled_at",
     ]
     search_fields = [
         "reference_code",
@@ -37,56 +40,76 @@ class InstallmentRequestAdmin(admin.ModelAdmin):
     ]
     readonly_fields = [
         "reference_code",
-        "store_confirmed_at",
+        "requested_at",
+        "evaluated_at",
         "user_confirmed_at",
+        "store_confirmed_at",
+        "cancelled_at",
     ]
     autocomplete_fields = ["store", "customer", "contract"]
+
     fieldsets = (
         (_("اطلاعات پایه"), {
             "fields": ("reference_code", "store", "customer", "national_id",
                        "contract")
         }),
-        (_("مبالغ و تاییدات"), {
+        (_("مبالغ"), {
             "fields": (
-                "proposal_amount", "confirmed_amount",
-                "store_confirmed_at", "user_confirmed_at"
+                "store_proposed_amount",
+                "user_requested_amount",
+                "system_approved_amount",
             )
         }),
         (_("برنامه بازپرداخت"), {
             "fields": ("duration_months", "period_months")
         }),
-        (_("وضعیت"), {
-            "fields": ("status",)
+        (_("زمان‌ها"), {
+            "fields": ("requested_at", "evaluated_at", "user_confirmed_at",
+                       "store_confirmed_at", "cancelled_at")
+        }),
+        (_("وضعیت و لغو"), {
+            "fields": ("status", "cancel_reason")
         }),
     )
 
     def customer_name(self, obj):
-        return obj.customer.user.profile.full_name
+        return getattr(
+            obj.customer.user.profile, "full_name", obj.customer.user.username
+        )
 
     customer_name.short_description = _("نام مشتری")
 
-    def proposal_amount_display(self, obj):
-        return f"{obj.proposal_amount:,} ریال"
+    def store_proposed_amount_display(self, obj):
+        return f"{obj.store_proposed_amount:,} ریال"
 
-    proposal_amount_display.short_description = _("مبلغ پیشنهادی")
+    store_proposed_amount_display.short_description = _(
+        "مبلغ پیشنهادی فروشگاه"
+    )
 
-    def confirmed_amount_display(self, obj):
-        if obj.confirmed_amount:
-            return f"{obj.confirmed_amount:,} ریال"
-        return "-"
+    def user_requested_amount_display(self, obj):
+        return f"{obj.user_requested_amount:,} ریال" if obj.user_requested_amount else "-"
 
-    confirmed_amount_display.short_description = _("مبلغ تایید شده")
+    user_requested_amount_display.short_description = _("مبلغ درخواستی کاربر")
+
+    def system_approved_amount_display(self, obj):
+        return f"{obj.system_approved_amount:,} ریال" if obj.system_approved_amount else "-"
+
+    system_approved_amount_display.short_description = _("مبلغ تاییدشده سیستم")
 
     def status_colored(self, obj):
-        color = {
-            "created": "gray",
-            "user_confirmed": "orange",
-            "store_confirmed": "green",
-            "rejected": "red",
-        }.get(obj.status, "black")
+        color_map = {
+            InstallmentRequestStatus.CREATED: "gray",
+            InstallmentRequestStatus.UNDERWRITING: "blue",
+            InstallmentRequestStatus.VALIDATED: "orange",
+            InstallmentRequestStatus.AWAITING_MERCHANT_CONFIRMATION: "purple",
+            InstallmentRequestStatus.COMPLETED: "green",
+            InstallmentRequestStatus.CANCELLED: "dimgray",
+            InstallmentRequestStatus.REJECTED: "red",
+        }
+        color = color_map.get(obj.status, "black")
         return format_html(
-            '<span style="color: {};">{}</span>',
-            color, obj.get_status_display()
+            '<span style="color: {};">{}</span>', color,
+            obj.get_status_display()
         )
 
     status_colored.short_description = _("وضعیت")

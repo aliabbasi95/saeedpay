@@ -53,7 +53,9 @@ class TransferStatus(models.TextChoices):
 
 
 class InstallmentRequestStatus(models.TextChoices):
-    CREATED = "created", _("در انتظار تایید کاربر")
+    CREATED = "created", _("در انتظار ورود شرایط توسط کاربر")
+    UNDERWRITING = "underwriting", _("در انتظار نتیجه اعتبارسنجی")
+    VALIDATED = "validated", _("اعتبارسنجی شد؛ منتظر تایید کاربر")
     AWAITING_MERCHANT_CONFIRMATION = "awaiting_merchant", _(
         "در انتظار تایید فروشنده"
     )
