@@ -5,8 +5,10 @@ from django.core.validators import RegexValidator
 from django.db import transaction
 from rest_framework import serializers
 
-from auth_api.models import PhoneOTP
-from auth_api.tokens import CustomRefreshToken
+from auth_api.api.public.v1.serializers.mixins import (
+    UserPublicPayloadMixin,
+    OTPValidationMixin,
+)
 from lib.erp_base.serializers.persian_error_message import \
     PersianValidationErrorMessages
 from merchants.models import Merchant
@@ -16,7 +18,10 @@ from wallets.utils.choices import OwnerType
 
 
 class RegisterMerchantSerializer(
-    PersianValidationErrorMessages, serializers.Serializer
+    PersianValidationErrorMessages,
+    UserPublicPayloadMixin,
+    OTPValidationMixin,
+    serializers.Serializer
 ):
     phone_number = serializers.CharField(
         max_length=11,
@@ -52,17 +57,9 @@ class RegisterMerchantSerializer(
                     "phone_number": "این شماره تلفن قبلاً به عنوان فروشنده ثبت شده است."
                 }
             )
-        code = data.get("code")
-        try:
-            otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
-        except PhoneOTP.DoesNotExist:
-            raise serializers.ValidationError(
-                {"code": "کد تایید یافت نشد یا منقضی شده است."}
-            )
-        if not otp_instance.verify(code):
-            raise serializers.ValidationError(
-                {"code": "کد تایید اشتباه یا منقضی شده است."}
-            )
+
+        self.validate_phone_otp(phone_number, data["code"])
+
         return data
 
     def create(self, validated_data):
@@ -91,19 +88,4 @@ class RegisterMerchantSerializer(
         return user
 
     def to_representation(self, instance):
-        refresh = CustomRefreshToken.for_user(instance)
-        roles = []
-        if hasattr(instance, "customer"):
-            roles.append("customer")
-        if hasattr(instance, "merchant"):
-            roles.append("merchant")
-        profile = getattr(instance, "profile", None)
-        return {
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "user_id": instance.id,
-            "phone_number": getattr(profile, "phone_number", ""),
-            "roles": roles,
-            "first_name": getattr(profile, "first_name", ""),
-            "last_name": getattr(profile, "last_name", ""),
-        }
+        return self.build_user_public_payload(instance)

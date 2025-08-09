@@ -1,12 +1,15 @@
 # auth_api/api/public/v1/serializers/register.py
+
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import RegexValidator
 from django.db import transaction
 from rest_framework import serializers
 
-from auth_api.models import PhoneOTP
-from auth_api.tokens import CustomRefreshToken
+from auth_api.api.public.v1.serializers.mixins import (
+    UserPublicPayloadMixin,
+    OTPValidationMixin,
+)
 from customers.models import Customer
 from lib.erp_base.serializers.persian_error_message import \
     PersianValidationErrorMessages
@@ -16,7 +19,10 @@ from wallets.utils.choices import OwnerType
 
 
 class RegisterCustomerSerializer(
-    PersianValidationErrorMessages, serializers.Serializer
+    PersianValidationErrorMessages,
+    UserPublicPayloadMixin,
+    OTPValidationMixin,
+    serializers.Serializer
 ):
     phone_number = serializers.CharField(
         max_length=11,
@@ -45,26 +51,17 @@ class RegisterCustomerSerializer(
             )
 
         phone_number = data.get("phone_number")
+
         if Customer.objects.filter(
-                user__username=data['phone_number']
+                user__username=phone_number
         ).exists():
             raise serializers.ValidationError(
                 {
                     "phone_number": "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است."
                 }
             )
-        code = data.get("code")
-        try:
-            otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
-        except PhoneOTP.DoesNotExist:
-            raise serializers.ValidationError(
-                {"code": "کد تایید یافت نشد یا منقضی شده است."}
-            )
 
-        if not otp_instance.verify(code):
-            raise serializers.ValidationError(
-                {"code": "کد تایید اشتباه یا منقضی شده است."}
-            )
+        self.validate_phone_otp(phone_number, data["code"])
 
         return data
 
@@ -95,20 +92,4 @@ class RegisterCustomerSerializer(
         return user
 
     def to_representation(self, instance):
-        refresh = CustomRefreshToken.for_user(instance)
-        roles = []
-        if hasattr(instance, "customer"):
-            roles.append("customer")
-        if hasattr(instance, "merchant"):
-            roles.append("merchant")
-        profile = getattr(instance, "profile", None)
-
-        return {
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "user_id": instance.id,
-            "phone_number": getattr(profile, "phone_number", ""),
-            "roles": roles,
-            "first_name": getattr(profile, "first_name", ""),
-            "last_name": getattr(profile, "last_name", ""),
-        }
+        return self.build_user_public_payload(instance)

@@ -6,7 +6,7 @@ from auth_api.api.public.v1.views import (
     RegisterCustomerView,
     SendOTPView,
     LogoutView,
-    SecureTokenRefreshView,
+    TokenRefreshView,
     RegisterMerchantView,
     SendUserOTPView
 )
@@ -46,7 +46,7 @@ urlpatterns = [
     ),
     path(
         "token/refresh/",
-        SecureTokenRefreshView.as_view(),
+        TokenRefreshView.as_view(),
         name="token-refresh"
     ),
 ]

@@ -1,9 +1,13 @@
 # auth_api/api/public/v1/views/logout.py
+
+from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
-from auth_api.api.public.v1.serializers import LogoutSerializer
+from auth_api.utils.cookies import delete_refresh_cookie
 from lib.cas_auth.views import PublicAPIView
 
 
@@ -11,40 +15,29 @@ from lib.cas_auth.views import PublicAPIView
     request=None,
     responses={
         205: OpenApiResponse(description="Logout successful."),
-        400: OpenApiResponse(
-            description="Refresh token is missing or invalid."
-        ),
+        200: OpenApiResponse(description="Logout successful."),
     },
     tags=["Authentication"]
 )
 class LogoutView(PublicAPIView):
-    serializer_class = LogoutSerializer
+    permission_classes = (AllowAny,)
 
-    def perform_save(self, serializer):
-        refresh_token = serializer.validated_data["refresh"]
+    def post(self, request):
+        cookie_name = getattr(settings, "REFRESH_COOKIE_NAME", "sp_refresh")
+        refresh_str = request.COOKIES.get(cookie_name)
 
-        try:
-            token = RefreshToken(refresh_token)
-            token_user_id = token.get("user_id", None)
+        if refresh_str:
+            try:
+                token = RefreshToken(refresh_str)
+                try:
+                    token.blacklist()
+                except Exception:
+                    pass
+            except TokenError:
+                pass
 
-            if not token_user_id:
-                self.response_data = {"detail": "user_id در توکن یافت نشد."}
-                self.response_status = status.HTTP_400_BAD_REQUEST
-                return
-
-            if str(self.request.user.id) != str(token_user_id):
-                self.response_data = {
-                    "detail": "توکن متعلق به کاربر جاری نیست."
-                }
-                self.response_status = status.HTTP_400_BAD_REQUEST
-                return
-
-            token.blacklist()
-
-        except TokenError:
-            self.response_data = {"detail": "توکن نامعتبر یا منقضی شده است."}
-            self.response_status = status.HTTP_400_BAD_REQUEST
-            return
-
-        self.response_data = {"detail": "خروج با موفقیت انجام شد."}
-        self.response_status = status.HTTP_205_RESET_CONTENT
+        resp = Response(
+            {"detail": "خروج انجام شد."}, status=status.HTTP_205_RESET_CONTENT
+        )
+        delete_refresh_cookie(resp)
+        return resp
