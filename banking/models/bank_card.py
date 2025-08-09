@@ -78,7 +78,16 @@ class BankCard(models.Model):
                 fields=["user", "is_default"],
                 condition=models.Q(is_default=True),
                 name="unique_default_card_per_user",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["user", "card_number"],
+                name="unique_card_per_user",
+            ),
+            models.UniqueConstraint(
+                fields=["card_number"],
+                condition=models.Q(status="verified"),
+                name="unique_verified_card_number",
+            ),
         ]
 
     def __str__(self):

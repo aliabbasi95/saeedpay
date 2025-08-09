@@ -36,8 +36,16 @@ class BankCardCreateSerializer(serializers.ModelSerializer):
         extra_kwargs = {"card_number": {"write_only": True}}
 
     def validate_card_number(self, value):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
         if not bank_card_service.is_luhn_valid(value):
             raise serializers.ValidationError(_("شماره کارت نامعتبر است."))
+        # Check for duplicate card for this user (any status)
+        if user and BankCard.objects.filter(user=user, card_number=value).exists():
+            raise serializers.ValidationError(_("شما قبلاً این کارت را ثبت کرده‌اید."))
+        # Check for globally verified card
+        if BankCard.objects.filter(card_number=value, status=BankCardStatus.VERIFIED).exists():
+            raise serializers.ValidationError(_("این شماره کارت قبلاً توسط کاربر دیگری تأیید شده است."))
         return value
 
     def create(self, validated_data):

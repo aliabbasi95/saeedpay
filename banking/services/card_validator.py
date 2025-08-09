@@ -28,7 +28,7 @@ def validate_pending_card(card: BankCard) -> None:
         logger.info(f"Card {card.id} is not pending, skipping validation")
         return
 
-    mock_mode = getattr(settings, "CARD_VALIDATOR_MOCK", False)
+    mock_mode = getattr(settings, "CARD_VALIDATOR_MOCK", True)
 
     if mock_mode:
         _mock_validation(card)

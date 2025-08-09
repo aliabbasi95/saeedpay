@@ -176,14 +176,12 @@ class TestCardValidator:
         assert Bank.objects.count() == 1
         assert Bank.objects.first().name == "بانک نمونه"
 
+    @override_settings(CARD_VALIDATOR_MOCK=False)
     def test_validate_pending_card_with_default_setting(self, pending_card):
         """
         Test that validation works with default CARD_VALIDATOR_MOCK setting.
         """
-        # Test without explicit setting (should default to False)
-        if hasattr(settings, "CARD_VALIDATOR_MOCK"):
-            delattr(settings, "CARD_VALIDATOR_MOCK")
-
+        # Removed deletion of CARD_VALIDATOR_MOCK to let override_settings work
         with patch(
             "banking.services.card_validator._production_validation"
         ) as prod_validation:

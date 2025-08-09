@@ -221,6 +221,15 @@ to:
             return BankCardUpdateSerializer
         return BankCardSerializer
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        # Use the output serializer for the response
+        output_serializer = BankCardSerializer(serializer.instance)
+        headers = self.get_success_headers(serializer.data)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
     def perform_create(self, serializer):
         """
         Create a new bank card and trigger validation if status is PENDING.
