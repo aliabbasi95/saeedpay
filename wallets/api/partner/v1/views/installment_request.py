@@ -19,7 +19,9 @@ from wallets.api.partner.v1.serializers import (
     InstallmentRequestVerifyResponseSerializer,
 )
 from wallets.api.public.v1.serializers import \
-    InstallmentRequestDetailSerializer
+    (
+    InstallmentRequestDetailSerializer, InstallmentRequestListItemSerializer,
+)
 from wallets.models import InstallmentRequest
 from wallets.services import finalize_installment_request
 from wallets.utils.choices import InstallmentRequestStatus
@@ -119,7 +121,7 @@ class InstallmentRequestRetrieveView(PublicGetAPIView):
         )
     ],
     responses={
-        200: OpenApiResponse(InstallmentRequestVerifyResponseSerializer),
+        200: OpenApiResponse(InstallmentRequestListItemSerializer),
         400: OpenApiResponse(
             description="درخواست هنوز توسط کاربر تایید نشده است."
         ),
@@ -128,7 +130,7 @@ class InstallmentRequestRetrieveView(PublicGetAPIView):
 )
 class InstallmentRequestVerifyView(PublicAPIView):
     authentication_classes = [StoreApiKeyAuthentication]
-    serializer_class = Serializer
+    serializer_class = InstallmentRequestListItemSerializer
     permission_classes = [IsMerchant]
 
     def post(self, request, reference_code):
@@ -150,14 +152,6 @@ class InstallmentRequestVerifyView(PublicAPIView):
 
         finalize_installment_request(req)
 
-        self.response_data = InstallmentRequestVerifyResponseSerializer(
-            {
-                "detail": "درخواست با موفقیت نهایی شد.",
-                "reference_code": req.reference_code,
-                "confirmed_amount": req.confirmed_amount,
-                "duration_months": req.duration_months,
-                "period_months": req.period_months,
-            }
-        ).data
+        self.response_data = self.get_serializer(req).data
         self.response_status = status.HTTP_200_OK
         return self.response

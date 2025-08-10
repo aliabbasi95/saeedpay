@@ -23,7 +23,7 @@ def finalize_installment_request(request: InstallmentRequest):
         user=request.customer.user,
         source_type="bnpl",
         source_object_id=request.id,
-        total_amount=request.confirmed_amount,
+        total_amount=request.system_approved_amount,
         duration_months=request.duration_months,
         period_months=request.period_months,
         interest_rate=request.contract.interest_rate,
