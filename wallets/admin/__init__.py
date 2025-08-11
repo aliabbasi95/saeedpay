@@ -1,1 +1,3 @@
 from .installment_request import InstallmentRequestAdmin
+from .installment import InstallmentAdmin
+from .installment_plan import InstallmentPlanAdmin

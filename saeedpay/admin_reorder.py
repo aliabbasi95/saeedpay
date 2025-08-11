@@ -23,6 +23,8 @@ ADMIN_REORDER = (
         "label": "کیف پول",
         "models": (
             "wallets.InstallmentRequest",
+            "wallets.InstallmentPlan",
+            "wallets.Installment",
         ),
     },
     {
