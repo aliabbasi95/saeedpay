@@ -2,22 +2,16 @@
 
 from rest_framework import serializers
 
-from profiles.models.profile import Profile
 from store.models import StoreContract
-from wallets.models import InstallmentRequest
-from wallets.utils.validators import https_only_validator
 
 
 class InstallmentRequestCreateSerializer(serializers.Serializer):
     national_id = serializers.CharField(max_length=10)
     amount = serializers.IntegerField(min_value=1)
-    return_url = serializers.URLField(
-        required=True, validators=[https_only_validator]
-    )
+    guid = serializers.CharField(max_length=64)
 
     def validate(self, data):
         store = self.context["request"].store
-        national_id = data["national_id"]
         amount = data["amount"]
 
         try:
@@ -29,33 +23,14 @@ class InstallmentRequestCreateSerializer(serializers.Serializer):
                 "قرارداد فعالی برای فروشگاه یافت نشد."
             )
 
-        if amount > contract.max_credit_per_user:
-            raise serializers.ValidationError(
-                "مبلغ بیش از سقف اعتبار مجاز است."
-            )
-
-        try:
-            profile = Profile.objects.get(national_id=national_id)
-            customer = profile.user.customer
-        except Exception:
-            raise serializers.ValidationError("مشتری با این کد ملی یافت نشد.")
-
-        data["customer"] = customer
+        data["amount"] = min(amount, contract.max_credit_per_user)
         data["contract"] = contract
         return data
 
 
-class InstallmentRequestDetailSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = InstallmentRequest
-        ref_name = "PartnerInstallmentRequestDetail"
-        fields = [
-            "reference_code",
-            "proposal_amount",
-            "credit_limit_amount",
-            "confirmed_amount",
-            "duration_months",
-            "period_months",
-            "status",
-            "user_confirmed_at",
-        ]
+class InstallmentRequestVerifyResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    reference_code = serializers.CharField()
+    confirmed_amount = serializers.IntegerField()
+    duration_months = serializers.IntegerField()
+    period_months = serializers.IntegerField()

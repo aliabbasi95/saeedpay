@@ -20,6 +20,7 @@ class StoreAdmin(dynamic_cardboard_model_admin(Store, BaseAdmin)):
         "jalali_verification_time",
     ]
     list_filter = ["is_active"]
+    search_fields = ["name", "id"]
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = ((None, {

@@ -10,9 +10,12 @@ from .transfer import (
     WalletTransferDetailSerializer,
     WalletTransferConfirmSerializer,
 )
-from .installment_request import (
-    InstallmentRequestDetailSerializer,
-    InstallmentRequestConfirmSerializer,
-)
 from .installment import InstallmentSerializer
+from .installment_request import (
+    InstallmentRequestListItemSerializer,
+    InstallmentRequestDetailSerializer,
+    InstallmentRequestCalculationSerializer,
+    InstallmentRequestConfirmSerializer,
+    InstallmentRequestUnderwriteSerializer,
+)
 from .installment_plan import InstallmentPlanSerializer

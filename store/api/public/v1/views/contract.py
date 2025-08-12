@@ -41,6 +41,11 @@ class StoreContractViewSet(
         if store.merchant != self.request.user.merchant:
             raise ValidationError("دسترسی به این فروشگاه مجاز نیست.")
 
+        if store.get_status_number() != len(store.ROLES) + 1:
+            raise ValidationError(
+                "فقط فروشگاه‌های تاییدشده می‌توانند قرارداد داشته باشند."
+                )
+
         StoreContract.objects.filter(store=store, active=True).update(
             active=False
         )

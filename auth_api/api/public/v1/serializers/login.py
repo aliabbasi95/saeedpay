@@ -1,14 +1,19 @@
 # auth_api/api/public/v1/serializers/login.py
+
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from auth_api.tokens import CustomRefreshToken
+from auth_api.api.public.v1.serializers.mixins import UserPublicPayloadMixin
 from lib.erp_base.serializers.persian_error_message import \
     PersianValidationErrorMessages
 
 
-class LoginSerializer(PersianValidationErrorMessages, serializers.Serializer):
+class LoginSerializer(
+    PersianValidationErrorMessages,
+    UserPublicPayloadMixin,
+    serializers.Serializer
+):
     phone_number = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
@@ -41,21 +46,4 @@ class LoginSerializer(PersianValidationErrorMessages, serializers.Serializer):
         return self.user
 
     def to_representation(self, instance):
-        refresh = CustomRefreshToken.for_user(instance)
-        roles = []
-        if hasattr(instance, "customer"):
-            roles.append("customer")
-        if hasattr(instance, "merchant"):
-            roles.append("merchant")
-
-        profile = getattr(instance, "profile", None)
-
-        return {
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "user_id": instance.id,
-            "phone_number": getattr(profile, "phone_number", ""),
-            "roles": roles,
-            "first_name": getattr(profile, "first_name", ""),
-            "last_name": getattr(profile, "last_name", ""),
-        }
+        return self.build_user_public_payload(instance)

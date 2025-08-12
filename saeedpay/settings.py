@@ -116,7 +116,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "lib.erp_base.validators.LengthValidator",
         "OPTIONS": {
-            "min_length": 12
+            "min_length": 8
         }
     },
 ]
@@ -167,13 +167,19 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=900),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
     "REFRESH_TOKEN_LIFETIME": timedelta(hours=24),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
+REFRESH_COOKIE_NAME = "sp_refresh"
+REFRESH_COOKIE_PATH = "/"
+REFRESH_COOKIE_SECURE = True
+REFRESH_COOKIE_HTTPONLY = True
+REFRESH_COOKIE_SAMESITE = "Strict"
+
 MAX_SESSION_LIFETIME = timedelta(hours=24)
 
 CORS_ALLOW_HEADERS = list(default_headers) + [

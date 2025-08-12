@@ -37,8 +37,6 @@ class StoreContractAdmin(
                 "allowed_period_months",
                 "interest_rate",
             )
-        }), ("callback", {
-            "fields": ("callback_url",)
         }),) + super().get_fieldsets(request, obj)
 
         if request.user.is_superuser:

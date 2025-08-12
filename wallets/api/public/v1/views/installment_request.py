@@ -1,52 +1,63 @@
 # wallets/api/public/v1/views/installment_request.py
+from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework import status, generics
+from rest_framework.response import Response
 
-from django.utils import timezone
-from drf_spectacular.utils import extend_schema, OpenApiResponse
-from rest_framework import status
-
-from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
+from lib.cas_auth.views import PublicAPIView
 from wallets.api.public.v1.serializers import (
     InstallmentRequestDetailSerializer,
     InstallmentRequestConfirmSerializer,
+    InstallmentRequestUnderwriteSerializer,
+    InstallmentRequestListItemSerializer,
+    InstallmentRequestCalculationSerializer,
 )
 from wallets.models import InstallmentRequest
-from wallets.services import notify_store_user_confirmed
-from wallets.utils.choices import InstallmentRequestStatus
 
 
 @extend_schema(
-    responses=InstallmentRequestDetailSerializer,
     tags=["Wallet · Installment Requests (Public)"],
-    summary="دریافت اطلاعات درخواست اقساطی",
-    description="دریافت اطلاعات اولیه درخواست اقساطی با استفاده از کد پیگیری"
+    summary="لیست درخواست‌های اقساطی کاربر",
+    description="بازگرداندن همه درخواست‌های اقساطی ثبت‌شده توسط کاربر",
+    responses=InstallmentRequestListItemSerializer
 )
-class InstallmentRequestDetailView(PublicGetAPIView):
-    serializer_class = InstallmentRequestDetailSerializer
+class InstallmentRequestListView(generics.ListAPIView):
+    serializer_class = InstallmentRequestListItemSerializer
 
-    def get(self, request, reference_code):
-        obj = InstallmentRequest.objects.filter(
-            reference_code=reference_code,
-            customer=request.user.customer
-        ).first()
-        if not obj:
-            self.response_data = {"detail": "درخواست اقساطی یافت نشد."}
-            self.response_status = status.HTTP_404_NOT_FOUND
-            return self.response
-
-        self.response_data = self.get_serializer(obj).data
-        self.response_status = status.HTTP_200_OK
-        return self.response
+    def get_queryset(self):
+        return InstallmentRequest.objects.filter(
+            customer=self.request.user.customer
+        ).order_by("-created_at")
 
 
 @extend_schema(
-    request=InstallmentRequestConfirmSerializer,
-    responses={200: OpenApiResponse(description="خروجی شبیه‌سازی اقساط")},
     tags=["Wallet · Installment Requests (Public)"],
-    summary="محاسبه اقساط قبل از تایید",
-    description="محاسبه جدول اقساط براساس اطلاعات ورودی کاربر، بدون ذخیره‌سازی"
+    summary="جزییات یک درخواست اقساطی",
+    description="دریافت جزییات یک درخواست اقساطی با کد پیگیری",
+    responses=InstallmentRequestDetailSerializer
+)
+class InstallmentRequestDetailView(generics.RetrieveAPIView):
+    serializer_class = InstallmentRequestDetailSerializer
+    lookup_field = "reference_code"
+
+    def get_queryset(self):
+        return InstallmentRequest.objects.filter(
+            customer=self.request.user.customer
+        )
+
+
+@extend_schema(
+    tags=["Wallet · Installment Requests (Public)"],
+    summary="محاسبه اقساط + دیتیل درخواست (بدون نیاز به VALIDATED)",
+    description=(
+        "این endpoint بر اساس وضعیت فعلی درخواست مبلغ مناسب را برای پیش‌نمایش انتخاب می‌کند:\n"
+        "- اگر VALIDATED باشد، از مبلغ تاییدشده سیستم استفاده می‌کند.\n"
+        "- در غیر این صورت از مبلغ درخواست‌شده کاربر یا مبلغ پیشنهادی فروشگاه استفاده می‌کند.\n"
+        "هیچ داده‌ای ذخیره نمی‌شود."
+    ),
+    request=InstallmentRequestCalculationSerializer,
 )
 class InstallmentCalculationView(PublicAPIView):
-    serializer_class = InstallmentRequestConfirmSerializer
+    serializer_class = InstallmentRequestCalculationSerializer
 
     def post(self, request, reference_code):
         obj = InstallmentRequest.objects.filter(
@@ -57,27 +68,59 @@ class InstallmentCalculationView(PublicAPIView):
             self.response_data = {"detail": "درخواست اقساطی یافت نشد."}
             self.response_status = status.HTTP_404_NOT_FOUND
             return self.response
-        serializer = self.get_serializer(
+
+        ser = self.get_serializer(
             data=request.data,
             context={"installment_request": obj}
         )
-        serializer.is_valid(raise_exception=True)
+        ser.is_valid(raise_exception=True)
 
-        self.response_data = serializer.validated_data["installment_plan"]
+        detail = InstallmentRequestDetailSerializer(obj).data
+        preview = ser.preview()
+
+        self.response_data = {
+            "request": detail,
+            "installment_preview": preview
+        }
         self.response_status = status.HTTP_200_OK
         return self.response
 
+@extend_schema(
+    tags=["Wallet · Installment Requests (Public)"],
+    summary="شروع/ارسال به اعتبارسنجی (پس‌زمینه)",
+    description="ورودی کاربر ذخیره می‌شود و تسک Celery برای اعتبارسنجی اجرا می‌شود.",
+    request=InstallmentRequestUnderwriteSerializer,
+    responses={202: OpenApiResponse(description="اعتبارسنجی آغاز شد")}
+)
+class InstallmentUnderwriteView(PublicAPIView):
+    serializer_class = InstallmentRequestUnderwriteSerializer
+
+    def post(self, request, reference_code):
+        obj = InstallmentRequest.objects.filter(
+            reference_code=reference_code, customer=request.user.customer
+        ).first()
+        if not obj:
+            return Response(
+                {"detail": "درخواست اقساطی یافت نشد."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        ser = self.get_serializer(
+            data=request.data, context={"installment_request": obj}
+        )
+        ser.is_valid(raise_exception=True)
+        payload = ser.persist_and_enqueue()
+        return Response(payload, status=status.HTTP_202_ACCEPTED)
+
 
 @extend_schema(
+    tags=["Wallet · Installment Requests (Public)"],
+    summary="تایید کاربر پس از اتمام اعتبارسنجی",
+    description="کاربر نتیجه اعتبارسنجی را می‌پذیرد؛ درخواست به مرحله تایید فروشگاه می‌رود.",
     request=InstallmentRequestConfirmSerializer,
     responses={
-        200: OpenApiResponse(
-            description="درخواست تایید شد و منتظر تایید فروشنده است"
-        )
-    },
-    tags=["Wallet · Installment Requests (Public)"],
-    summary="تایید نهایی درخواست اقساطی توسط کاربر",
-    description="کاربر پس از بررسی جدول اقساط، درخواست خود را تایید می‌کند تا برای تایید نهایی به فروشگاه ارسال شود"
+        200: OpenApiResponse(description="تایید شد و منتظر تایید فروشگاه")
+    }
 )
 class InstallmentRequestConfirmView(PublicAPIView):
     serializer_class = InstallmentRequestConfirmSerializer
@@ -88,29 +131,48 @@ class InstallmentRequestConfirmView(PublicAPIView):
             customer=request.user.customer
         ).first()
         if not obj:
-            self.response_data = {"detail": "درخواست اقساطی یافت نشد."}
-            self.response_status = status.HTTP_404_NOT_FOUND
-            return self.response
+            return Response(
+                {"detail": "درخواست اقساطی یافت نشد."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        serializer = self.get_serializer(
-            data=request.data,
-            context={"installment_request": obj}
+        ser = self.get_serializer(
+            data=request.data or {}, context={"installment_request": obj}
         )
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
+        ser.is_valid(raise_exception=True)
+        payload = ser.confirm()
+        return Response(payload, status=status.HTTP_200_OK)
 
-        obj.confirmed_amount = data["confirmed_amount"]
-        obj.duration_months = data["duration_months"]
-        obj.period_months = data["period_months"]
-        obj.status = InstallmentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
-        obj.user_confirmed_at = timezone.now()
-        obj.save()
 
-        notify_store_user_confirmed(obj)
+@extend_schema(
+    tags=["Wallet · Installment Requests (Public)"],
+    summary="لغو درخواست اقساطی",
+    description="کاربر می‌تواند تا پیش از تایید فروشگاه درخواست را لغو کند.",
+    request=None,
+    responses={200: OpenApiResponse(description="لغو شد")}
+)
+class InstallmentRequestCancelView(generics.GenericAPIView):
+    def post(self, request, reference_code):
+        obj = InstallmentRequest.objects.filter(
+            reference_code=reference_code,
+            customer=request.user.customer
+        ).first()
+        if not obj:
+            return Response(
+                {"detail": "درخواست اقساطی یافت نشد."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        self.response_data = {
-            "detail": "درخواست اقساطی با موفقیت تایید شد.",
-            **data["installment_plan"]
-        }
-        self.response_status = status.HTTP_200_OK
-        return self.response
+        if not obj.can_cancel():
+            return Response(
+                {"detail": "در این مرحله امکان لغو وجود ندارد."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        reason = request.data.get("reason", "") if hasattr(
+            request, "data"
+        ) else ""
+        obj.mark_cancelled(reason=reason)
+        return Response(
+            {"detail": "درخواست با موفقیت لغو شد."}, status=status.HTTP_200_OK
+        )

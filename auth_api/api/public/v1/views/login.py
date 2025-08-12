@@ -1,7 +1,9 @@
 # customers/api/public/v1/views/login.py
+
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework.permissions import AllowAny
 
+from auth_api.api.public.v1.views.mixins import IssueTokensResponseMixin
 from auth_api.api.public.v1.serializers import LoginSerializer
 from lib.cas_auth.views import PublicAPIView
 
@@ -16,11 +18,10 @@ from lib.cas_auth.views import PublicAPIView
     },
     tags=["Authentication"]
 )
-class LoginView(PublicAPIView):
-
+class LoginView(IssueTokensResponseMixin, PublicAPIView):
     permission_classes = (AllowAny,)
     serializer_class = LoginSerializer
 
     def perform_save(self, serializer):
-        super().perform_save(serializer)
-        self.response_data = serializer.data
+        user = serializer.save()
+        self.response = self.build_tokens_response(serializer, user)
