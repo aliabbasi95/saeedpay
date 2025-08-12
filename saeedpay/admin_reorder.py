@@ -19,6 +19,15 @@ ADMIN_REORDER = (
         ),
     },
     {
+        "app": "tickets",
+        "label": "تیکت‌ها",
+        "models": (
+            "tickets.Ticket",
+            "tickets.TicketMessage",
+            "tickets.TicketCategory",
+        ),
+    },
+    {
         'app': 'cas_auth',
         'label': 'API',
         'models': (
