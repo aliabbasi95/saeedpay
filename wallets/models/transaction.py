@@ -42,7 +42,7 @@ class Transaction(BaseModel):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        verbose_name = _("مبلغ")
+        verbose_name=_("درخواست پرداخت")
     )
 
     description = models.TextField(blank=True)
