@@ -42,6 +42,7 @@ DEFAULT_APPS = [
     "django_celery_beat",
     "import_export",
     "drf_spectacular",
+    "django_filters",
 
     "sweetify",
     "tinymce",
@@ -59,6 +60,7 @@ LOCAL_APPS = [
     "store",
     "chatbot",
     "banking",
+    "tickets",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS
