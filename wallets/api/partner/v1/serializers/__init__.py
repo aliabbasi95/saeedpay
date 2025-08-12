@@ -3,7 +3,3 @@ from .payment import (
     PaymentRequestCreateResponseSerializer,
     PaymentVerifyResponseSerializer,
 )
-from .installment_request import (
-    InstallmentRequestCreateSerializer,
-    InstallmentRequestVerifyResponseSerializer,
-)

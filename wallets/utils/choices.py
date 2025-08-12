@@ -52,16 +52,7 @@ class TransferStatus(models.TextChoices):
     EXPIRED = "expired", "منقضی شده"
 
 
-class InstallmentRequestStatus(models.TextChoices):
-    CREATED = "created", _("در انتظار ورود شرایط توسط کاربر")
-    UNDERWRITING = "underwriting", _("در انتظار نتیجه اعتبارسنجی")
-    VALIDATED = "validated", _("اعتبارسنجی شد؛ منتظر تایید کاربر")
-    AWAITING_MERCHANT_CONFIRMATION = "awaiting_merchant", _(
-        "در انتظار تایید فروشنده"
-    )
-    COMPLETED = "completed", _("تایید نهایی انجام شد")
-    CANCELLED = "cancelled", _("لغو شده")
-    REJECTED = "rejected", _("رد شده")
+
 
 
 class InstallmentPlanStatus(models.TextChoices):
