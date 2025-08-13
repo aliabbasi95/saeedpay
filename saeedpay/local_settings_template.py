@@ -32,6 +32,7 @@ MEDIA_ROOT = ''
 CAS_PUBLICKEY_URL = 'http://erp.ag/cas/static/public_key.pem'
 CAS_URL = 'http://erp.ag/cas'
 CAS_DEBUG = False
+CAS_SAME_ORIGIN=True
 
 KAVENEGAR_API_KEY = '5130593D'
 KAVENEGAR_NUMBER = ''
