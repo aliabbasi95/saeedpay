@@ -1,8 +1,2 @@
-from django.contrib import admin
-
-from credit.models import CreditLimit, Statement
-from credit.admin.credit_limit import CreditLimitAdmin
-from credit.admin.statement import StatementAdmin
-
-admin.site.register(CreditLimit, CreditLimitAdmin)
-admin.site.register(Statement, StatementAdmin)
+# This file is intentionally left empty
+# Models are registered via @admin.register decorators in their respective admin files

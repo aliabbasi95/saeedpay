@@ -1,9 +1,12 @@
 # credit/services/credit_decision_engine.py
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Dict, Any
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
+
+from credit import settings as credit_settings
 
 from credit.models import CreditLimit
 from credit.utils.risk_scoring import RiskScoringEngine
@@ -118,16 +121,15 @@ class CreditDecisionEngine:
     @transaction.atomic
     def _create_credit_limit(self, user, approved_limit: int) -> CreditLimit:
         """Create credit limit record"""
-        
-        expiry_date = datetime.now().date() + timedelta(days=365)  # 1 year validity
-        
+        expiry_date = timezone.localdate() + timedelta(days=credit_settings.CREDIT_LIMIT_DEFAULT_EXPIRY_DAYS)
+
         credit_limit = CreditLimit.objects.create(
             user=user,
             approved_limit=approved_limit,
-            available_limit=approved_limit,
             used_limit=0,
             expiry_date=expiry_date,
-            approved_at=datetime.now()
+            status='active',
+            approved_at=timezone.now()
         )
         
         return credit_limit
