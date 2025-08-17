@@ -12,4 +12,3 @@ from .transfer import (
 )
 from .credit import evaluate_user_credit, calculate_installments
 from .installment import pay_installment, generate_installments_for_plan
-from .installment_request import finalize_installment_request
