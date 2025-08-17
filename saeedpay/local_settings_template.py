@@ -26,8 +26,8 @@ DATABASES = {
 }
 REDIS_PASSWORD=''
 
-STATIC_ROOT = ''
-MEDIA_ROOT = ''
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 CAS_PUBLICKEY_URL = 'http://erp.ag/cas/static/public_key.pem'
 CAS_URL = 'http://erp.ag/cas'

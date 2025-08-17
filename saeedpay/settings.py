@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from datetime import timedelta
 
-from celery.schedules import crontab
 from corsheaders.defaults import default_headers
 
 try:
@@ -61,6 +60,8 @@ LOCAL_APPS = [
     "chatbot",
     "banking",
     "tickets",
+    'credit',
+    "blogs",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS
@@ -188,26 +189,11 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "cas-authorization",
 ]
 
-# Celery
-CELERY_TIMEZONE = "Asia/Tehran"
-CELERY_TASK_TIME_LIMIT = 30 * 60
-CELERY_RESULT_BACKEND = "redis"
-CELERY_TASK_DEFAULT_QUEUE = "ariansupply"
+SESSION_COOKIE_SECURE = True  # Only send session cookie over HTTPS
+SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
+SESSION_COOKIE_SAMESITE = 'Strict'  # Prevent CSRF in cross-site requests
 
-CELERY_BEAT_SCHEDULE = {
-    'expire-pending-payment-requests-every-minute': {
-        'task': 'wallets.tasks.task_expire_pending_payment_requests',
-        'schedule': crontab(minute='*/1'),
-    },
-    'cleanup-cancelled-and-expired-requests-every-hour': {
-        'task': 'wallets.tasks.task_cleanup_cancelled_and_expired_requests',
-        'schedule': crontab(minute=0, hour='*/1'),
-    },
-    'expire-pending-transfer-every-minute': {
-        'task': 'wallets.tasks.task_expire_pending_transfer_requests',
-        'schedule': crontab(minute='*/1'),
-    },
-}
+# Celery configuration centralized in saeedpay/celery.py
 
 SERVICE_NAME = "SAEEDPAY"
 SERVICE_NAME_FA = "سعید پی"
