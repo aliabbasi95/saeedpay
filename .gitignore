@@ -82,3 +82,4 @@ atlassian-ide-plugin.xml
 celerybeat-schedule
 celerybeat-schedule.db
 **/migrations/
+public_data/*
