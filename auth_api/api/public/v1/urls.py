@@ -8,7 +8,9 @@ from auth_api.api.public.v1.views import (
     LogoutView,
     TokenRefreshView,
     RegisterMerchantView,
-    SendUserOTPView
+    SendUserOTPView,
+    ChangePasswordView,
+    ResetPasswordView
 )
 
 app_name = "auth_api_public_v1"
@@ -48,5 +50,15 @@ urlpatterns = [
         "token/refresh/",
         TokenRefreshView.as_view(),
         name="token-refresh"
+    ),
+    path(
+        "change-password/",
+        ChangePasswordView.as_view(),
+        name="change-password"
+    ),
+    path(
+        "reset-password/",
+        ResetPasswordView.as_view(),
+        name="reset-password"
     ),
 ]

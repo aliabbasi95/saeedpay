@@ -42,6 +42,7 @@ DEFAULT_APPS = [
     "django_celery_beat",
     "import_export",
     "drf_spectacular",
+    "django_filters",
 
     "sweetify",
     "tinymce",
@@ -57,6 +58,9 @@ LOCAL_APPS = [
     "wallets",
     "merchants",
     "store",
+    "chatbot",
+    "banking",
+    "tickets",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS
@@ -153,6 +157,15 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'otp_by_phone': '5/hour',
+        'anon': '100/hour',
+        'user': '100/hour',
+    }
 }
 
 SIMPLE_JWT = {

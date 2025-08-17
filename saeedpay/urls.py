@@ -36,6 +36,9 @@ api_urlpatterns = [
     path("api/profiles/", include("profiles.api.urls")),
     path("api/wallets/", include("wallets.api.urls")),
     path("api/store/", include("store.api.urls")),
+    path("api/banking/", include("banking.api.urls")),
+    path("api/tickets/", include("tickets.api.urls")),
+    path("api/chatbot/", include("chatbot.api.urls")),
 ]
 
 schema_urlpatterns = [

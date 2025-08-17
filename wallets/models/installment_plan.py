@@ -5,7 +5,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
-from wallets.models import Transaction, InstallmentRequest, PaymentRequest
+from wallets.models import Transaction, PaymentRequest
 from wallets.utils.choices import InstallmentSourceType, InstallmentPlanStatus
 
 
@@ -69,7 +69,6 @@ class InstallmentPlan(BaseModel):
 
     def get_source_object(self):
         mapping = {
-            InstallmentSourceType.BNPL: InstallmentRequest,
             InstallmentSourceType.PAYMENT_REQUEST: PaymentRequest,
             # InstallmentSourceType.OFFLINE_PURCHASE: OfflinePurchaseRecord,
             # InstallmentSourceType.STORE_ORDER: StoreOrder,

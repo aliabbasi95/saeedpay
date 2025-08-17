@@ -40,3 +40,10 @@ KAVENEGAR_NUMBER = ''
 CAS_TOKEN = '123123j1oi2j3io1'
 
 FRONTEND_BASE_URL = "http://172.20.20.134:3000/"
+
+LLM_BASE_URL = 'http://192.168.20.250:8008/'
+
+CHATBOT_HISTORY_LIMIT = 4
+CHATBOT_SESSION_LIMIT = 2
+# Card Validator Configuration
+CARD_VALIDATOR_MOCK = True  # Set to False for production validation

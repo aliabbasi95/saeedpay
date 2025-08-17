@@ -12,10 +12,9 @@ class SendOTPSerializer(serializers.Serializer):
         max_length=11,
         validators=[
             RegexValidator(
-                regex=r'^09\d{9}$',
-                message="شماره تلفن معتبر نیست."
+                regex=r"^09\d{9}$", message="شماره تلفن معتبر نیست."
             ),
-        ]
+        ],
     )
 
     def validate(self, data):
@@ -45,11 +44,10 @@ class SendUserOTPSerializer(serializers.Serializer):
         user = self.context["request"].user
         phone_number = user.profile.phone_number
 
-        if not phone_number or not re.match(r'^09\d{9}$', phone_number):
+        if not phone_number or not re.match(r"^09\d{9}$", phone_number):
             raise serializers.ValidationError(
                 {"phone_number": ["شماره تلفن معتبر نیست."]}
             )
-
         otp = PhoneOTP.objects.filter(phone_number=phone_number).first()
         if otp and otp.is_alive():
             raise serializers.ValidationError(
@@ -66,6 +64,7 @@ class SendUserOTPSerializer(serializers.Serializer):
         )
         if otp_instance.send():
             return {"phone_number": phone_number}
+        # TODO: check this error and improve it
         raise serializers.ValidationError(
             {"phone_number": ["ارسال کد با خطا مواجه شد."]}
         )

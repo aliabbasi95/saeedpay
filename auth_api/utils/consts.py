@@ -11,17 +11,8 @@ def get_setting(name, default):
     return getattr(settings, name, default)
 
 
-LIFE_DURATION = get_setting(
-    "LIFE_DURATION",
-    DEFAULT_LIFE_DURATION
-)
+LIFE_DURATION = get_setting("LIFE_DURATION", DEFAULT_LIFE_DURATION)
 
-OTP_SEND_PERIOD = get_setting(
-    "OTP_SEND_PERIOD",
-    DEFAULT_OTP_SEND_PERIOD
-)
+OTP_SEND_PERIOD = get_setting("OTP_SEND_PERIOD", DEFAULT_OTP_SEND_PERIOD)
 
-OTP_SEND_LIMIT = get_setting(
-    "OTP_SEND_LIMIT",
-    DEFAULT_OTP_SEND_LIMIT
-)
+OTP_SEND_LIMIT = get_setting("OTP_SEND_LIMIT", DEFAULT_OTP_SEND_LIMIT)

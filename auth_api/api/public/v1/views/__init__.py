@@ -4,3 +4,5 @@ from .register_merchant import RegisterMerchantView
 from .login import LoginView
 from .logout import LogoutView
 from .refresh import TokenRefreshView
+from .change_password import ChangePasswordView
+from .reset_password import ResetPasswordView

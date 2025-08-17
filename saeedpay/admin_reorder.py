@@ -19,10 +19,12 @@ ADMIN_REORDER = (
         ),
     },
     {
-        "app": "wallets",
-        "label": "کیف پول",
+        "app": "tickets",
+        "label": "تیکت‌ها",
         "models": (
-            "wallets.InstallmentRequest",
+            "tickets.Ticket",
+            "tickets.TicketMessage",
+            "tickets.TicketCategory",
         ),
     },
     {
