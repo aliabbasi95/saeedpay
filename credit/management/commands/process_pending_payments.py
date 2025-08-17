@@ -7,6 +7,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from persiantools.jdatetime import JalaliDate
 from credit.models import Statement
+from credit.utils.constants import MINIMUM_PAYMENT_THRESHOLD
 
 
 class Command(BaseCommand):
@@ -80,7 +81,7 @@ class Command(BaseCommand):
                     min_required = statement.calculate_minimum_payment_amount()
                     debt_amount = abs(statement.closing_balance) if statement.closing_balance < 0 else 0
                     
-                    if debt_amount < 100000:  # MINIMUM_PAYMENT_THRESHOLD
+                    if debt_amount < MINIMUM_PAYMENT_THRESHOLD:  # MINIMUM_PAYMENT_THRESHOLD
                         self.stdout.write(
                             f"DRY RUN: Statement {statement.reference_code} would close without penalty (below threshold)"
                         )

@@ -125,8 +125,8 @@ class CreditLimit(BaseModel):
     
     def get_grace_period_days(self) -> int:
         """Return effective grace period days for this user (fallback to settings)."""
-        from credit import settings as credit_settings
-        return int(self.grace_period_days) if self.grace_period_days is not None else int(credit_settings.PAYMENT_GRACE_PERIOD_DAYS)
+        from credit.utils.constants import PAYMENT_GRACE_PERIOD_DAYS
+        return int(self.grace_period_days) if self.grace_period_days is not None else int(PAYMENT_GRACE_PERIOD_DAYS)
     
     def use_credit(self, amount):
         """Use credit amount and update limits atomically"""

@@ -13,7 +13,7 @@ from persiantools.jdatetime import JalaliDate
 
 from credit.models import Statement, StatementLine
 from credit.models.credit_limit import CreditLimit
-from credit import settings as credit_settings
+from credit.utils.constants import MONTHLY_INTEREST_RATE
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +141,7 @@ def calculate_user_interest(user: User) -> int:
         if outstanding_balance == 0:
             return 0
             
-        interest_rate = getattr(credit_settings, 'MONTHLY_INTEREST_RATE', 0.02)
+        interest_rate = MONTHLY_INTEREST_RATE
         interest_amount = int(outstanding_balance * interest_rate)
         
         logger.info(

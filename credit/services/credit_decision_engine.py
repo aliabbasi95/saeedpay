@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
-from credit import settings as credit_settings
+from credit.utils.constants import CREDIT_LIMIT_DEFAULT_EXPIRY_DAYS
 
 from credit.models import CreditLimit
 from credit.utils.risk_scoring import RiskScoringEngine
@@ -121,7 +121,7 @@ class CreditDecisionEngine:
     @transaction.atomic
     def _create_credit_limit(self, user, approved_limit: int) -> CreditLimit:
         """Create credit limit record"""
-        expiry_date = timezone.localdate() + timedelta(days=credit_settings.CREDIT_LIMIT_DEFAULT_EXPIRY_DAYS)
+        expiry_date = timezone.localdate() + timedelta(days=CREDIT_LIMIT_DEFAULT_EXPIRY_DAYS)
 
         credit_limit = CreditLimit.objects.create(
             user=user,

@@ -1,0 +1,109 @@
+{% load i18n %}
+<div class="block-editor-container">
+    <div class="block-editor-toolbar">
+        <button type="button" class="btn btn-sm btn-primary" data-block-type="heading">
+            <i class="fas fa-heading"></i> {% trans "عنوان" %}
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" data-block-type="paragraph">
+            <i class="fas fa-paragraph"></i> {% trans "پاراگراف" %}
+        </button>
+        <button type="button" class="btn btn-sm btn-info" data-block-type="image">
+            <i class="fas fa-image"></i> {% trans "تصویر" %}
+        </button>
+        <button type="button" class="btn btn-sm btn-warning" data-block-type="citation">
+            <i class="fas fa-quote-right"></i> {% trans "نقل قول" %}
+        </button>
+    </div>
+    
+    <div class="block-editor-content" id="block-editor-{{ widget.attrs.id }}">
+        <!-- Blocks will be dynamically added here -->
+    </div>
+    
+    <textarea 
+        name="{{ widget.name }}" 
+        id="{{ widget.attrs.id }}"
+        class="block-editor-data"
+        style="display: none;"
+    >{{ widget.value|default:"[]" }}</textarea>
+</div>
+
+<script type="text/html" id="heading-block-template">
+    <div class="block-item" data-block-type="heading">
+        <div class="block-header">
+            <span class="block-title">{% trans "عنوان" %}</span>
+            <div class="block-controls">
+                <select class="heading-level form-control form-control-sm" style="width: auto; display: inline-block;">
+                    <option value="1">H1</option>
+                    <option value="2" selected>H2</option>
+                    <option value="3">H3</option>
+                    <option value="4">H4</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-secondary move-up">↑</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary move-down">↓</button>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-block">×</button>
+            </div>
+        </div>
+        <div class="block-content">
+            <input type="text" class="form-control heading-content" placeholder="{% trans 'متن عنوان را وارد کنید' %}" />
+        </div>
+    </div>
+</script>
+
+<script type="text/html" id="paragraph-block-template">
+    <div class="block-item" data-block-type="paragraph">
+        <div class="block-header">
+            <span class="block-title">{% trans "پاراگراف" %}</span>
+            <div class="block-controls">
+                <button type="button" class="btn btn-sm btn-outline-secondary move-up">↑</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary move-down">↓</button>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-block">×</button>
+            </div>
+        </div>
+        <div class="block-content">
+            <textarea class="form-control paragraph-content" rows="3" placeholder="{% trans 'متن پاراگراف را وارد کنید' %}"></textarea>
+        </div>
+    </div>
+</script>
+
+<script type="text/html" id="image-block-template">
+    <div class="block-item" data-block-type="image">
+        <div class="block-header">
+            <span class="block-title">{% trans "تصویر" %}</span>
+            <div class="block-controls">
+                <button type="button" class="btn btn-sm btn-outline-secondary move-up">↑</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary move-down">↓</button>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-block">×</button>
+            </div>
+        </div>
+        <div class="block-content">
+            <div class="row">
+                <div class="col-md-6">
+                    <label>{% trans "شناسه تصویر" %}:</label>
+                    <input type="number" class="form-control image-id" placeholder="{% trans 'شناسه تصویر' %}" />
+                    <small class="form-text text-muted">{% trans "تصاویر را از بخش 'تصاویر مقاله' در پایین صفحه اضافه کنید" %}</small>
+                </div>
+                <div class="col-md-6">
+                    <label>{% trans "توضیح تصویر" %} ({% trans "اختیاری" %}):</label>
+                    <input type="text" class="form-control image-caption" placeholder="{% trans 'توضیح تصویر' %}" />
+                </div>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script type="text/html" id="citation-block-template">
+    <div class="block-item" data-block-type="citation">
+        <div class="block-header">
+            <span class="block-title">{% trans "نقل قول" %}</span>
+            <div class="block-controls">
+                <button type="button" class="btn btn-sm btn-outline-secondary move-up">↑</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary move-down">↓</button>
+                <button type="button" class="btn btn-sm btn-outline-danger remove-block">×</button>
+            </div>
+        </div>
+        <div class="block-content">
+            <textarea class="form-control citation-content" rows="2" placeholder="{% trans 'متن نقل قول' %}"></textarea>
+            <input type="text" class="form-control citation-source mt-2" placeholder="{% trans 'منبع (اختیاری)' %}" />
+        </div>
+    </div>
+</script>

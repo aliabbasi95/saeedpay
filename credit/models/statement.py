@@ -14,7 +14,14 @@ from wallets.utils.choices import TransactionStatus
 from credit.models.statement_line import StatementLine
 from credit.utils.reference import generate_statement_reference
 from persiantools.jdatetime import JalaliDate
-from credit import settings as credit_settings
+from credit.utils.constants import (
+    MONTHLY_INTEREST_RATE,
+    STATEMENT_DUE_DAYS,
+    STATEMENT_PENALTY_RATE,
+    STATEMENT_MAX_PENALTY_RATE,
+    MINIMUM_PAYMENT_PERCENTAGE,
+    MINIMUM_PAYMENT_THRESHOLD
+)
 from credit.models.credit_limit import CreditLimit
 
 
@@ -80,7 +87,7 @@ class StatementManager(models.Manager):
                     if statement.closing_balance < 0:  # Negative balance means debt
                         interest_amount = (
                             abs(statement.closing_balance)
-                            * credit_settings.MONTHLY_INTEREST_RATE
+                            * MONTHLY_INTEREST_RATE
                         )
                         StatementLine.objects.create(
                             statement=new_statement,
@@ -233,7 +240,7 @@ class Statement(BaseModel):
         now = timezone.now()
         self.status = "pending_payment"
         # due date = close time + configured due days (not grace)
-        due_days = int(credit_settings.STATEMENT_DUE_DAYS)
+        due_days = int(STATEMENT_DUE_DAYS)
         self.closed_at = now
         self.due_date = now + timedelta(days=due_days)
         self.save(update_fields=["status", "due_date", "closing_balance", "closed_at"])
@@ -249,10 +256,8 @@ class Statement(BaseModel):
         Returns:
             int: Calculated penalty amount
         """
-        from credit import settings as credit_settings
-
-        penalty_rate = penalty_rate or credit_settings.STATEMENT_PENALTY_RATE
-        max_penalty_rate = max_penalty_rate or credit_settings.STATEMENT_MAX_PENALTY_RATE
+        penalty_rate = penalty_rate or STATEMENT_PENALTY_RATE
+        max_penalty_rate = max_penalty_rate or STATEMENT_MAX_PENALTY_RATE
         # Only apply penalty on pending or overdue statements
         if self.status not in {"pending_payment", "overdue"}:
             return 0
@@ -361,10 +366,8 @@ class Statement(BaseModel):
 
     def calculate_and_apply_penalty(self, penalty_rate=None, max_penalty_rate=None):
         """Calculate and apply penalty as a statement line if overdue and not already present."""
-        from credit import settings as credit_settings
-
-        penalty_rate = penalty_rate or credit_settings.STATEMENT_PENALTY_RATE
-        max_penalty_rate = max_penalty_rate or credit_settings.STATEMENT_MAX_PENALTY_RATE
+        penalty_rate = penalty_rate or STATEMENT_PENALTY_RATE
+        max_penalty_rate = max_penalty_rate or STATEMENT_MAX_PENALTY_RATE
 
         # If past due mark as overdue prior to calculation
         if (
@@ -384,13 +387,12 @@ class Statement(BaseModel):
     def get_due_days(self) -> int:
         """Due days for this user: per-user override via CreditLimit or default settings."""
         from credit.models.credit_limit import CreditLimit
-        from credit import settings as credit_settings
 
         cl = CreditLimit.objects.get_user_credit_limit(self.user)
         return (
             cl.get_due_days()
             if cl
-            else int(credit_settings.STATEMENT_DUE_DAYS)
+            else int(STATEMENT_DUE_DAYS)
         )
 
     @property
@@ -410,8 +412,6 @@ class Statement(BaseModel):
 
     def calculate_minimum_payment_amount(self):
         """Calculate the minimum payment amount based on closing balance"""
-        from credit import settings as credit_settings
-
         # Only calculate for pending payment statements with debt
         if self.status != "pending_payment" or self.closing_balance >= 0:
             return 0
@@ -419,17 +419,15 @@ class Statement(BaseModel):
         debt_amount = abs(self.closing_balance)
 
         # If debt is below threshold, no minimum payment required
-        if debt_amount < credit_settings.MINIMUM_PAYMENT_THRESHOLD:
+        if debt_amount < MINIMUM_PAYMENT_THRESHOLD:
             return 0
 
         # Calculate minimum payment as percentage of debt
-        min_payment = debt_amount * credit_settings.MINIMUM_PAYMENT_PERCENTAGE
+        min_payment = debt_amount * MINIMUM_PAYMENT_PERCENTAGE
         return int(min_payment)
 
     def process_payment_during_grace_period(self, payment_amount):
         """Process payment during grace period and determine statement outcome"""
-        from credit import settings as credit_settings
-
         if self.status != "pending_payment":
             raise ValueError("Can only process payment for pending payment statements")
 
@@ -438,7 +436,7 @@ class Statement(BaseModel):
         # Check if payment meets minimum requirement or debt is below threshold
         debt_amount = abs(self.closing_balance) if self.closing_balance < 0 else 0
 
-        if debt_amount < credit_settings.MINIMUM_PAYMENT_THRESHOLD:
+        if debt_amount < MINIMUM_PAYMENT_THRESHOLD:
             # Debt below threshold - no penalty regardless of payment amount
             self.status = "closed_no_penalty"
             self.closed_at = timezone.now()
