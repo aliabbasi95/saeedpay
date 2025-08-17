@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import path, include
@@ -39,6 +40,9 @@ api_urlpatterns = [
     path("api/banking/", include("banking.api.urls")),
     path("api/tickets/", include("tickets.api.urls")),
     path("api/chatbot/", include("chatbot.api.urls")),
+    path("api/credit/", include("credit.api.urls")),
+    path("api/blogs/", include("blogs.api.urls")),
+    path("api/customers/", include("customers.api.urls")),
 ]
 
 schema_urlpatterns = [
@@ -68,6 +72,11 @@ if not settings.CAS_DEBUG:
 urlpatterns = [
     path("saeedpay/", include(urlpatterns_main)),
 ]
+
+# Serve media files during development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static('/public_data/', document_root='/home/erfan/Projects/saeedpay/public_data')
 
 admin.autodiscover()
 admin.site.enable_nav_sidebar = False

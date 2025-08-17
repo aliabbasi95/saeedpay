@@ -35,4 +35,14 @@ ADMIN_REORDER = (
             'cas_auth.Token'
         )
     },
+    {
+        "app": "blogs",
+        "label": "بلاگ",
+        "models": (
+            "blogs.Article",
+            "blogs.ArticleImage",
+            "blogs.Tag",
+            "blogs.Comment",
+        ),
+    },
 )
