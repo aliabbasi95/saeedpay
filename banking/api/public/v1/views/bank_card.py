@@ -1,6 +1,7 @@
 # banking/api/public/v1/views/bank_card.py
 
 import logging
+
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import (
     extend_schema_view,
@@ -9,19 +10,19 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
 
-from banking.models import BankCard
-from banking.utils.choices import BankCardStatus
 from banking.api.public.v1.serializers import (
     BankCardSerializer,
     BankCardCreateSerializer,
     BankCardUpdateSerializer,
 )
+from banking.models import BankCard
 from banking.services import bank_card_service
 from banking.tasks import validate_card_task
+from banking.utils.choices import BankCardStatus
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +31,10 @@ logger = logging.getLogger(__name__)
     list=extend_schema(
         summary="List user's bank cards",
         description=(
-            "Retrieve a list of all active bank cards belonging to the "
-            "authenticated user. Only returns cards that are not soft-deleted "
-            "(is_active=True). Cards are ordered by default status first, "
-            "then by most recently added."
+                "Retrieve a list of all active bank cards belonging to the "
+                "authenticated user. Only returns cards that are not soft-deleted "
+                "(is_active=True). Cards are ordered by default status first, "
+                "then by most recently added."
         ),
         tags=["Bank Cards"],
         responses={
@@ -43,10 +44,10 @@ logger = logging.getLogger(__name__)
     create=extend_schema(
         summary="Add a new bank card",
         description=(
-            "Add a new bank card to the user's account. The card will be "
-            "created with PENDING status and automatically scheduled for "
-            "validation. Only the card number is required for creation. The "
-            "card number must pass Luhn algorithm validation."
+                "Add a new bank card to the user's account. The card will be "
+                "created with PENDING status and automatically scheduled for "
+                "validation. Only the card number is required for creation. The "
+                "card number must pass Luhn algorithm validation."
         ),
         tags=["Bank Cards"],
         request=BankCardCreateSerializer,
@@ -65,9 +66,9 @@ logger = logging.getLogger(__name__)
     retrieve=extend_schema(
         summary="Get bank card details",
         description=(
-            "Retrieve detailed information about a specific bank card. "
-            "Only returns cards belonging to the authenticated user that are "
-            "active."
+                "Retrieve detailed information about a specific bank card. "
+                "Only returns cards belonging to the authenticated user that are "
+                "active."
         ),
         tags=["Bank Cards"],
         parameters=[
@@ -89,10 +90,10 @@ logger = logging.getLogger(__name__)
     update=extend_schema(
         summary="Update bank card",
         description=(
-            "Update a bank card's information. Only rejected cards can be "
-            "updated. Updating a card will change its status back to PENDING "
-            "and schedule it for re-validation. "
-            "Cards with PENDING status cannot be updated."
+                "Update a bank card's information. Only rejected cards can be "
+                "updated. Updating a card will change its status back to PENDING "
+                "and schedule it for re-validation. "
+                "Cards with PENDING status cannot be updated."
         ),
         tags=["Bank Cards"],
         parameters=[
@@ -125,10 +126,10 @@ logger = logging.getLogger(__name__)
     partial_update=extend_schema(
         summary="Partially update bank card",
         description=(
-            "Partially update a bank card's information. Only rejected cards "
-            "can be updated. Updating a card will change its status back to "
-            "PENDING and schedule it for re-validation. "
-            "Cards with PENDING status cannot be updated."
+                "Partially update a bank card's information. Only rejected cards "
+                "can be updated. Updating a card will change its status back to "
+                "PENDING and schedule it for re-validation. "
+                "Cards with PENDING status cannot be updated."
         ),
         tags=["Bank Cards"],
         parameters=[
@@ -161,9 +162,9 @@ logger = logging.getLogger(__name__)
     destroy=extend_schema(
         summary="Delete bank card",
         description=(
-            "Soft delete a bank card by setting is_active=False. "
-            "Cards with PENDING status cannot be deleted as they are still "
-            "under review. This operation is irreversible through the API."
+                "Soft delete a bank card by setting is_active=False. "
+                "Cards with PENDING status cannot be deleted as they are still "
+                "under review. This operation is irreversible through the API."
         ),
         tags=["Bank Cards"],
         parameters=[
@@ -192,22 +193,6 @@ logger = logging.getLogger(__name__)
     ),
 )
 class BankCardViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing user bank cards.
-
-    This viewset provides full CRUD operations for bank cards, allowing users \
-to:
-    - List their active bank cards
-    - Add new bank cards (with automatic validation)
-    - View detailed information about their cards
-    - Update rejected cards (triggers re-validation)
-    - Delete cards (soft delete)
-    - Set a verified card as default
-
-    All operations are scoped to the authenticated user's cards only.
-    Card validation is handled asynchronously via Celery tasks.
-    """
-
     permission_classes = [IsAuthenticated]
     lookup_field = "id"
 
@@ -228,56 +213,22 @@ to:
         # Use the output serializer for the response
         output_serializer = BankCardSerializer(serializer.instance)
         headers = self.get_success_headers(serializer.data)
-        return Response(output_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(
+            output_serializer.data, status=status.HTTP_201_CREATED,
+            headers=headers
+        )
 
     def perform_create(self, serializer):
-        """
-        Create a new bank card and trigger validation if status is PENDING.
-        """
         instance = serializer.save()
+        bank_card_service.enqueue_validation_if_pending(None, instance)
 
-        # Submit validation task if card is in pending status
-        if instance.status == BankCardStatus.PENDING:
-            try:
-                validate_card_task.delay(str(instance.id))
-                logger.info(
-                    f"Card validation task scheduled for card {instance.id}"
-                )
-            except Exception as exc:
-                logger.error(
-                    f"Failed to schedule validation task for card "
-                    f"{instance.id}: {str(exc)}"
-                )
 
     def perform_update(self, serializer):
-        """
-        Update a bank card and trigger validation if status becomes PENDING.
-        """
         old_status = serializer.instance.status
         instance = serializer.save()
-        instance.full_clean()
-
-        # Submit validation task if card status became PENDING after update
-        if (
-            instance.status == BankCardStatus.PENDING
-            and old_status != BankCardStatus.PENDING
-        ):
-            try:
-                validate_card_task.delay(str(instance.id))
-                logger.info(
-                    f"Card validation task for updated card {instance.id} "
-                    "scheduled."
-                )
-            except Exception as exc:
-                logger.error(
-                    f"Failed to schedule validation task for updated card "
-                    f"{instance.id}: {str(exc)}"
-                )
+        bank_card_service.enqueue_validation_if_pending(old_status, instance)
 
     def perform_destroy(self, instance):
-        """
-        Soft delete a bank card, but prevent deletion if status is PENDING.
-        """
         if instance.status == BankCardStatus.PENDING:
             raise ValidationError(_("کارت‌های در حال بررسی قابل حذف نیستند."))
 
@@ -286,11 +237,11 @@ to:
     @extend_schema(
         summary="Set bank card as default",
         description=(
-            "Set a specific bank card as the default card for the user. "
-            "Only verified cards can be set as default. This will "
-            "automatically unset any previously default card for the user. "
-            "Default cards are typically used for primary payment "
-            "operations."
+                "Set a specific bank card as the default card for the user. "
+                "Only verified cards can be set as default. This will "
+                "automatically unset any previously default card for the user. "
+                "Default cards are typically used for primary payment "
+                "operations."
         ),
         tags=["Bank Cards"],
         parameters=[

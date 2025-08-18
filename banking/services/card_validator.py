@@ -4,25 +4,24 @@ import logging
 import random
 import time
 
+from django.apps import apps
 from django.conf import settings
 from django.db import transaction
 from faker import Faker
 
-from banking.models import BankCard, Bank
 from banking.utils.choices import BankCardStatus
 
 logger = logging.getLogger(__name__)
 fake = Faker("fa_IR")
 
 
-def validate_pending_card(card: BankCard) -> None:
-    """
-    Entry-point invoked every time a card is created or edited and
-    its status becomes 'در حال بررسی'.
-
-    Args:
-        card: The BankCard instance to validate
-    """
+def validate_pending_card(card_id: str) -> None:
+    BankCard = apps.get_model("banking", "BankCard")
+    try:
+        card = BankCard.objects.get(id=card_id)
+    except BankCard.DoesNotExist:
+        logger.warning("Card %s not found, skipping validation", card_id)
+        return
     # Guard clause - ensure idempotency
     if card.status != BankCardStatus.PENDING:
         logger.info(f"Card {card.id} is not pending, skipping validation")
@@ -31,19 +30,14 @@ def validate_pending_card(card: BankCard) -> None:
     mock_mode = getattr(settings, "CARD_VALIDATOR_MOCK", True)
 
     if mock_mode:
-        _mock_validation(card)
+        _mock_validation(card_id)
     else:
-        _production_validation(card)
+        _production_validation(card_id)
 
 
-def _production_validation(card: BankCard) -> None:
-    """
-    Production validation branch - currently a stub.
+def _production_validation(card_id: str) -> None:
 
-    Args:
-        card: The BankCard instance to validate
-    """
-    logger.info(f"Production validation started for card {card.id}")
+    logger.info("Production validation started for card %s", card_id)
     # TODO: Implement actual validation logic
     # This would typically involve:
     # 1. Making API calls to bank services
@@ -52,15 +46,8 @@ def _production_validation(card: BankCard) -> None:
     # 4. Updating card status based on results
 
 
-def _mock_validation(card: BankCard) -> None:
-    """
-    Mock validation branch with simulated network latency and random outcomes.
-
-    Args:
-        card: The BankCard instance to validate
-    """
-    logger.info(f"Mock validation started for card {card.id}")
-
+def _mock_validation(card_id: str) -> None:
+    BankCard = apps.get_model("banking", "BankCard")
     # Simulate network latency
     time.sleep(random.uniform(1.5, 3.0))
 
@@ -68,6 +55,7 @@ def _mock_validation(card: BankCard) -> None:
     is_verified = random.random() < 0.8
 
     with transaction.atomic():
+        card = BankCard.objects.select_for_update().get(id=card_id)
         # Refresh the card from database to avoid stale data
         card.refresh_from_db()
 
@@ -79,18 +67,14 @@ def _mock_validation(card: BankCard) -> None:
             return
 
         if is_verified:
-            _mock_approve_card(card)
+            _mock_approve_card(card.id)
         else:
-            _mock_reject_card(card)
+            _mock_reject_card(card.id)
 
 
-def _mock_approve_card(card: BankCard) -> None:
-    """
-    Mock approval of a card with generated data.
-
-    Args:
-        card: The BankCard instance to approve
-    """
+def _mock_approve_card(card_id: str) -> None:
+    BankCard = apps.get_model("banking", "BankCard")
+    Bank = apps.get_model("banking", "Bank")
     # Pick a random bank
     banks = list(Bank.objects.all())
     if not banks:
@@ -100,42 +84,26 @@ def _mock_approve_card(card: BankCard) -> None:
         bank = Bank.objects.create(name="بانک نمونه", color="#1976D2")
     else:
         bank = random.choice(banks)
-
     # Generate plausible Persian card holder name
     card_holder_name = f"{fake.first_name()} {fake.last_name()}"
-
     # Generate plausible SHEBA (IR + 24 digits)
     sheba = f"IR{''.join([str(random.randint(0, 9)) for _ in range(24)])}"
-
     # Update card
-    card.status = BankCardStatus.VERIFIED
-    card.bank = bank
-    card.card_holder_name = card_holder_name
-    card.sheba = sheba
-    card.rejection_reason = None  # Clear any previous rejection reason
-    card.save(
-        update_fields=[
-            "status",
-            "bank",
-            "card_holder_name",
-            "sheba",
-            "rejection_reason",
-        ]
+    BankCard.objects.filter(id=card_id).update(
+        status=BankCardStatus.VERIFIED,
+        bank=bank,
+        card_holder_name=card_holder_name,
+        sheba=sheba,
+        rejection_reason=None,
     )
-
     logger.info(
-        f"Card {card.id} approved - Bank: {bank.name}, "
+        f"Card {card_id} approved - Bank: {bank.name}, "
         f"Holder: {card_holder_name}, SHEBA: {sheba}"
     )
 
 
-def _mock_reject_card(card: BankCard) -> None:
-    """
-    Mock rejection of a card with a random Persian reason.
-
-    Args:
-        card: The BankCard instance to reject
-    """
+def _mock_reject_card(card_id: str) -> None:
+    BankCard = apps.get_model("banking", "BankCard")
     rejection_reasons = [
         "شماره کارت نامعتبر است",
         "کارت منقضی شده است",
@@ -145,22 +113,14 @@ def _mock_reject_card(card: BankCard) -> None:
         "کارت برای تراکنش‌های آنلاین فعال نشده است",
     ]
 
-    rejection_reason = random.choice(rejection_reasons)
+    reason = random.choice(rejection_reasons)
 
-    # Update card
-    card.status = BankCardStatus.REJECTED
-    card.rejection_reason = rejection_reason
-    card.bank = None
-    card.card_holder_name = ""
-    card.sheba = ""
-    card.save(
-        update_fields=[
-            "status",
-            "rejection_reason",
-            "bank",
-            "card_holder_name",
-            "sheba",
-        ]
+    BankCard.objects.filter(id=card_id).update(
+        status=BankCardStatus.REJECTED,
+        rejection_reason=reason,
+        bank=None,
+        card_holder_name="",
+        sheba="",
     )
 
-    logger.info(f"Card {card.id} rejected - Reason: {rejection_reason}")
+    logger.info(f"Card {card_id} rejected - Reason: {reason}")

@@ -28,6 +28,14 @@ ADMIN_REORDER = (
         ),
     },
     {
+        "app": "banking",
+        "label": "بانک",
+        "models": (
+            "banking.Bank",
+            "banking.BankCard",
+        ),
+    },
+    {
         'app': 'cas_auth',
         'label': 'API',
         'models': (

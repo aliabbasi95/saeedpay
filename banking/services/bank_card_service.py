@@ -1,13 +1,20 @@
 # banking/services/bank_card_service.py
 
-from banking.models import BankCard
 from django.db import transaction
 
+from banking.utils.choices import BankCardStatus
+from banking.tasks import validate_card_task
+
+
+def normalize_card_number(number: str) -> str:
+    return "".join(ch for ch in number if ch.isdigit())
+
+def enqueue_validation_if_pending(old_status, card):
+    if card.status == BankCardStatus.PENDING and old_status != BankCardStatus.PENDING:
+        transaction.on_commit(lambda: validate_card_task.delay(str(card.id)))
 
 def is_luhn_valid(card_number: str) -> bool:
-    """
-    Validate card number using Luhn algorithm.
-    """
+    card_number = normalize_card_number(card_number)
     if not card_number.isdigit() or len(card_number) != 16:
         return False
 
@@ -24,25 +31,18 @@ def is_luhn_valid(card_number: str) -> bool:
 
 
 def is_sheba_valid(sheba: str) -> bool:
-    """
-    Basic validation for Sheba format.
-    """
     return sheba.startswith("IR") and len(sheba) == 26 and sheba[2:].isdigit()
 
 
 def normalize_sheba(sheba: str) -> str:
-    """
-    Normalize Sheba by ensuring it starts with 'IR'.
-    """
+    sheba = (sheba or "").replace(" ", "").upper()
     if not sheba.startswith("IR"):
         return "IR" + sheba
     return sheba
 
 
 def set_as_default(user, card_id):
-    """
-    Set a card as the default for a user, ensuring only one is default.
-    """
+    from banking.models import BankCard
     with transaction.atomic():
         BankCard.objects.filter(user=user, is_default=True).update(
             is_default=False
@@ -54,9 +54,10 @@ def set_as_default(user, card_id):
 
 
 def soft_delete_card(card):
-    """
-    Soft delete a card by setting is_active to False.
-    """
+    updates = ["is_active"]
     card.is_active = False
-    card.save(update_fields=["is_active"])
+    if card.is_default:
+        card.is_default = False
+        updates.append("is_default")
+    card.save(update_fields=updates)
     return card

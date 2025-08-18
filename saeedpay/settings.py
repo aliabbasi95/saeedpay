@@ -187,12 +187,16 @@ MAX_SESSION_LIFETIME = timedelta(hours=24)
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "cas-authorization",
 ]
+# Redis
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
 
 # Celery
+CELERY_BROKER_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}"
+CELERY_RESULT_BACKEND = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}"
 CELERY_TIMEZONE = "Asia/Tehran"
 CELERY_TASK_TIME_LIMIT = 30 * 60
-CELERY_RESULT_BACKEND = "redis"
-CELERY_TASK_DEFAULT_QUEUE = "ariansupply"
+CELERY_TASK_DEFAULT_QUEUE = "saeedpay"
 
 CELERY_BEAT_SCHEDULE = {
     'expire-pending-payment-requests-every-minute': {
@@ -206,6 +210,11 @@ CELERY_BEAT_SCHEDULE = {
     'expire-pending-transfer-every-minute': {
         'task': 'wallets.tasks.task_expire_pending_transfer_requests',
         'schedule': crontab(minute='*/1'),
+    },
+    'reenqueue-stale-pending-cards-every-minute': {
+        'task': 'banking.tasks.reenqueue_stale_pending_cards',
+        'schedule': crontab(minute='*/1'),
+        'kwargs': {'limit': 200, 'older_than_minutes': 1},
     },
 }
 
