@@ -244,9 +244,11 @@ REDIS_PORT = 6379
 REDIS_BROKER_DB = int(os.getenv("REDIS_BROKER_DB", "0"))
 REDIS_BACKEND_DB = int(os.getenv("REDIS_BACKEND_DB", "1"))
 
+
 def _redis_url(db: int) -> str:
     pwd = f":{REDIS_PASSWORD}@" if REDIS_PASSWORD else ""
     return f"redis://{pwd}{REDIS_HOST}:{REDIS_PORT}/{db}"
+
 
 # Celery
 CELERY_BROKER_URL = _redis_url(REDIS_BROKER_DB)

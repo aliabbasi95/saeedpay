@@ -1,13 +1,13 @@
 # tickets/api/public/v1/views/category.py
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import AllowAny
-from drf_spectacular.utils import extend_schema, extend_schema_view
 
-from tickets.models import TicketCategory
-from tickets.api.public.v1.serializers.ticket import (
+from tickets.api.public.v1.serializers import (
     TicketCategoryListSerializer,
     TicketCategoryDetailSerializer,
 )
+from tickets.models import TicketCategory
 
 
 @extend_schema_view(
@@ -27,12 +27,7 @@ class TicketCategoryViewSet(
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet
 ):
-    """
-    ViewSet برای مدیریت دسته‌بندی‌های تیکت
-    - لیست دسته‌بندی‌ها: فقط id، name و description
-    - جزئیات دسته‌بندی: تمام فیلدها
-    """
-    queryset = TicketCategory.objects.all()
+    queryset = TicketCategory.objects.all().order_by("id")
     permission_classes = [AllowAny]
 
     def get_serializer_class(self):

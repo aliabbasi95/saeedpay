@@ -1,14 +1,14 @@
 # tickets/models/message.py
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel, BaseAttachment
-from .ticket import Ticket
 from tickets.utils.choices import TicketMessageSender
+from .ticket import Ticket
 
 
 class TicketMessage(BaseModel):
-    # Centralized choices (keep nested access pattern)
     Sender = TicketMessageSender
 
     ticket = models.ForeignKey(
@@ -32,13 +32,13 @@ class TicketMessage(BaseModel):
         verbose_name=_("پاسخ به")
     )
 
+    def __str__(self):
+        return f"Msg#{self.pk} on Ticket#{self.ticket_id} by {self.sender}"
+
     class Meta:
         verbose_name = _("پیام تیکت")
         verbose_name_plural = _("پیام‌های تیکت")
         ordering = ["id"]
-
-    def __str__(self):
-        return f"Msg#{self.pk} on Ticket#{self.ticket_id} by {self.sender}"
 
 
 class TicketMessageAttachment(BaseAttachment):

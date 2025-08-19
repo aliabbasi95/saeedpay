@@ -194,7 +194,9 @@ a.inline-deletelink {
     .app-store,
     .app-customers,
     .app-wallets,
-
+    .app-banking,
+    .app-tickets,
+    .app-blogs,
 ) > table > caption {
     width: 100%;
     margin-left: -3%;

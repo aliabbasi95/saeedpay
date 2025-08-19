@@ -1,31 +1,29 @@
 # tickets/api/public/v1/views/ticket.py
-from drf_spectacular.utils import extend_schema
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.mixins import (
-    CreateModelMixin, ListModelMixin, RetrieveModelMixin
+    CreateModelMixin, ListModelMixin, RetrieveModelMixin,
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import OrderingFilter
-from tickets.filters import TicketFilter
 
 from lib.cas_auth.erp.pagination import CustomPagination
-from tickets.models import Ticket, TicketMessage
+from tickets.api.public.v1.schema import (
+    ticket_viewset_schema,
+    add_message_schema,
+)
 from tickets.api.public.v1.serializers import (
     TicketSerializer,
     TicketCreateSerializer,
     TicketMessageSerializer,
     TicketMessageCreateSerializer,
 )
+from tickets.filters import TicketFilter
+from tickets.models import Ticket, TicketMessage
 
-
-from tickets.api.public.v1.schema import (
-    ticket_viewset_schema,
-    add_message_schema,
-)
 
 @ticket_viewset_schema
 class TicketViewSet(
@@ -42,7 +40,9 @@ class TicketViewSet(
 
     def get_queryset(self):
         request = self.request
-        return Ticket.objects.filter(user=request.user).select_related("category")
+        return Ticket.objects.filter(user=request.user).select_related(
+            "category"
+        )
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -55,20 +55,24 @@ class TicketViewSet(
     def retrieve(self, request, *args, **kwargs):
         ticket = self.get_object()
 
-        # Serialize ticket
         ticket_data = TicketSerializer(ticket).data
 
-        # Paginate messages
-        messages_qs = TicketMessage.objects.filter(ticket=ticket).order_by("id")
+        messages_qs = TicketMessage.objects.filter(ticket=ticket).order_by(
+            "id"
+        )
         paginator = CustomPagination()
         page = paginator.paginate_queryset(messages_qs, request, view=self)
         serializer = TicketMessageSerializer(page, many=True)
-        messages_payload = paginator.get_paginated_response(serializer.data).data
+        messages_payload = paginator.get_paginated_response(
+            serializer.data
+        ).data
 
-        return Response({
-            "ticket": ticket_data,
-            "messages": messages_payload,
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "ticket": ticket_data,
+                "messages": messages_payload,
+            }, status=status.HTTP_200_OK
+        )
 
     @add_message_schema
     @action(detail=True, methods=["post"], url_path="messages")

@@ -5,8 +5,10 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from tickets.models import Ticket, TicketMessage, TicketMessageAttachment, TicketCategory
-
+from tickets.models import (
+    Ticket, TicketMessage, TicketMessageAttachment,
+    TicketCategory,
+)
 
 ALLOWED_MIME_TYPES = {
     "image/jpeg",
@@ -29,22 +31,6 @@ class TicketCategorySerializer(serializers.ModelSerializer):
             "icon",
             "color",
         ]
-
-
-class TicketCategoryListSerializer(serializers.ModelSerializer):
-    """لیست دسته‌بندی‌ها - فقط id، name و description"""
-    
-    class Meta:
-        model = TicketCategory
-        fields = ["id", "name", "description"]
-
-
-class TicketCategoryDetailSerializer(serializers.ModelSerializer):
-    """جزئیات کامل دسته‌بندی"""
-    
-    class Meta:
-        model = TicketCategory
-        fields = ["id", "name", "description", "icon", "color"]
 
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -101,7 +87,9 @@ class TicketCreateSerializer(serializers.ModelSerializer):
             Ticket.Status.WAITING_ON_USER,
             Ticket.Status.REOPENED,
         ]
-        open_count = Ticket.objects.filter(user=user, status__in=open_statuses).count()
+        open_count = Ticket.objects.filter(
+            user=user, status__in=open_statuses
+        ).count()
         if open_count >= 15:
             raise serializers.ValidationError(
                 {"non_field_errors": [_("شما بیش از ۱۵ تیکت باز دارید.")]}
@@ -111,28 +99,25 @@ class TicketCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = self.context["request"].user
         description = validated_data.pop("description", None)
-        
-        # Check open ticket limit
+
         open_tickets_count = Ticket.objects.filter(
             user=user, status=Ticket.Status.OPEN
         ).count()
-        
+
         if open_tickets_count >= 15:
             raise serializers.ValidationError(
                 "شما بیش از حد مجاز تیکت باز دارید. لطفاً ابتدا تیکت‌های باز خود را ببندید."
             )
 
-        validated_data["user"] = user
         ticket = Ticket.objects.create(**validated_data)
-        
-        # Create first message with description if provided
+
         if description:
             TicketMessage.objects.create(
                 ticket=ticket,
                 sender=TicketMessage.Sender.USER,
                 content=description,
             )
-        
+
         return ticket
 
 
@@ -163,7 +148,9 @@ class TicketMessageSerializer(serializers.ModelSerializer):
 
 
 class TicketMessageCreateSerializer(serializers.ModelSerializer):
-    sender = serializers.ChoiceField(choices=TicketMessage.Sender.choices, required=False)
+    sender = serializers.ChoiceField(
+        choices=TicketMessage.Sender.choices, required=False
+    )
     files = serializers.ListField(
         child=serializers.FileField(),
         write_only=True,
@@ -179,7 +166,9 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
         if not files:
             return files
         if len(files) > MAX_ATTACHMENT_COUNT:
-            raise serializers.ValidationError(_("حداکثر ۲ فایل می‌توانید ارسال کنید."))
+            raise serializers.ValidationError(
+                _("حداکثر ۲ فایل می‌توانید ارسال کنید.")
+            )
         for f in files:
             if getattr(f, "size", 0) > MAX_ATTACHMENT_SIZE:
                 raise serializers.ValidationError(
@@ -197,7 +186,9 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
         ticket = self.context.get("ticket")
         user = getattr(request, "user", None)
         if not ticket:
-            raise serializers.ValidationError({"ticket": _("تیکت نامعتبر است.")})
+            raise serializers.ValidationError(
+                {"ticket": _("تیکت نامعتبر است.")}
+            )
         # reply_to must belong to same ticket
         reply_to = attrs.get("reply_to")
         if reply_to and reply_to.ticket_id != ticket.id:
@@ -226,7 +217,10 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
         else:
             # staff sending via admin later; public API restricts to owner only
             raise serializers.ValidationError(
-                {"non_field_errors": [_("فقط صاحب تیکت می‌تواند پیام ارسال کند.")]}
+                {
+                    "non_field_errors": [
+                        _("فقط صاحب تیکت می‌تواند پیام ارسال کند.")]
+                }
             )
         return attrs
 
