@@ -1,11 +1,12 @@
+# chatbot/api/public/v1/views/start_chat.py
+
+from django.conf import settings
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
-from drf_spectacular.utils import extend_schema, OpenApiResponse
-from django.conf import settings
 
 from chatbot.models import ChatSession
 from lib.cas_auth.views import PublicAPIView
-
 
 # Maximum number of chat sessions an anonymous user can create.
 SESSION_LIMIT_ANONYMOUS = getattr(settings, "CHATBOT_SESSION_LIMIT", 2)

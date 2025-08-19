@@ -1,36 +1,32 @@
-"""
-Defines the Bank model for storing bank information.
-"""
+# banking/models/bank.py
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from lib.erp_base.models import BaseModel
 
-class Bank(models.Model):
-    """
-    Represents a bank or financial institution.
-    """
 
-    name = models.CharField(max_length=100, verbose_name=_("Name"))
+class Bank(BaseModel):
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_("نام بانک"),
+    )
     logo = models.ImageField(
-        upload_to="banks/logos/", blank=True, null=True, verbose_name=_("Logo")
+        upload_to="banks/logos/",
+        blank=True,
+        null=True,
+        verbose_name=_("لوگوی بانک"),
     )
     color = models.CharField(
         max_length=7,
-        help_text=_("Hex color, e.g., “#1E88E5”"),
-        verbose_name=_("Color"),
+        help_text=_("کد رنگ هگز، مانند ‎#1E88E5"),
+        verbose_name=_("رنگ برند"),
     )
-    created_at = models.DateTimeField(
-        auto_now_add=True, verbose_name=_("Created at")
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True, verbose_name=_("Updated at")
-    )
-
-    class Meta:
-        ordering = ["name"]
-        verbose_name = _("Bank")
-        verbose_name_plural = _("Banks")
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = _("بانک")
+        verbose_name_plural = _("بانک‌ها")

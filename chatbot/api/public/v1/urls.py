@@ -1,14 +1,28 @@
+# chatbot/api/public/v1/urls.py
+
 from django.urls import path
 
-from .views.start_chat import StartChatView
-from .views.chat import ChatView
-from .views.session import UserChatSessionsView, ChatSessionDetailView
+from .views import (
+    StartChatView,
+    ChatView,
+    UserChatSessionsView, ChatSessionDetailView,
+)
 
 urlpatterns = [
-    path("start/", StartChatView.as_view(), name="start_chat"),
-    path("chat/<int:session_id>/", ChatView.as_view(), name="chat"),
     path(
-        "sessions/", UserChatSessionsView.as_view(), name="user_chat_sessions"
+        "start/",
+        StartChatView.as_view(),
+        name="start_chat"
+    ),
+    path(
+        "chat/<int:session_id>/",
+        ChatView.as_view(),
+        name="chat"
+    ),
+    path(
+        "sessions/",
+        UserChatSessionsView.as_view(),
+        name="user_chat_sessions"
     ),
     path(
         "sessions/<int:session_id>/",

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from datetime import timedelta
 
+from celery.schedules import crontab
 from corsheaders.defaults import default_headers
 
 try:
@@ -189,12 +190,6 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "cas-authorization",
 ]
 
-SESSION_COOKIE_SECURE = True  # Only send session cookie over HTTPS
-SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
-SESSION_COOKIE_SAMESITE = 'Strict'  # Prevent CSRF in cross-site requests
-
-# Celery configuration centralized in saeedpay/celery.py
-
 SERVICE_NAME = "SAEEDPAY"
 SERVICE_NAME_FA = "سعید پی"
 AUTH_USER_MODEL = "cas_auth.User"
@@ -240,4 +235,88 @@ SPECTACULAR_SETTINGS = {
     "PREPROCESSING_HOOKS": [
         "saeedpay.settings.spectacular_preprocess_hook"
     ],
+}
+
+# Redis
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+
+REDIS_BROKER_DB = int(os.getenv("REDIS_BROKER_DB", "0"))
+REDIS_BACKEND_DB = int(os.getenv("REDIS_BACKEND_DB", "1"))
+
+def _redis_url(db: int) -> str:
+    pwd = f":{REDIS_PASSWORD}@" if REDIS_PASSWORD else ""
+    return f"redis://{pwd}{REDIS_HOST}:{REDIS_PORT}/{db}"
+
+# Celery
+CELERY_BROKER_URL = _redis_url(REDIS_BROKER_DB)
+CELERY_RESULT_BACKEND = _redis_url(REDIS_BACKEND_DB)
+
+CELERY_TIMEZONE = "Asia/Tehran"
+CELERY_ENABLE_UTC = True
+CELERY_TASK_DEFAULT_QUEUE = "saeedpay"
+
+CELERY_TASK_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_RESULT_SERIALIZER = "json"
+
+CELERY_TASK_ROUTES = {
+    "credit.tasks.statement_tasks.*": {"queue": "statements"},
+    "credit.tasks.credit_tasks.*": {"queue": "credit"},
+}
+
+CELERY_BEAT_SCHEDULE = {
+    # wallet
+    'expire-pending-payment-requests-every-minute': {
+        'task': 'wallets.tasks.task_expire_pending_payment_requests',
+        'schedule': crontab(minute='*/1'),
+    },
+    'cleanup-cancelled-and-expired-requests-every-hour': {
+        'task': 'wallets.tasks.task_cleanup_cancelled_and_expired_requests',
+        'schedule': crontab(minute=0, hour='*/1'),
+    },
+    'expire-pending-transfer-every-minute': {
+        'task': 'wallets.tasks.task_expire_pending_transfer_requests',
+        'schedule': crontab(minute='*/1'),
+    },
+
+    # banking
+    'reenqueue-stale-pending-cards-every-minute': {
+        'task': 'banking.tasks.reenqueue_stale_pending_cards',
+        'schedule': crontab(minute='*/1'),
+        'kwargs': {'limit': 200, 'older_than_minutes': 1},
+    },
+
+    # credit
+    "daily-statement-maintenance": {
+        "task": "credit.tasks.statement_tasks.daily_statement_maintenance_task",
+        "schedule": crontab(hour=2, minute=0),
+        "options": {"expires": 3600},
+    },
+    "month-end-processing": {
+        "task": "credit.tasks.statement_tasks.process_month_end_task",
+        "schedule": crontab(hour=23, minute=30),
+        "options": {"expires": 3600},
+    },
+    "process-pending-payments": {
+        "task": "credit.tasks.statement_tasks.process_pending_payments_task",
+        "schedule": crontab(hour=6, minute=0),
+        "options": {"expires": 3600},
+    },
+    "daily-penalty-calculation": {
+        "task": "credit.tasks.statement_tasks.calculate_daily_penalties_task",
+        "schedule": crontab(hour=1, minute=0),
+        "options": {"expires": 3600},
+    },
+    "add-interest-to-statements": {
+        "task": "credit.tasks.statement_tasks.add_interest_to_all_users_task",
+        "schedule": crontab(hour=0, minute=30, day_of_month=1),
+        "options": {"expires": 3600},
+    },
+    "weekly-cleanup-check": {
+        "task": "credit.tasks.statement_tasks.cleanup_old_statements_task",
+        "schedule": crontab(hour=3, minute=0, day_of_week=0),
+        "args": [365],
+        "options": {"expires": 3600},
+    },
 }

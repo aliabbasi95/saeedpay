@@ -1,6 +1,9 @@
+# chatbot/api/public/v1/views/chat.py
+
+from urllib.parse import urljoin
+
 import requests
 from django.conf import settings
-from django.http import Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import status
@@ -21,13 +24,16 @@ HISTORY_LIMIT = getattr(settings, "CHATBOT_HISTORY_LIMIT", 4)
     tags=["Chatbot"],
     summary="Send message to AI chatbot",
     description=(
-        "Send a message to the AI chatbot and receive a response. "
-        "The conversation history is maintained within the session context."
+            "Send a message to the AI chatbot and receive a response. "
+            "The conversation history is maintained within the session context."
     ),
     request=ChatRequestSerializer,
     responses={
         200: ChatResponseSerializer,
         400: OpenApiResponse(description="Bad request - Invalid input data"),
+        403: OpenApiResponse(
+            description="Anonymous limit reached or not allowed"
+        ),
         404: OpenApiResponse(description="Chat session not found"),
         502: OpenApiResponse(description="LLM service error"),
     },
@@ -42,16 +48,17 @@ class ChatView(PublicAPIView):
         """Proxy the user message to the LLM service and return its answer."""
         user = request.user if request.user.is_authenticated else None
 
-        try:
-            session = get_object_or_404(
-                ChatSession, id=session_id, user=user, is_active=True
+        filters = {"id": session_id, "is_active": True}
+        if request.user.is_authenticated:
+            filters["user"] = request.user
+        else:
+            if not request.session.session_key:
+                return self.permission_denied(request, message="Not allowed.")
+            filters.update(
+                {"user": None, "session_key": request.session.session_key}
             )
-        except Http404:
-            from rest_framework.response import Response
 
-            return Response(
-                {"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND
-            )
+        session = get_object_or_404(ChatSession, **filters)
 
         # Validate input
         serializer = self.get_serializer(data=request.data)
@@ -99,8 +106,9 @@ class ChatView(PublicAPIView):
 
         # Proxy the request to LLM backend
         try:
+            llm_url = urljoin(LLM_BASE_URL.rstrip('/') + '/', 'api/v1/chat')
             resp = requests.post(
-                f"{LLM_BASE_URL}api/v1/chat", json=payload, timeout=30
+                llm_url, json=payload, timeout=30
             )
             resp.raise_for_status()
 
@@ -108,9 +116,9 @@ class ChatView(PublicAPIView):
             try:
                 data = resp.json()
                 answer = (
-                    data.get("answer")
-                    or data.get("content")
-                    or data.get("response")
+                        data.get("answer")
+                        or data.get("content")
+                        or data.get("response")
                 )
                 if not answer:
                     raise ValueError("No answer in LLM response")
