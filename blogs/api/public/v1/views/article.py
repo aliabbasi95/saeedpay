@@ -30,6 +30,7 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['title', 'content', 'excerpt']
     ordering_fields = ['created_at', 'published_at', 'view_count', 'title']
     ordering = ['-created_at']
+    lookup_field = 'slug'
     
     def get_queryset(self):
         queryset = Article.objects.select_related('author__profile').prefetch_related('tags', 'sections', 'comments')

@@ -320,3 +320,9 @@ CELERY_BEAT_SCHEDULE = {
         "options": {"expires": 3600},
     },
 }
+
+# reCAPTCHA Configuration
+RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY', '6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs')
+RECAPTCHA_V3 = False  # Set to False for reCAPTCHA v2
+RECAPTCHA_V3_THRESHOLD = 0.5  # Score threshold for v3 (ignored when v2)
+RECAPTCHA_ACTION = 'submit'  # Default action name for v3 (ignored when v2)

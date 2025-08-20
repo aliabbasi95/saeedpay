@@ -43,6 +43,7 @@ api_urlpatterns = [
     path("api/credit/", include("credit.api.urls")),
     path("api/blogs/", include("blogs.api.urls")),
     path("api/customers/", include("customers.api.urls")),
+    path("api/contact/", include("contact.api.urls")),
 ]
 
 schema_urlpatterns = [
