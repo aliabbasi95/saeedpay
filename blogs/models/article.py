@@ -102,8 +102,6 @@ class Article(BaseModel):
         ordering = ['-is_featured', '-published_at', '-created_at']
         indexes = [
             models.Index(fields=['status', 'published_at'], name='article_status_pub_idx'),
-            models.Index(fields=['author'], name='article_author_idx'),
-            models.Index(fields=['is_featured'], name='article_featured_idx'),
         ]
 
     def __str__(self):

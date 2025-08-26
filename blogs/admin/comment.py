@@ -18,6 +18,7 @@ class CommentAdmin(BaseAdmin):
         'is_spam',
         'is_reply',
         'like_count',
+        'dislike_count',
         'reply_count',
         'jalali_creation_date_time'
     ]

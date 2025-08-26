@@ -64,8 +64,6 @@ class ArticleSectionSerializer(serializers.ModelSerializer):
 class ArticleListSerializer(serializers.ModelSerializer):
     """Simplified serializer for article lists"""
     author = AuthorSerializer(read_only=True)
-    tags = TagListSerializer(many=True, read_only=True)
-    comment_count = serializers.ReadOnlyField()
     
     class Meta:
         model = Article
@@ -76,13 +74,7 @@ class ArticleListSerializer(serializers.ModelSerializer):
             'author',
             'excerpt',
             'featured_image',
-            'status',
-            'tags',
-            'is_featured',
             'published_at',
-            'view_count',
-            'comment_count',
-            'jalali_creation_date_time',
         ]
 
 

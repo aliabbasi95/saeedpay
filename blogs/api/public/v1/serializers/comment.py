@@ -97,8 +97,11 @@ class CommentListSerializer(serializers.ModelSerializer):
         return obj.jalali_creation_date_time
 
 
+from utils.recaptcha import ReCaptchaField
+
 class CommentCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating comments"""
+    recaptcha_token = ReCaptchaField(required=True)
     
     class Meta:
         model = Comment
@@ -107,6 +110,7 @@ class CommentCreateSerializer(serializers.ModelSerializer):
             'reply_to',
             'content',
             'rating',
+            'recaptcha_token',
         ]
     
     def validate_rating(self, value):
@@ -130,12 +134,6 @@ class CommentCreateSerializer(serializers.ModelSerializer):
         
         return attrs
     
-    def create(self, validated_data):
-        request = self.context.get('request')
-        if request and request.user:
-            validated_data['author'] = request.user
-        return super().create(validated_data)
-
 
 class CommentUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating comments"""

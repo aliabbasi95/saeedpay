@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Sum, Case, When, Value, IntegerField, F
+from credit.utils.choices import StatementStatus
 
 from lib.erp_base.models import BaseModel
 from wallets.utils.choices import TransactionStatus
@@ -16,11 +17,11 @@ from credit.utils.reference import generate_statement_reference
 from persiantools.jdatetime import JalaliDate
 from credit.utils.constants import (
     MONTHLY_INTEREST_RATE,
-    STATEMENT_DUE_DAYS,
+    STATEMENT_GRACE_DAYS,
     STATEMENT_PENALTY_RATE,
     STATEMENT_MAX_PENALTY_RATE,
     MINIMUM_PAYMENT_PERCENTAGE,
-    MINIMUM_PAYMENT_THRESHOLD
+    MINIMUM_PAYMENT_THRESHOLD,
 )
 from credit.models.credit_limit import CreditLimit
 
@@ -86,8 +87,7 @@ class StatementManager(models.Manager):
                     # Add interest as first transaction if there's debt
                     if statement.closing_balance < 0:  # Negative balance means debt
                         interest_amount = (
-                            abs(statement.closing_balance)
-                            * MONTHLY_INTEREST_RATE
+                            abs(statement.closing_balance) * MONTHLY_INTEREST_RATE
                         )
                         StatementLine.objects.create(
                             statement=new_statement,
@@ -106,20 +106,12 @@ class StatementManager(models.Manager):
             user=user,
             year=today.year,
             month=today.month,
-            status="current",
+            status=StatementStatus.CURRENT,
             reference_code=generate_statement_reference(),
         )
 
 
 class Statement(BaseModel):
-    STATUS_CHOICES = [
-        ("current", _("جاری")),
-        ("pending_payment", _("در انتظار پرداخت")),
-        ("closed_no_penalty", _("بسته شده - بدون جریمه")),
-        ("closed_with_penalty", _("بسته شده - با جریمه")),
-        ("overdue", _("سررسید گذشته")),
-    ]
-
     user = models.ForeignKey(
         get_user_model(),
         on_delete=models.CASCADE,
@@ -136,7 +128,10 @@ class Statement(BaseModel):
     )
 
     status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default="current", verbose_name=_("وضعیت")
+        max_length=20,
+        choices=StatementStatus.choices,
+        default=StatementStatus.CURRENT,
+        verbose_name=_("وضعیت"),
     )
 
     opening_balance = models.BigIntegerField(default=0, verbose_name=_("مانده اول دوره"))
@@ -149,28 +144,16 @@ class Statement(BaseModel):
 
     total_credit = models.BigIntegerField(default=0, verbose_name=_("مجموع بستانکار"))
 
-    due_date = models.DateTimeField(null=True, blank=True, verbose_name=_("تاریخ سررسید"))
+    grace_date = models.DateTimeField(
+        null=True, blank=True, verbose_name=_("تاریخ سررسید")
+    )
 
     paid_at = models.DateTimeField(null=True, blank=True, verbose_name=_("زمان پرداخت"))
 
     # --- Closing and carryover tracking ---
     closed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("زمان بستن"))
 
-    carried_over = models.BooleanField(
-        default=False, verbose_name=_("انتقال یافته به دوره بعد")
-    )
-
     objects = StatementManager()
-
-    class Meta:
-        verbose_name = _("صورتحساب اعتباری")
-        verbose_name_plural = _("صورتحساب‌های اعتباری")
-        ordering = ["-year", "-month"]
-        unique_together = ["user", "year", "month"]
-        indexes = [
-            models.Index(fields=["user", "status"], name="st_user_status_idx"),
-            models.Index(fields=["due_date"], name="st_due_idx"),
-        ]
 
     def __str__(self):
         return f"{self.user} - {self.year}/{self.month:02d} ({self.get_status_display()})"
@@ -229,6 +212,10 @@ class Statement(BaseModel):
 
             # Refresh from db to get updated values
             self.refresh_from_db()
+            
+            # Sync used_limit with current statement's closing balance if this is the current statement
+            if self.status == StatementStatus.CURRENT:
+                self._sync_credit_limit_used_amount()
 
     def close_statement(self):
         """Close current statement and prepare for payment"""
@@ -239,15 +226,19 @@ class Statement(BaseModel):
         self.update_balances()
         now = timezone.now()
         self.status = "pending_payment"
-        # due date = close time + configured due days (not grace)
-        due_days = int(STATEMENT_DUE_DAYS)
+        
+        # Use credit limit's grace period or default
+        grace_days = self.get_grace_days()
         self.closed_at = now
-        self.due_date = now + timedelta(days=due_days)
-        self.save(update_fields=["status", "due_date", "closing_balance", "closed_at"])
+        self.grace_date = now + timedelta(days=grace_days)
+        self.save(update_fields=["status", "grace_date", "closing_balance", "closed_at"])
+        
+        # Sync credit limit after closing statement
+        self._sync_credit_limit_used_amount()
 
-    def calculate_penalty(self, penalty_rate=None, max_penalty_rate=None):
+    def calculate_penalty(self, penalty_rate=None):
         """
-        Calculate penalty amount based on overdue days
+        Calculate penalty amount based on overgrace days
 
         Args:
             penalty_rate: Daily penalty rate (uses settings.CREDIT_STATEMENT_PENALTY_RATE if None)
@@ -258,28 +249,26 @@ class Statement(BaseModel):
         """
         penalty_rate = penalty_rate or STATEMENT_PENALTY_RATE
         max_penalty_rate = max_penalty_rate or STATEMENT_MAX_PENALTY_RATE
-        # Only apply penalty on pending or overdue statements
-        if self.status not in {"pending_payment", "overdue"}:
-            return 0
-        # Only apply penalty on pending or overdue statements
-        if self.status not in {"pending_payment", "overdue"}:
-            return 0
-
-        if not self.due_date or timezone.now() <= self.due_date:
-            return 0
-
-        overdue_days = (timezone.now() - self.due_date).days
-        if overdue_days <= 0:
+        # Only apply penalty on pending statements
+        if self.status != StatementStatus.PENDING_PAYMENT:
             return 0
 
         # Penalty only when there is debt (negative closing balance)
         if self.closing_balance >= 0:
             return 0
+        if self.closing_balance >= MINIMUM_PAYMENT_THRESHOLD:
+            return 0
         base_amount = -int(self.closing_balance)
-        penalty_amount = int(base_amount * penalty_rate * overdue_days)
-        max_penalty = int(base_amount * max_penalty_rate)
-        
-        return min(penalty_amount, max_penalty)
+        penalty_amount = int(base_amount * penalty_rate)
+
+        return penalty_amount
+
+    @property
+    def is_in_grace_period(self):
+        """Checks if the statement is currently within its grace period."""
+        if not self.grace_date:
+            return False
+        return timezone.now().date() <= self.grace_date
 
     def add_line(self, type_, amount, transaction=None, description=""):
         """Add a line to the statement.
@@ -287,7 +276,7 @@ class Statement(BaseModel):
         Raises:
             ValueError: If statement status is not 'current'.
         """
-        if self.status != "current":
+        if self.status != StatementStatus.CURRENT:
             raise ValueError("Cannot add line to statement unless status is 'current'")
 
         # Sign expectation for each line type
@@ -328,13 +317,25 @@ class Statement(BaseModel):
             or transaction.to_wallet.user_id == self.user_id
         ):
             raise ValueError("تراکنش متعلق به کاربر نیست")
-        # Consume credit limit and add purchase line
-
+        
+        # Validate credit limit comprehensively
         cl = CreditLimit.objects.get_user_credit_limit(self.user)
         if not cl:
             raise ValueError("حد اعتباری فعال یافت نشد")
+        
+        # Validate credit limit status
+        if cl.status != "active":
+            raise ValueError("حد اعتباری غیرفعال است")
+        
+        # Validate credit limit expiry
+        if cl.expiry_date <= timezone.localdate():
+            raise ValueError("حد اعتباری منقضی شده است")
+        
         purchase_amount = abs(int(transaction.amount))
-        cl.use_credit(purchase_amount)
+        if purchase_amount > cl.available_limit:
+            raise ValueError("مبلغ بیشتر از اعتبار موجود است")
+        
+        # Add purchase line - used_limit will be synced automatically via update_balances()
         self.add_line(
             "purchase", -purchase_amount, transaction=transaction, description="خرید"
         )
@@ -342,19 +343,20 @@ class Statement(BaseModel):
     def apply_payment(self, amount, transaction=None):
         """Add a payment line and update credit limit"""
         pay_amount = abs(int(amount))
+        
+        # Validate credit limit exists (for consistency, though payments should always be allowed)
+        cl = CreditLimit.objects.get_user_credit_limit(self.user)
+        if not cl:
+            # Log warning but don't block payment
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Payment applied for user {self.user_id} without active credit limit")
+        
         self.add_line(
             "payment", pay_amount, transaction=transaction, description="پرداخت"
         )
-        # Sync with CreditLimit.release_credit(amount)
-        try:
-            from credit.models.credit_limit import CreditLimit
-
-            cl = CreditLimit.objects.get_user_credit_limit(self.user)
-            if cl:
-                cl.release_credit(pay_amount)
-        except Exception:
-            # Do not block on credit limit sync
-            pass
+        # Note: We no longer use cl.release_credit() as used_limit is now synced automatically
+        # through _sync_credit_limit_used_amount() when statement balances are updated
         # Note: Payment processing logic moved to process_pending_payments command
         # This method just records the payment
 
@@ -364,51 +366,35 @@ class Statement(BaseModel):
     def apply_penalty(self, amount, description="جریمه"):
         self.add_line("penalty", -abs(amount), description=description)
 
-    def calculate_and_apply_penalty(self, penalty_rate=None, max_penalty_rate=None):
-        """Calculate and apply penalty as a statement line if overdue and not already present."""
+    def calculate_and_apply_penalty(self, penalty_rate=None):
+        """Calculate and apply penalty as a statement line if overgrace and not already present."""
         penalty_rate = penalty_rate or STATEMENT_PENALTY_RATE
-        max_penalty_rate = max_penalty_rate or STATEMENT_MAX_PENALTY_RATE
 
-        # If past due mark as overdue prior to calculation
+        # If past due mark as overgrace prior to calculation
         if (
-            self.due_date
-            and timezone.now() > self.due_date
+            self.grace_date
+            and timezone.now() > self.grace_date
             and self.status == "pending_payment"
         ):
-            self.status = "overdue"
+            self.status = "overgrace"
             self.save(update_fields=["status"])
 
-        penalty = self.calculate_penalty(penalty_rate, max_penalty_rate)
+        penalty = self.calculate_penalty(penalty_rate)
         if penalty > 0 and not self.lines.filter(type="penalty").exists():
             self.apply_penalty(penalty)
         return penalty
 
-    # --- Due days helpers ---
-    def get_due_days(self) -> int:
-        """Due days for this user: per-user override via CreditLimit or default settings."""
-        from credit.models.credit_limit import CreditLimit
+    # --- Grace days helpers ---
+    def get_grace_days(self) -> int:
+        """Grace days for this user: per-user override via CreditLimit or default settings."""
 
         cl = CreditLimit.objects.get_user_credit_limit(self.user)
-        return (
-            cl.get_due_days()
-            if cl
-            else int(STATEMENT_DUE_DAYS)
-        )
+        return cl.get_grace_days() if cl else int(STATEMENT_GRACE_DAYS)
 
     @property
-    def due_ends_at(self):
-        if not self.due_date:
-            return None
-        return self.due_date + timedelta(days=self.get_due_days())
-
-    def is_within_due(self, now=None) -> bool:
-        """Return True if now is within the due window after statement closure (before or at due date).
-        There is no grace period; only the due date matters for timely payment to avoid penalty. After the due date, penalty and/or interest may be applied.
-        """
-        if not self.due_date:
-            return False
-        now = now or timezone.now()
-        return now <= self.due_date
+    def grace_ends_at(self):
+        """Return the grace period end datetime for this statement."""
+        return self.grace_date
 
     def calculate_minimum_payment_amount(self):
         """Calculate the minimum payment amount based on closing balance"""
@@ -427,13 +413,15 @@ class Statement(BaseModel):
         return int(min_payment)
 
     def process_payment_during_grace_period(self, payment_amount):
-        """Process payment during grace period and determine statement outcome"""
+        """
+        Process payment during grace period and determine statement outcome.
+        Returns:
+            str: 'closed_no_penalty' if payment/debt is sufficient, else 'closed_with_penalty'.
+        """
         if self.status != "pending_payment":
             raise ValueError("Can only process payment for pending payment statements")
 
         min_required = self.calculate_minimum_payment_amount()
-
-        # Check if payment meets minimum requirement or debt is below threshold
         debt_amount = abs(self.closing_balance) if self.closing_balance < 0 else 0
 
         if debt_amount < MINIMUM_PAYMENT_THRESHOLD:
@@ -441,35 +429,38 @@ class Statement(BaseModel):
             self.status = "closed_no_penalty"
             self.closed_at = timezone.now()
             self.save(update_fields=["status", "closed_at"])
+            self._sync_credit_limit_used_amount()
             return "closed_no_penalty"
 
         if payment_amount >= min_required:
-            # Payment meets minimum requirement
             self.status = "closed_no_penalty"
             self.closed_at = timezone.now()
             self.save(update_fields=["status", "closed_at"])
+            self._sync_credit_limit_used_amount()
             return "closed_no_penalty"
         else:
-            # Payment doesn't meet minimum requirement
             self.status = "closed_with_penalty"
             self.closed_at = timezone.now()
             self.save(update_fields=["status", "closed_at"])
+            self._sync_credit_limit_used_amount()
             return "closed_with_penalty"
 
     def apply_penalty_to_current_statement(self, penalty_amount=None):
         """Apply penalty to the user's current statement"""
-        from credit.models.statement import Statement
 
         # Get user's current statement
         current_statement = Statement.objects.get_current_statement(self.user)
         if not current_statement:
             raise ValueError(
-                "Cannot apply penalty: user does not have any statement with 'current' status."
+                (
+                    "Cannot apply penalty: user does not have any statement with "
+                    "'current' status."
+                )
             )
 
         if penalty_amount is None:
             # Use constant penalty for now (100,000 Rials)
-            penalty_amount = 100000
+            penalty_amount = self.calculate_penalty()
 
         # Add penalty line to current statement
         current_statement.add_line(
@@ -479,3 +470,53 @@ class Statement(BaseModel):
         )
 
         return penalty_amount
+
+    def _sync_credit_limit_used_amount(self):
+        """
+        Sync CreditLimit.used_limit with the current statement's debt amount.
+        This ensures used_limit accurately reflects the actual outstanding debt.
+        """
+        try:
+            credit_limit = CreditLimit.objects.get_user_credit_limit(self.user)
+            if not credit_limit:
+                return
+            
+            # Calculate total debt across all statements for this user
+            # Current statement debt (negative closing_balance means debt)
+            current_debt = abs(min(0, self.closing_balance))
+            
+            # Add debt from any pending payment statements
+            pending_statements = Statement.objects.filter(
+                user=self.user,
+                status__in=[StatementStatus.PENDING_PAYMENT, StatementStatus.OVERGRACE]
+            )
+            
+            pending_debt = 0
+            for stmt in pending_statements:
+                if stmt.closing_balance < 0:
+                    pending_debt += abs(stmt.closing_balance)
+            
+            # Total used limit should be current debt + pending debt
+            total_used_limit = current_debt + pending_debt
+            
+            # Update credit limit atomically
+            with transaction.atomic():
+                CreditLimit.objects.filter(pk=credit_limit.pk).update(
+                    used_limit=total_used_limit
+                )
+                
+        except Exception as e:
+            # Log the error but don't break the statement update process
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to sync credit limit used_limit: {e}")
+
+    class Meta:
+        verbose_name = _("صورتحساب اعتباری")
+        verbose_name_plural = _("صورتحساب‌های اعتباری")
+        ordering = ["-year", "-month"]
+        unique_together = ["user", "year", "month"]
+        indexes = [
+            models.Index(fields=["user", "status"], name="st_user_status_idx"),
+            models.Index(fields=["grace_date"], name="st_grace_idx"),
+        ]

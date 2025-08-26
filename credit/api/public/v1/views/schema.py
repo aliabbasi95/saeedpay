@@ -124,7 +124,7 @@ statement_list_schema = extend_schema_view(
                         "closing_balance": 150000,
                         "total_debit": 200000,
                         "total_credit": 50000,
-                        "due_date": "2024-11-15T23:59:59Z",
+                        "grace_date": "2024-11-15T23:59:59Z",
                         "created_at": "2024-11-01T00:00:00Z",
                         "updated_at": "2024-11-10T12:30:00Z"
                     }
@@ -187,7 +187,7 @@ statement_detail_schema = extend_schema_view(
                     "closing_balance": 150000,
                     "total_debit": 200000,
                     "total_credit": 50000,
-                    "due_date": "2024-11-15T23:59:59Z",
+                    "grace_date": "2024-11-15T23:59:59Z",
                     "paid_at": None,
                     "closed_at": "2024-11-01T00:00:00Z",
                     "created_at": "2024-11-01T00:00:00Z",
@@ -426,11 +426,11 @@ add_payment_schema = extend_schema(
 
 # Penalty and Statement Management Schema Decorators
 apply_penalty_schema = extend_schema(
-    summary="Apply penalty to overdue statement",
+    summary="Apply penalty to overgrace statement",
     description=(
-        "Apply penalty charges to the user's latest pending or overdue statement. "
-        "Penalties are calculated based on the overdue amount and number of days "
-        "past the due date. The penalty will be added as a new line item to the "
+        "Apply penalty charges to the user's latest pending or overgrace statement. "
+        "Penalties are calculated based on the overgrace amount and number of days "
+        "past the grace_date. The penalty will be added as a new line item to the "
         "user's current statement."
     ),
     tags=["Credit Management"],
@@ -449,11 +449,11 @@ apply_penalty_schema = extend_schema(
             ]
         ),
         400: OpenApiResponse(
-            description="No pending or overdue statement found",
+            description="No pending or overgrace statement found",
             examples=[
                 OpenApiExample(
                     "No Statement",
-                    value={"error": "No pending or overdue statement"}
+                    value={"error": "No pending or overgrace statement"}
                 )
             ]
         ),
@@ -474,7 +474,7 @@ close_statement_schema = extend_schema(
     description=(
         "Close the user's current credit statement and transition it to "
         "pending_payment status. This action finalizes the statement for "
-        "the current period and sets up the due date for payment. "
+        "the current period and sets up the grace_date for payment. "
         "Only current statements can be closed."
     ),
     tags=["Credit Management"],

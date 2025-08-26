@@ -7,7 +7,7 @@ from django.conf import settings
 CREDIT_LIMIT_DEFAULT_EXPIRY_DAYS = getattr(settings, 'CREDIT_LIMIT_DEFAULT_EXPIRY_DAYS', 365)
 
 # Statement Settings
-STATEMENT_DUE_DAYS = getattr(settings, 'STATEMENT_DUE_DAYS', 5)
+STATEMENT_GRACE_DAYS = getattr(settings, 'STATEMENT_GRACE_DAYS', 5)
 STATEMENT_PENALTY_RATE = getattr(settings, 'CREDIT_STATEMENT_PENALTY_RATE', 0.02)  # 2% per day
 STATEMENT_MAX_PENALTY_RATE = getattr(settings, 'CREDIT_STATEMENT_MAX_PENALTY_RATE', 0.20)  # 20% max
 

@@ -42,10 +42,6 @@ class Tag(BaseModel):
         verbose_name = _("برچسب")
         verbose_name_plural = _("برچسب‌ها")
         ordering = ['name']
-        indexes = [
-            models.Index(fields=['name'], name='tag_name_idx'),
-            models.Index(fields=['is_active'], name='tag_active_idx'),
-        ]
 
     def __str__(self):
         return self.name

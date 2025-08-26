@@ -53,4 +53,13 @@ ADMIN_REORDER = (
             "blogs.Comment",
         ),
     },
+    {
+        "app": "credit",
+        "label": "اعتباری",
+        "models": (
+            "credit.CreditLimit",
+            "credit.Statement",
+            "credit.StatementLine",
+        ),
+    },
 )

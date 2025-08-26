@@ -182,6 +182,15 @@ article_viewset_schema = extend_schema_view(
         summary="مشاهده جزئیات مقاله",
         description="دریافت جزئیات کامل یک مقاله با افزایش تعداد بازدید",
         tags=["Articles"],
+        parameters=[
+            OpenApiParameter(
+                name='slug',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.PATH,
+                description='اسلاگ (شناسه متنی) مقاله برای دسترسی به جزئیات.',
+                required=True,
+            )
+        ],
         responses={
             200: OpenApiResponse(
                 description="اطلاعات مقاله با موفقیت دریافت شد",
@@ -331,6 +340,18 @@ comment_viewset_schema = extend_schema_view(
                     OpenApiExample(
                         "نظرات مقاله با ID 1",
                         value=1,
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name='article__isnull',
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description='فیلتر برای نظراتی که به هیچ مقاله‌ای مرتبط نیستند (ارسال `true` برای فعال‌سازی)',
+                examples=[
+                    OpenApiExample(
+                        'فقط نظرات بدون مقاله',
+                        value=True,
                     ),
                 ],
             ),

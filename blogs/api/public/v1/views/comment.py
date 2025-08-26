@@ -2,7 +2,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
 
@@ -17,10 +17,11 @@ from blogs.api.public.v1.serializers import (
     CommentCreateSerializer,
     CommentUpdateSerializer,
 )
+from utils.recaptcha import ReCaptchaMixin
 
 
 @comment_viewset_schema
-class CommentViewSet(viewsets.ModelViewSet):
+class CommentViewSet(ReCaptchaMixin, viewsets.ModelViewSet):
     """
     ViewSet for comments with moderation support.
 
@@ -30,8 +31,10 @@ class CommentViewSet(viewsets.ModelViewSet):
     - To get replies to a specific comment: ?reply_to=<comment_id>
     """
     permission_classes = [IsAuthenticatedOrReadOnly]
+    recaptcha_actions = {'create'}
+    recaptcha_action_name = 'comment'
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['article', 'reply_to']
+    filterset_fields = {'article': ['exact', 'isnull'], 'reply_to': ['exact']}
     ordering_fields = ['created_at', 'like_count']
     ordering = ['-created_at']
     pagination_class = CustomPagination
@@ -61,13 +64,18 @@ class CommentViewSet(viewsets.ModelViewSet):
         return CommentSerializer
     
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        if self.request.user.is_authenticated:
+            serializer.save(author=self.request.user)
+        else:
+            serializer.save(author=None)
     
     def get_permissions(self):
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        if self.action in ['create', 'update', 'partial_update', 'destroy', 'like', 'dislike']:
+        if self.action in ['create', 'like', 'dislike']:
+            permission_classes = [AllowAny]
+        elif self.action in ['update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated]
         else:
             permission_classes = [IsAuthenticatedOrReadOnly]

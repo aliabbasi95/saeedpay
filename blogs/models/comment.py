@@ -32,7 +32,9 @@ class Comment(BaseModel):
         get_user_model(),
         on_delete=models.CASCADE,
         related_name='blog_comments',
-        verbose_name=_("نویسنده نظر")
+        verbose_name=_("نویسنده نظر"),
+        null=True,
+        blank=True
     )
     
     reply_to = models.ForeignKey(
@@ -92,19 +94,16 @@ class Comment(BaseModel):
         verbose_name_plural = _("نظرات")
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['article', 'is_approved'], name='comment_article_approved_idx'),
-            models.Index(fields=['author'], name='comment_author_idx'),
-            models.Index(fields=['reply_to'], name='comment_reply_to_idx'),
             models.Index(fields=['is_approved'], name='comment_approved_idx'),
-            models.Index(fields=['is_spam'], name='comment_spam_idx'),
             models.Index(fields=['created_at'], name='comment_created_idx'),
         ]
 
     def __str__(self):
+        author_name = self.author.username if self.author else _("کاربر ناشناس")
         if self.article:
-            return f"نظر {self.author.username} در {self.article.title}"
+            return f"نظر {author_name} در {self.article.title}"
         else:
-            return f"نظر عمومی {self.author.username}"
+            return f"نظر عمومی {author_name}"
 
     @property
     def is_reply(self):
