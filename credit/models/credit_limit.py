@@ -10,9 +10,6 @@ from credit.utils.choices import CreditLimitStatus
 from lib.erp_base.models import BaseModel
 from credit.utils.reference import generate_credit_reference
 from credit.utils.constants import PAYMENT_GRACE_PERIOD_DAYS
-from django.db import transaction
-from django.db.models import F
-
 
 
 class CreditLimitManager(models.Manager):
@@ -91,6 +88,8 @@ class CreditLimit(BaseModel):
 
     def use_credit(self, amount):
         """Use credit amount and update limits atomically"""
+        from django.db import transaction
+        from django.db.models import F
 
         amount = int(amount)
         if amount <= 0:
@@ -121,6 +120,8 @@ class CreditLimit(BaseModel):
 
     def release_credit(self, amount):
         """Release used credit amount atomically"""
+        from django.db import transaction
+        from django.db.models import F
 
         amount = int(amount)
         if amount <= 0:
@@ -141,6 +142,7 @@ class CreditLimit(BaseModel):
 
     def approve_and_activate(self):
         """Approve pending credit limit and deactivate any existing active ones"""
+        from django.db import transaction
         
         if self.status != CreditLimitStatus.PENDING:
             raise ValueError("فقط حدود اعتباری در انتظار تایید قابل تایید هستند")

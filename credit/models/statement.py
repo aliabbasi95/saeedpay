@@ -212,6 +212,10 @@ class Statement(BaseModel):
 
             # Refresh from db to get updated values
             self.refresh_from_db()
+            
+            # Sync used_limit with current statement's closing balance if this is the current statement
+            if self.status == StatementStatus.CURRENT:
+                self._sync_credit_limit_used_amount()
 
     def close_statement(self):
         """Close current statement and prepare for payment"""
@@ -222,10 +226,15 @@ class Statement(BaseModel):
         self.update_balances()
         now = timezone.now()
         self.status = "pending_payment"
-        grace_days = int(STATEMENT_GRACE_DAYS)
+        
+        # Use credit limit's grace period or default
+        grace_days = self.get_grace_days()
         self.closed_at = now
         self.grace_date = now + timedelta(days=grace_days)
         self.save(update_fields=["status", "grace_date", "closing_balance", "closed_at"])
+        
+        # Sync credit limit after closing statement
+        self._sync_credit_limit_used_amount()
 
     def calculate_penalty(self, penalty_rate=None):
         """
@@ -308,13 +317,25 @@ class Statement(BaseModel):
             or transaction.to_wallet.user_id == self.user_id
         ):
             raise ValueError("تراکنش متعلق به کاربر نیست")
-        # Consume credit limit and add purchase line
-
+        
+        # Validate credit limit comprehensively
         cl = CreditLimit.objects.get_user_credit_limit(self.user)
         if not cl:
             raise ValueError("حد اعتباری فعال یافت نشد")
+        
+        # Validate credit limit status
+        if cl.status != "active":
+            raise ValueError("حد اعتباری غیرفعال است")
+        
+        # Validate credit limit expiry
+        if cl.expiry_date <= timezone.localdate():
+            raise ValueError("حد اعتباری منقضی شده است")
+        
         purchase_amount = abs(int(transaction.amount))
-        cl.use_credit(purchase_amount)
+        if purchase_amount > cl.available_limit:
+            raise ValueError("مبلغ بیشتر از اعتبار موجود است")
+        
+        # Add purchase line - used_limit will be synced automatically via update_balances()
         self.add_line(
             "purchase", -purchase_amount, transaction=transaction, description="خرید"
         )
@@ -322,18 +343,20 @@ class Statement(BaseModel):
     def apply_payment(self, amount, transaction=None):
         """Add a payment line and update credit limit"""
         pay_amount = abs(int(amount))
+        
+        # Validate credit limit exists (for consistency, though payments should always be allowed)
+        cl = CreditLimit.objects.get_user_credit_limit(self.user)
+        if not cl:
+            # Log warning but don't block payment
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Payment applied for user {self.user_id} without active credit limit")
+        
         self.add_line(
             "payment", pay_amount, transaction=transaction, description="پرداخت"
         )
-        # Sync with CreditLimit.release_credit(amount)
-        try:
-
-            cl = CreditLimit.objects.get_user_credit_limit(self.user)
-            if cl:
-                cl.release_credit(pay_amount)
-        except Exception:
-            # Do not block on credit limit sync
-            pass
+        # Note: We no longer use cl.release_credit() as used_limit is now synced automatically
+        # through _sync_credit_limit_used_amount() when statement balances are updated
         # Note: Payment processing logic moved to process_pending_payments command
         # This method just records the payment
 
@@ -406,17 +429,20 @@ class Statement(BaseModel):
             self.status = "closed_no_penalty"
             self.closed_at = timezone.now()
             self.save(update_fields=["status", "closed_at"])
+            self._sync_credit_limit_used_amount()
             return "closed_no_penalty"
 
         if payment_amount >= min_required:
             self.status = "closed_no_penalty"
             self.closed_at = timezone.now()
             self.save(update_fields=["status", "closed_at"])
+            self._sync_credit_limit_used_amount()
             return "closed_no_penalty"
         else:
             self.status = "closed_with_penalty"
             self.closed_at = timezone.now()
             self.save(update_fields=["status", "closed_at"])
+            self._sync_credit_limit_used_amount()
             return "closed_with_penalty"
 
     def apply_penalty_to_current_statement(self, penalty_amount=None):
@@ -444,6 +470,46 @@ class Statement(BaseModel):
         )
 
         return penalty_amount
+
+    def _sync_credit_limit_used_amount(self):
+        """
+        Sync CreditLimit.used_limit with the current statement's debt amount.
+        This ensures used_limit accurately reflects the actual outstanding debt.
+        """
+        try:
+            credit_limit = CreditLimit.objects.get_user_credit_limit(self.user)
+            if not credit_limit:
+                return
+            
+            # Calculate total debt across all statements for this user
+            # Current statement debt (negative closing_balance means debt)
+            current_debt = abs(min(0, self.closing_balance))
+            
+            # Add debt from any pending payment statements
+            pending_statements = Statement.objects.filter(
+                user=self.user,
+                status__in=[StatementStatus.PENDING_PAYMENT, StatementStatus.OVERGRACE]
+            )
+            
+            pending_debt = 0
+            for stmt in pending_statements:
+                if stmt.closing_balance < 0:
+                    pending_debt += abs(stmt.closing_balance)
+            
+            # Total used limit should be current debt + pending debt
+            total_used_limit = current_debt + pending_debt
+            
+            # Update credit limit atomically
+            with transaction.atomic():
+                CreditLimit.objects.filter(pk=credit_limit.pk).update(
+                    used_limit=total_used_limit
+                )
+                
+        except Exception as e:
+            # Log the error but don't break the statement update process
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to sync credit limit used_limit: {e}")
 
     class Meta:
         verbose_name = _("صورتحساب اعتباری")
