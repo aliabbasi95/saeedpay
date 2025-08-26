@@ -90,7 +90,7 @@ class StatementAPIOptimizationTestCase(TestCase):
             expected_fields = {
                 'id', 'user', 'year', 'month', 'reference_code', 'status',
                 'opening_balance', 'closing_balance', 'total_debit', 'total_credit',
-                'due_date', 'created_at', 'updated_at'
+                'grace_date', 'created_at', 'updated_at'
             }
             for field in expected_fields:
                 self.assertIn(field, statement_data, f"Field {field} should be present in list view")
@@ -112,7 +112,7 @@ class StatementAPIOptimizationTestCase(TestCase):
         expected_fields = {
             'id', 'user', 'year', 'month', 'reference_code', 'status',
             'opening_balance', 'closing_balance', 'total_debit', 'total_credit',
-            'due_date', 'paid_at', 'closed_at', 'lines', 'created_at', 'updated_at'
+            'grace_date', 'paid_at', 'closed_at', 'lines', 'created_at', 'updated_at'
         }
         for field in expected_fields:
             self.assertIn(field, statement_data, f"Field {field} should be present in detail view")

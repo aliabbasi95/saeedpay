@@ -52,14 +52,6 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'credit.tasks.statement_tasks.process_pending_payments_task',
         'schedule': crontab(hour=6, minute=0),
     },
-    'daily-penalty-calculation': {
-        'task': 'credit.tasks.statement_tasks.calculate_daily_penalties_task',
-        'schedule': crontab(hour=1, minute=0),
-    },
-    'add-interest-to-statements': {
-        'task': 'credit.tasks.statement_tasks.add_interest_to_all_users_task',
-        'schedule': crontab(hour=0, minute=30, day_of_month=1),
-    },
 }
 
 # Timezone settings
@@ -138,8 +130,6 @@ celery -A saeedpay flower --port=5555
 | `daily_statement_maintenance_task` | Daily | 2:00 AM | Run daily maintenance |
 | `process_month_end_task` | Daily | 11:30 PM | Check for month-end |
 | `process_pending_payments_task` | Daily | 6:00 AM | Process grace period payments |
-| `calculate_daily_penalties_task` | Daily | 1:00 AM | Calculate overdue penalties |
-| `add_interest_to_all_users_task` | Monthly | 12:30 AM (1st) | Add interest to new statements |
 
 ## Service Functions
 

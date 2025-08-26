@@ -1,0 +1,25 @@
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+
+
+class CreditLimitStatus(models.TextChoices):
+    PENDING = "pending", _("در انتظار تایید")
+    ACTIVE = "active", _("فعال")
+    SUSPENDED = "suspended", _("تعلیق شده")
+    EXPIRED = "expired", _("منقضی شده")
+
+
+class StatementStatus(models.TextChoices):
+    CURRENT = "current", _("جاری")
+    PENDING_PAYMENT = "pending_payment", _("در انتظار پرداخت")
+    CLOSED_NO_PENALTY = "closed_no_penalty", _("بسته شده - بدون جریمه")
+    CLOSED_WITH_PENALTY = "closed_with_penalty", _("بسته شده - با جریمه")
+
+
+class StatementLineType(models.TextChoices):
+    PURCHASE = "purchase", _("خرید")
+    PAYMENT = "payment", _("پرداخت")
+    FEE = "fee", _("کارمزد")
+    PENALTY = "penalty", _("جریمه")
+    INTEREST = "interest", _("سود")
+    REPAYMENT = "repayment", _("بازپرداخت")
