@@ -7,7 +7,7 @@ from lib.erp_base.models import BaseModel
 from wallets.models.transaction import Transaction
 from wallets.models.wallet import Wallet
 from wallets.utils.choices import TransferStatus
-from wallets.utils.reference import generate_reference_code
+from utils.reference import generate_reference_code
 
 
 class WalletTransferRequest(BaseModel):

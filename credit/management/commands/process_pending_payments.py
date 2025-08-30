@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+# credit/management/commands/process_pending_payments.py
 """
 Management command to process pending payments and handle grace period outcomes
 """
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from persiantools.jdatetime import JalaliDate
+
 from credit.models import Statement
 from credit.utils.constants import MINIMUM_PAYMENT_THRESHOLD
 
@@ -55,31 +56,23 @@ class Command(BaseCommand):
                         total_payments
                     )
 
-                    if outcome == "closed_no_penalty":
-                        no_penalty_count += 1
-                        self.stdout.write(
-                            f"Statement {statement.reference_code} closed without penalty"
+                    if timezone.now() > grace_end:
+                        payments = statement.lines.filter(
+                            type="payment",
+                            created_at__gte=statement.closed_at,
+                            created_at__lte=grace_end
                         )
-
-                        # Add repayment to current statement
-                        current_statement = Statement.objects.get_current_statement(
-                            statement.user
-                        )
-                        if current_statement and total_payments > 0:
-                            current_statement.add_line(
-                                type="repayment",
-                                amount=total_payments,
-                                description=f"بازپرداخت بدهی دوره {statement.year}/{statement.month:02d}",
-                            )
-
-                    elif outcome == "closed_with_penalty":
-                        penalty_count += 1
-                        self.stdout.write(
-                            f"Statement {statement.reference_code} closed with penalty"
-                        )
-
-                        # Apply penalty to current statement
-                        statement.apply_penalty_to_current_statement()
+                        total_payments = sum(p.amount for p in payments)
+                        if not dry_run:
+                            outcome = statement.process_payment_during_grace_period(
+                                total_payments
+                                )
+                            if outcome["status"] == "closed_no_penalty":
+                                no_penalty_count += 1
+                            else:
+                                penalty_count += 1
+                                statement.apply_penalty_to_current_statement()
+                            processed_count += 1
                 else:
                     # Dry run - just report what would happen
                     min_required = statement.calculate_minimum_payment_amount()
@@ -90,7 +83,7 @@ class Command(BaseCommand):
                     )
 
                     if (
-                        debt_amount < MINIMUM_PAYMENT_THRESHOLD
+                            debt_amount < MINIMUM_PAYMENT_THRESHOLD
                     ):  # MINIMUM_PAYMENT_THRESHOLD
                         self.stdout.write(
                             f"DRY RUN: Statement {statement.reference_code} would close without penalty (below threshold)"
@@ -108,7 +101,9 @@ class Command(BaseCommand):
 
         if dry_run:
             self.stdout.write(
-                self.style.WARNING(f"DRY RUN: Would process {processed_count} statements")
+                self.style.WARNING(
+                    f"DRY RUN: Would process {processed_count} statements"
+                )
             )
         else:
             self.stdout.write(

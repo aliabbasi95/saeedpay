@@ -1,5 +1,5 @@
 from .wallet import Wallet
-from .payment import PaymentRequest
+from .payment_request import PaymentRequest
 from .transaction import Transaction
 from .transfer import WalletTransferRequest
 from .installment_plan import InstallmentPlan

@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from lib.erp_base.models import BaseModel
 from wallets.models import Wallet
 from wallets.utils.choices import TransactionStatus
-from wallets.utils.reference import generate_reference_code
+from utils.reference import generate_reference_code
 
 
 class Transaction(BaseModel):

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# credit/management/commands/process_month_end.py
 """
 Management command to handle complete month-end processing
 """
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone
-from persiantools.jdatetime import JalaliDate
+
 from credit.models import Statement
 
 
@@ -30,8 +30,14 @@ class Command(BaseCommand):
         # Step 1: Close monthly statements
         self.stdout.write("Step 1: Closing monthly statements...")
         if not dry_run:
-            Statement.objects.close_monthly_statements()
-            self.stdout.write(self.style.SUCCESS("Monthly statements closed"))
+            summary = Statement.objects.close_monthly_statements()
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Closed: {summary['statements_closed']}, Created: {summary['statements_created']}, "
+                    f"Interest lines: {summary['interest_lines_added']}"
+                )
+            )
+
         else:
             # Show what would happen
             from persiantools.jdatetime import JalaliDate
@@ -42,7 +48,7 @@ class Command(BaseCommand):
             to_close = []
             for statement in current_statements:
                 if statement.year < today.year or (
-                    statement.year == today.year and statement.month < today.month
+                        statement.year == today.year and statement.month < today.month
                 ):
                     to_close.append(statement)
 

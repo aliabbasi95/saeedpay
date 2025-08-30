@@ -9,7 +9,7 @@ from lib.erp_base.models import BaseModel
 from store.models import Store
 from wallets.models.wallet import Wallet
 from wallets.utils.choices import PaymentRequestStatus
-from wallets.utils.reference import generate_reference_code
+from utils.reference import generate_reference_code
 
 
 class PaymentRequest(BaseModel):

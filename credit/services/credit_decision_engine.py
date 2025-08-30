@@ -2,13 +2,12 @@
 
 from datetime import timedelta
 from typing import Dict, Any
-from django.contrib.auth import get_user_model
+
 from django.db import transaction
 from django.utils import timezone
 
-from credit.utils.constants import CREDIT_LIMIT_DEFAULT_EXPIRY_DAYS
-
 from credit.models import CreditLimit, Statement
+from credit.utils.constants import CREDIT_LIMIT_DEFAULT_EXPIRY_DAYS
 from credit.utils.risk_scoring import RiskScoringEngine
 
 
@@ -21,11 +20,11 @@ class CreditDecisionEngine:
         self.risk_engine = RiskScoringEngine()
 
     def evaluate_credit_application(
-        self,
-        user,
-        requested_amount: int,
-        kyc_data: Dict[str, Any] = None,
-        income_data: Dict[str, Any] = None,
+            self,
+            user,
+            requested_amount: int,
+            kyc_data: Dict[str, Any] = None,
+            income_data: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
         """
         Evaluate credit application and make decision
@@ -41,24 +40,30 @@ class CreditDecisionEngine:
         """
 
         # Calculate risk score
-        risk_score = self.risk_engine.calculate_score(user, kyc_data, income_data)
+        risk_score = self.risk_engine.calculate_score(
+            user, kyc_data, income_data
+        )
 
         # Determine approved limit based on risk score
         approved_limit = self._determine_credit_limit(risk_score, income_data)
 
         # Make decision
-        decision = self._make_decision(risk_score, requested_amount, approved_limit)
+        decision = self._make_decision(
+            risk_score, requested_amount, approved_limit
+        )
 
         # Create pending credit limit if approved
         if decision["status"] == "approved":
-            credit_limit = self._create_pending_credit_limit(user, approved_limit)
+            credit_limit = self._create_pending_credit_limit(
+                user, approved_limit
+            )
             decision["credit_limit_id"] = credit_limit.id
             decision["requires_approval"] = True
 
         return decision
 
     def _determine_credit_limit(
-        self, risk_score: int, income_data: Dict[str, Any]
+            self, risk_score: int, income_data: Dict[str, Any]
     ) -> int:
         """Determine credit limit based on risk score and income"""
 
@@ -89,7 +94,7 @@ class CreditDecisionEngine:
         return max(1_000_000, final_limit)  # Minimum 100K Toman
 
     def _make_decision(
-        self, risk_score: int, requested_amount: int, approved_limit: int
+            self, risk_score: int, requested_amount: int, approved_limit: int
     ) -> Dict[str, Any]:
         """Make final credit decision"""
 
@@ -122,7 +127,9 @@ class CreditDecisionEngine:
         }
 
     @transaction.atomic
-    def _create_pending_credit_limit(self, user, approved_limit: int) -> CreditLimit:
+    def _create_pending_credit_limit(
+            self, user, approved_limit: int
+    ) -> CreditLimit:
         """Create pending credit limit record awaiting approval"""
         expiry_date = timezone.localdate() + timedelta(
             days=CREDIT_LIMIT_DEFAULT_EXPIRY_DAYS
@@ -160,7 +167,7 @@ class CreditDecisionEngine:
 
     @transaction.atomic
     def reject_credit_limit(
-        self, credit_limit_id: int, reason: str = None
+            self, credit_limit_id: int, reason: str = None
     ) -> Dict[str, Any]:
         """Reject a pending credit limit"""
         try:
@@ -195,10 +202,7 @@ class CreditDecisionEngine:
                 "reason": "insufficient_credit",
                 "available_limit": credit_limit.available_limit,
                 "requested_amount": amount,
-                "message": (
-                    f"اعتبار کافی نیست. اعتبار موجود: "
-                    "{credit_limit.available_limit:,} ریال"
-                ),
+                "message": f"اعتبار کافی نیست. اعتبار موجود: {credit_limit.available_limit:,} ریال",
             }
 
         if credit_limit.status != "active":

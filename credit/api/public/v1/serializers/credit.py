@@ -1,9 +1,10 @@
-from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
+from rest_framework import serializers
+
 from credit.models.credit_limit import CreditLimit
 from credit.models.statement import Statement
 from credit.models.statement_line import StatementLine
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -11,6 +12,7 @@ User = get_user_model()
 class CreditLimitSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     available_limit = serializers.SerializerMethodField()
+    is_approved = serializers.SerializerMethodField()
 
     class Meta:
         model = CreditLimit
@@ -19,8 +21,8 @@ class CreditLimitSerializer(serializers.ModelSerializer):
             "user",
             "approved_limit",
             "available_limit",
-            "used_limit",
-            "status",
+            "is_active",
+            "is_approved",
             "expiry_date",
             "created_at",
             "updated_at",
@@ -31,6 +33,10 @@ class CreditLimitSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.IntegerField)
     def get_available_limit(self, obj) -> int:
         return obj.available_limit
+
+    @extend_schema_field(serializers.BooleanField)
+    def get_is_approved(self, obj) -> bool:
+        return obj.is_approved
 
 
 class StatementLineSerializer(serializers.ModelSerializer):
@@ -101,7 +107,8 @@ class StatementDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "reference_code", "created_at", "updated_at", "lines"]
+        read_only_fields = ["id", "reference_code", "created_at", "updated_at",
+                            "lines"]
 
 
 class ApplyPenaltyResponseSerializer(serializers.Serializer):

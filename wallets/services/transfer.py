@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 from wallets.models.transfer import WalletTransferRequest
 from wallets.models.wallet import Wallet
 from wallets.utils.choices import TransferStatus
-from wallets.utils.reference import generate_reference_code
+from utils.reference import generate_reference_code
 
 ALLOWED_SENDER_KINDS = ['cash']
 ALLOWED_RECEIVER_KINDS = ['cash']

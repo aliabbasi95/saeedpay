@@ -4,9 +4,9 @@ ADMIN_REORDER = (
         "label": "کاربران",
         "models": (
             "cas_auth.User",
-            'customers.Customer',
-            'merchants.Merchant',
-            'profiles.Profile',
+            "customers.Customer",
+            "merchants.Merchant",
+            "profiles.Profile",
         ),
     },
     {
@@ -36,14 +36,6 @@ ADMIN_REORDER = (
         ),
     },
     {
-        'app': 'cas_auth',
-        'label': 'API',
-        'models': (
-            'cas_auth.APILog',
-            'cas_auth.Token'
-        )
-    },
-    {
         "app": "blogs",
         "label": "بلاگ",
         "models": (
@@ -60,6 +52,23 @@ ADMIN_REORDER = (
             "credit.CreditLimit",
             "credit.Statement",
             "credit.StatementLine",
+        ),
+    },
+    {
+        "app": "wallets",
+        "label": "کیف پول",
+        "models": (
+            "wallets.Wallet",
+            "wallets.Transaction",
+            "wallets.PaymentRequest",
+        ),
+    },
+    {
+        "app": "cas_auth",
+        "label": "API",
+        "models": (
+            "cas_auth.APILog",
+            "cas_auth.Token",
         ),
     },
 )

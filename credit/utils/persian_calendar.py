@@ -1,8 +1,11 @@
+# credit/utils/persian_calendar.py
+
 """
 Utility functions for Persian (Jalali) calendar operations
 """
 
 from datetime import timedelta
+
 from persiantools.jdatetime import JalaliDate
 
 
@@ -12,7 +15,7 @@ def is_last_day_of_persian_month(date=None) -> bool:
     """
     if date is None:
         date = JalaliDate.today()
-    
+
     next_day = date + timedelta(days=1)
     return next_day.month != date.month
 
@@ -23,7 +26,7 @@ def get_persian_month_days(year: int, month: int) -> int:
     """
     if month < 1 or month > 12:
         return 0
-    
+
     # Persian calendar months: 31 days for months 1-6, 30 for 7-11, 29/30 for 12
     if month <= 6:
         return 31
@@ -42,19 +45,19 @@ def get_next_persian_month_start() -> JalaliDate:
     """
     today = JalaliDate.today()
     next_day = today + timedelta(days=1)
-    
+
     if next_day.month != today.month:
         return next_day
     else:
         # Find last day of current month
         current_month = today.month
         current_year = today.year
-        
+
         # Add days until month changes
         test_date = today
         while test_date.month == current_month:
             test_date += timedelta(days=1)
-        
+
         return test_date
 
 
@@ -64,7 +67,7 @@ def get_business_days_until_month_end() -> int:
     """
     today = JalaliDate.today()
     days_until_end = 0
-    
+
     current = today
     while current.month == today.month:
         # Persian week: Saturday (0) to Friday (6)
@@ -72,7 +75,7 @@ def get_business_days_until_month_end() -> int:
         if current.weekday() <= 4:  # 0-4 are business days
             days_until_end += 1
         current += timedelta(days=1)
-    
+
     return days_until_end
 
 
@@ -82,12 +85,12 @@ def get_days_until_month_end() -> int:
     """
     today = JalaliDate.today()
     days_until_end = 0
-    
+
     current = today
     while current.month == today.month:
         days_until_end += 1
         current += timedelta(days=1)
-    
+
     return days_until_end
 
 
@@ -124,7 +127,7 @@ def get_current_persian_month_info() -> dict:
     Get current Persian month information
     """
     today = JalaliDate.today()
-    
+
     return {
         'year': today.year,
         'month': today.month,

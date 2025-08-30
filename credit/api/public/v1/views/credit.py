@@ -1,14 +1,13 @@
+# credit/api/public/v1/views/credit.py
+
 import logging
+
 from django.shortcuts import get_object_or_404
-from django.utils.translation import gettext_lazy as _
-from rest_framework import generics, status
-from rest_framework.response import Response
+from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from credit.models.credit_limit import CreditLimit
-from credit.models.statement import Statement
-from credit.models.statement_line import StatementLine
 from credit.api.public.v1.serializers.credit import (
     CreditLimitSerializer,
     StatementListSerializer,
@@ -29,8 +28,11 @@ from credit.api.public.v1.views.schema import (
     close_statement_schema,
     risk_score_schema,
 )
-from wallets.models import Transaction
+from credit.models.credit_limit import CreditLimit
+from credit.models.statement import Statement
+from credit.models.statement_line import StatementLine
 from credit.utils.risk_scoring import RiskScoringEngine
+from wallets.models import Transaction
 from wallets.utils.choices import TransactionStatus
 
 logger = logging.getLogger(__name__)
@@ -143,7 +145,9 @@ class StatementLineListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         # Optimize query with select_related to avoid N+1 queries
-        queryset = StatementLine.objects.filter(statement__user=user).select_related(
+        queryset = StatementLine.objects.filter(
+            statement__user=user
+        ).select_related(
             "statement"
         )
 
@@ -173,11 +177,20 @@ class AddPurchaseView(APIView):
     def post(self, request):
         user = request.user
         transaction_id = request.data.get("transaction_id")
-        description = request.data.get("description", "")
         if not transaction_id:
-            return Response({"error": "transaction_id is required"}, status=400)
+            return Response(
+                {"error": "transaction_id is required"}, status=400
+            )
         transaction = get_object_or_404(Transaction, id=transaction_id)
+
         try:
+            from wallets.utils.choices import WalletKind
+            if getattr(
+                    transaction.from_wallet, "kind", None
+            ) != WalletKind.CREDIT:
+                return Response(
+                    {"error": "not a credit-wallet purchase"}, status=400
+                )
             statement = Statement.objects.get_current_statement(user)
             if not statement:
                 prev_stmt = (
@@ -225,18 +238,20 @@ class AddPaymentView(APIView):
             transaction = get_object_or_404(Transaction, id=transaction_id)
             # Validate transaction for payments as well
             if (
-                hasattr(transaction, "status")
-                and transaction.status != TransactionStatus.SUCCESS
+                    hasattr(transaction, "status")
+                    and transaction.status != TransactionStatus.SUCCESS
             ):
                 return Response(
-                    {"error": "invalid or unsuccessful transaction"}, status=400
+                    {"error": "invalid or unsuccessful transaction"},
+                    status=400
                 )
             if not (
-                transaction.from_wallet.user_id == user.id
-                or transaction.to_wallet.user_id == user.id
+                    transaction.from_wallet.user_id == user.id
+                    or transaction.to_wallet.user_id == user.id
             ):
                 return Response(
-                    {"error": "transaction does not belong to user"}, status=400
+                    {"error": "transaction does not belong to user"},
+                    status=400
                 )
         # Apply payment to current statement
         curr = Statement.objects.get_current_statement(user)
@@ -264,12 +279,16 @@ class ApplyPenaltyView(APIView):
         user = request.user
         # Target latest pending statement that is overgrace
         statement = (
-            Statement.objects.filter(user=user, status__in=["pending_payment", "overgrace"])
+            Statement.objects.filter(
+                user=user, status__in=["pending_payment", "overgrace"]
+            )
             .order_by("-year", "-month")
             .first()
         )
         if not statement:
-            return Response({"error": "No pending or overgrace statement"}, status=400)
+            return Response(
+                {"error": "No pending or overgrace statement"}, status=400
+            )
         penalty_amount = statement.calculate_and_apply_penalty()
         if penalty_amount > 0:
             pass

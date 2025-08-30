@@ -7,8 +7,6 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     OpenApiExample,
 )
-from drf_spectacular.openapi import AutoSchema
-from rest_framework import status
 
 from credit.api.public.v1.serializers.credit import (
     CreditLimitSerializer,
@@ -16,7 +14,6 @@ from credit.api.public.v1.serializers.credit import (
     StatementDetailSerializer,
     StatementLineSerializer,
 )
-
 
 # Credit Limit Schema Decorators
 credit_limit_list_schema = extend_schema_view(
@@ -36,7 +33,9 @@ credit_limit_list_schema = extend_schema_view(
                 examples=[
                     OpenApiExample(
                         "Unauthorized",
-                        value={"detail": "Authentication credentials were not provided."}
+                        value={
+                            "detail": "Authentication credentials were not provided."
+                        }
                     )
                 ]
             ),
@@ -68,7 +67,9 @@ credit_limit_detail_schema = extend_schema_view(
                 examples=[
                     OpenApiExample(
                         "Unauthorized",
-                        value={"detail": "Authentication credentials were not provided."}
+                        value={
+                            "detail": "Authentication credentials were not provided."
+                        }
                     )
                 ]
             ),
@@ -84,7 +85,6 @@ credit_limit_detail_schema = extend_schema_view(
         },
     )
 )
-
 
 # Statement Schema Decorators
 statement_list_schema = extend_schema_view(
@@ -104,7 +104,9 @@ statement_list_schema = extend_schema_view(
                 examples=[
                     OpenApiExample(
                         "Unauthorized",
-                        value={"detail": "Authentication credentials were not provided."}
+                        value={
+                            "detail": "Authentication credentials were not provided."
+                        }
                     )
                 ]
             ),
@@ -159,7 +161,9 @@ statement_detail_schema = extend_schema_view(
                 examples=[
                     OpenApiExample(
                         "Unauthorized",
-                        value={"detail": "Authentication credentials were not provided."}
+                        value={
+                            "detail": "Authentication credentials were not provided."
+                        }
                     )
                 ]
             ),
@@ -218,7 +222,6 @@ statement_detail_schema = extend_schema_view(
     )
 )
 
-
 # Statement Line Schema Decorators
 statement_line_list_schema = extend_schema_view(
     get=extend_schema(
@@ -246,7 +249,9 @@ statement_line_list_schema = extend_schema_view(
                 examples=[
                     OpenApiExample(
                         "Unauthorized",
-                        value={"detail": "Authentication credentials were not provided."}
+                        value={
+                            "detail": "Authentication credentials were not provided."
+                        }
                     )
                 ]
             ),
@@ -278,7 +283,6 @@ statement_line_list_schema = extend_schema_view(
         ]
     )
 )
-
 
 # Purchase/Payment API Schema Decorators
 add_purchase_schema = extend_schema(
@@ -339,7 +343,9 @@ add_purchase_schema = extend_schema(
             examples=[
                 OpenApiExample(
                     "Unauthorized",
-                    value={"detail": "Authentication credentials were not provided."}
+                    value={
+                        "detail": "Authentication credentials were not provided."
+                    }
                 )
             ]
         ),
@@ -416,13 +422,14 @@ add_payment_schema = extend_schema(
             examples=[
                 OpenApiExample(
                     "Unauthorized",
-                    value={"detail": "Authentication credentials were not provided."}
+                    value={
+                        "detail": "Authentication credentials were not provided."
+                    }
                 )
             ]
         ),
     },
 )
-
 
 # Penalty and Statement Management Schema Decorators
 apply_penalty_schema = extend_schema(
@@ -462,7 +469,9 @@ apply_penalty_schema = extend_schema(
             examples=[
                 OpenApiExample(
                     "Unauthorized",
-                    value={"detail": "Authentication credentials were not provided."}
+                    value={
+                        "detail": "Authentication credentials were not provided."
+                    }
                 )
             ]
         ),
@@ -502,7 +511,9 @@ close_statement_schema = extend_schema(
             examples=[
                 OpenApiExample(
                     "Unauthorized",
-                    value={"detail": "Authentication credentials were not provided."}
+                    value={
+                        "detail": "Authentication credentials were not provided."
+                    }
                 )
             ]
         ),
@@ -534,7 +545,9 @@ risk_score_schema = extend_schema(
             examples=[
                 OpenApiExample(
                     "Unauthorized",
-                    value={"detail": "Authentication credentials were not provided."}
+                    value={
+                        "detail": "Authentication credentials were not provided."
+                    }
                 )
             ]
         ),

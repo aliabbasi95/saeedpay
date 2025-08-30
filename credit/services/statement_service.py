@@ -1,19 +1,22 @@
+# credit/services/statement_service.py
+
 """
 Service functions for statement workflow automation
 """
 
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
 import logging
+from typing import List, Dict, Any
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 from persiantools.jdatetime import JalaliDate
 
-from credit.models import Statement, StatementLine
-from credit.models.credit_limit import CreditLimit
-from credit.utils.constants import MONTHLY_INTEREST_RATE, MINIMUM_PAYMENT_THRESHOLD
+from credit.models import Statement
+from credit.utils.choices import StatementStatus
+from credit.utils.constants import (
+    MONTHLY_INTEREST_RATE,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,121 +29,37 @@ def get_users_with_active_credit() -> List[User]:
 
 
 def process_month_end_statements() -> Dict[str, Any]:
-    """
-    Process month-end statement transitions for all users
-    Returns summary of processed statements
-    """
-    logger.info("Starting month-end statement processing")
-
-    try:
-        with transaction.atomic():
-            result = Statement.objects.close_monthly_statements()
-
-            summary = {
-                "statements_closed": result.get("statements_closed", 0),
-                "statements_created": result.get("statements_created", 0),
-                "interest_lines_added": result.get("interest_lines_added", 0),
-                "errors": result.get("errors", []),
-            }
-
-            logger.info(
-                f"Month-end processing completed: "
-                f"{summary['statements_closed']} closed, "
-                f"{summary['statements_created']} created, "
-                f"{summary['interest_lines_added']} interest lines"
-            )
-
-            return summary
-
-    except Exception as e:
-        logger.error(f"Error in month-end processing: {str(e)}")
-        raise
+    with transaction.atomic():
+        return Statement.objects.close_monthly_statements()
 
 
 def process_pending_payments() -> Dict[str, Any]:
-    """
-    Process all pending payments after grace period
-    Returns summary of processed payments
-    """
     logger.info("Starting pending payments processing")
-
-    try:
-        pending_statements = Statement.objects.filter(
-            status="pending_payment"
-        ).select_related("user")
-
-        processed = 0
-        closed_no_penalty = 0
-        closed_with_penalty = 0
-        errors = []
-
-        for statement in pending_statements:
-            try:
-                with transaction.atomic():
-                    # Check if grace period has ended
-                    if not statement.is_within_grace():
-                        # Process the statement based on minimum payment threshold
-                        debt_amount = (
-                            abs(statement.closing_balance)
-                            if statement.closing_balance < 0
-                            else 0
-                        )
-
-                        if debt_amount >= MINIMUM_PAYMENT_THRESHOLD:
-                            # Apply penalty for not meeting minimum payment requirement
-                            statement.status = "closed_with_penalty"
-                            statement.closed_at = timezone.now()
-                            statement.save(update_fields=["status", "closed_at"])
-
-                            # Apply penalty to current statement
-                            try:
-                                penalty_amount = (
-                                    statement.apply_penalty_to_current_statement()
-                                )
-                                logger.info(
-                                    f"Applied penalty of {penalty_amount} to user "
-                                    f"{statement.user.id}"
-                                )
-                            except Exception as e:
-                                logger.error(
-                                    f"Error applying penalty to user "
-                                    f"{statement.user.id}: {str(e)}"
-                                )
-
-                            closed_with_penalty += 1
-                        else:
-                            # No penalty for debts below threshold
-                            statement.status = "closed_no_penalty"
-                            statement.closed_at = timezone.now()
-                            statement.save(update_fields=["status", "closed_at"])
-                            closed_no_penalty += 1
-
-                        processed += 1
-
-            except Exception as e:
-                error_msg = f"Error processing statement {statement.id}: {str(e)}"
-                logger.error(error_msg)
-                errors.append(error_msg)
-
-        summary = {
-            "statements_processed": processed,
-            "closed_no_penalty": closed_no_penalty,
-            "closed_with_penalty": closed_with_penalty,
-            "errors": errors,
-        }
-
-        logger.info(
-            f"Pending payments processing completed: "
-            f"{processed} processed, "
-            f"{closed_no_penalty} closed without penalty, "
-            f"{closed_with_penalty} closed with penalty"
-        )
-
-        return summary
-
-    except Exception as e:
-        logger.error(f"Error in pending payments processing: {str(e)}")
-        raise
+    pending = Statement.objects.filter(
+        status=StatementStatus.PENDING_PAYMENT
+    ).select_related("user")
+    processed = closed_no_penalty = closed_with_penalty = 0
+    errors = []
+    for st in pending:
+        try:
+            with transaction.atomic():
+                if not st.is_in_grace_period:
+                    outcome = st.process_payment_during_grace_period(0)
+                    if outcome["status"] == "closed_no_penalty":
+                        closed_no_penalty += 1
+                    else:
+                        closed_with_penalty += 1
+                        # Late fee روی استیتمنت جاری
+                        st.calculate_and_apply_penalty()
+                    processed += 1
+        except Exception as e:
+            errors.append(f"statement {st.id}: {e}")
+    return {
+        "statements_processed": processed,
+        "closed_no_penalty": closed_no_penalty,
+        "closed_with_penalty": closed_with_penalty,
+        "errors": errors,
+    }
 
 
 def calculate_user_interest(user: User) -> int:
@@ -156,7 +75,8 @@ def calculate_user_interest(user: User) -> int:
         # Get previous statement to check for debt
         previous_statements = Statement.objects.filter(
             user=user,
-            status__in=["pending_payment", "closed_no_penalty", "closed_with_penalty"],
+            status__in=["pending_payment", "closed_no_penalty",
+                        "closed_with_penalty"],
         ).order_by("-year", "-month")
 
         if not previous_statements.exists():
@@ -183,7 +103,9 @@ def calculate_user_interest(user: User) -> int:
         return interest_amount
 
     except Exception as e:
-        logger.error(f"Error calculating interest for user {user.id}: {str(e)}")
+        logger.error(
+            f"Error calculating interest for user {user.id}: {str(e)}"
+        )
         return 0
 
 
@@ -202,7 +124,9 @@ def add_interest_to_current_statement(user: User) -> bool:
             return False
 
         # Check if interest already exists for this statement
-        existing_interest = current_statement.lines.filter(type="interest").exists()
+        existing_interest = current_statement.lines.filter(
+            type="interest"
+        ).exists()
 
         if existing_interest:
             return False
@@ -250,7 +174,7 @@ def get_statement_summary(user: User, year: int, month: int) -> Dict[str, Any]:
 
 
 def process_user_payment(
-    user: User, payment_amount: int, transaction_id: int = None
+        user: User, payment_amount: int, transaction_id: int = None
 ) -> Dict[str, Any]:
     """
     Process a payment for a user's current statement
@@ -274,14 +198,19 @@ def process_user_payment(
         if not target_statement.is_within_grace():
             return {"success": False, "error": "Grace period has ended"}
 
-        outcome = target_statement.process_payment_during_grace_period(payment_amount)
+        outcome = target_statement.process_payment_during_grace_period(
+            payment_amount
+        )
 
         logger.info(
             f"Processed payment for user {user.id}: "
             f"{payment_amount} Rials, outcome: {outcome['status']}"
         )
 
-        return {"success": True, "statement_id": target_statement.id, "outcome": outcome}
+        return {
+            "success": True, "statement_id": target_statement.id,
+            "outcome": outcome
+        }
 
     except Exception as e:
         logger.error(f"Error processing payment for user {user.id}: {str(e)}")
@@ -300,31 +229,17 @@ def get_overdue_statements() -> List[Statement]:
 
 
 def calculate_daily_penalties() -> Dict[str, Any]:
-    """
-    Calculate and apply daily penalties for overdue statements
-    """
     logger.info("Starting daily penalty calculation")
-
-    overdue_statements = get_overdue_statements()
-    processed = 0
+    overdue_candidates = Statement.objects.filter(
+        status=StatementStatus.PENDING_PAYMENT, grace_date__lt=timezone.now()
+    ).select_related("user")
+    processed = 0;
     errors = []
-
-    for statement in overdue_statements:
+    for st in overdue_candidates:
         try:
             with transaction.atomic():
-                penalty_applied = statement.calculate_and_apply_penalty()
-                if penalty_applied:
+                if st.calculate_and_apply_penalty() > 0:
                     processed += 1
-
         except Exception as e:
-            error_msg = (
-                f"Error calculating penalty for statement {statement.id}: {str(e)}"
-            )
-            logger.error(error_msg)
-            errors.append(error_msg)
-
-    summary = {"statements_processed": processed, "errors": errors}
-
-    logger.info(f"Daily penalty calculation completed: {processed} penalties applied")
-
-    return summary
+            errors.append(f"{st.id}: {e}")
+    return {"statements_processed": processed, "errors": errors}
