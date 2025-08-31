@@ -289,13 +289,13 @@ class Statement(BaseModel):
             self, amount: int, transaction=None, description: str = "Payment"
     ):
         """
-        Add a payment to a non-current statement (pending or overdue).
-        This reduces the outstanding debt of that closed cycle.
+        Add a payment to the CURRENT statement.
+        In this design, pending snapshots are immutable; all repayments are recorded on CURRENT.
         """
-        if self.status != StatementStatus.PENDING_PAYMENT:
+        if self.status != StatementStatus.CURRENT:
             raise ValueError(
-                "Payments can only be applied to pending statements."
-            )
+                "Payments are only allowed on CURRENT statements."
+                )
 
         pay_amount = abs(int(amount))
         if pay_amount <= 0:

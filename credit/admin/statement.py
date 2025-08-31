@@ -179,7 +179,6 @@ class StatementAdmin(BaseAdmin):
         colors = {
             "current": "#17a2b8",
             "pending_payment": "#ffc107",
-            "overdue": "#dc3545",
             "closed_no_penalty": "#28a745",
             "closed_with_penalty": "#6f42c1",
         }

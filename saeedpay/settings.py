@@ -289,22 +289,15 @@ CELERY_BEAT_SCHEDULE = {
         'kwargs': {'limit': 200, 'older_than_minutes': 1},
     },
     # credit
-    # credit: run month-end rollover checker hourly (safe to run anytime)
-    'credit-month-end-rollover-hourly-check': {
+    # Credit: safe daily run; idempotent—only acts when month has rolled over
+    'credit-month-end-rollover-daily-0010': {
         'task': 'credit.tasks.task_month_end_rollover',
-        'schedule': crontab(minute=5, hour='*/1'),
+        'schedule': crontab(minute=10, hour=0),
     },
-
-    # credit: finalize past-due windows hourly
-    'credit-finalize-due-windows-hourly': {
+    # Credit: finalize due windows hourly
+    'credit-finalize-due-windows-hourly-0015': {
         'task': 'credit.tasks.task_finalize_due_windows',
-        'schedule': crontab(minute=10, hour='*/1'),
-    },
-
-    # optional aggregator (runs both): daily at 00:20
-    'credit-daily-maintenance': {
-        'task': 'credit.tasks.task_daily_credit_maintenance',
-        'schedule': crontab(minute=20, hour=0),
+        'schedule': crontab(minute=15, hour='*'),
     },
 }
 

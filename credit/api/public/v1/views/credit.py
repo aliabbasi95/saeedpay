@@ -1,5 +1,3 @@
-# credit/api/public/v1/views/credit.py
-
 import logging
 
 from django.shortcuts import get_object_or_404
@@ -30,7 +28,7 @@ from credit.models.statement import Statement
 from credit.models.statement_line import StatementLine
 from credit.services.use_cases import StatementUseCases
 from wallets.models import Transaction
-from wallets.utils.choices import TransactionStatus
+from wallets.utils.choices import TransactionStatus, WalletKind
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +53,6 @@ class CreditLimitDetailView(generics.RetrieveAPIView):
     serializer_class = CreditLimitSerializer
     permission_classes = [IsAuthenticated]
 
-    # keep DRF defaults: lookup_field=pk, lookup_url_kwarg=pk
     def get_queryset(self):
         return CreditLimit.objects.filter(user=self.request.user)
 
@@ -129,10 +126,15 @@ class AddPurchaseView(APIView):
             pk=transaction_id
         )
 
-        # Authorization: buyer must be the authenticated user
+        # Authorization + credit-wallet enforcement
         if not trx.from_wallet or trx.from_wallet.user_id != user.id:
             return Response(
                 {"error": "transaction does not belong to user"}, status=403
+            )
+        if getattr(trx.from_wallet, "kind", None) != WalletKind.CREDIT:
+            return Response(
+                {"error": "transaction is not from a credit wallet"},
+                status=400
             )
 
         if trx.status != TransactionStatus.SUCCESS:
@@ -141,9 +143,9 @@ class AddPurchaseView(APIView):
             )
 
         try:
-            # use case handles: ensuring CURRENT exists + validations + line append
-            StatementUseCases.record_purchase_from_transaction(
-                transaction_id=trx.id, description=description
+            StatementUseCases.record_successful_purchase_from_transaction(
+                transaction_id=trx.id,
+                description=description,
             )
             return Response({"success": True}, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -188,10 +190,10 @@ class AddPaymentView(APIView):
                 )
 
         try:
-            StatementUseCases.record_payment_on_current(
+            StatementUseCases.record_payment_on_current_statement(
                 user=user,
                 amount=amount,
-                transaction_obj=trx,
+                payment_transaction=trx,
                 description=description,
             )
             return Response({"success": True}, status=status.HTTP_201_CREATED)
