@@ -288,38 +288,23 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(minute='*/1'),
         'kwargs': {'limit': 200, 'older_than_minutes': 1},
     },
-
     # credit
-    "daily-statement-maintenance": {
-        "task": "credit.tasks.statement_tasks.daily_statement_maintenance_task",
-        "schedule": crontab(hour=2, minute=0),
-        "options": {"expires": 3600},
+    # credit: run month-end rollover checker hourly (safe to run anytime)
+    'credit-month-end-rollover-hourly-check': {
+        'task': 'credit.tasks.task_month_end_rollover',
+        'schedule': crontab(minute=5, hour='*/1'),
     },
-    "month-end-processing": {
-        "task": "credit.tasks.statement_tasks.process_month_end_task",
-        "schedule": crontab(hour=23, minute=30),
-        "options": {"expires": 3600},
+
+    # credit: finalize past-due windows hourly
+    'credit-finalize-due-windows-hourly': {
+        'task': 'credit.tasks.task_finalize_due_windows',
+        'schedule': crontab(minute=10, hour='*/1'),
     },
-    "process-pending-payments": {
-        "task": "credit.tasks.statement_tasks.process_pending_payments_task",
-        "schedule": crontab(hour=6, minute=0),
-        "options": {"expires": 3600},
-    },
-    "daily-penalty-calculation": {
-        "task": "credit.tasks.statement_tasks.calculate_daily_penalties_task",
-        "schedule": crontab(hour=1, minute=0),
-        "options": {"expires": 3600},
-    },
-    "add-interest-to-statements": {
-        "task": "credit.tasks.statement_tasks.add_interest_to_all_users_task",
-        "schedule": crontab(hour=0, minute=30, day_of_month=1),
-        "options": {"expires": 3600},
-    },
-    "weekly-cleanup-check": {
-        "task": "credit.tasks.statement_tasks.cleanup_old_statements_task",
-        "schedule": crontab(hour=3, minute=0, day_of_week=0),
-        "args": [365],
-        "options": {"expires": 3600},
+
+    # optional aggregator (runs both): daily at 00:20
+    'credit-daily-maintenance': {
+        'task': 'credit.tasks.task_daily_credit_maintenance',
+        'schedule': crontab(minute=20, hour=0),
     },
 }
 

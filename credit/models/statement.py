@@ -16,9 +16,9 @@ from credit.utils.constants import (
     MINIMUM_PAYMENT_THRESHOLD, STATEMENT_PENALTY_RATE,
     STATEMENT_MAX_PENALTY_RATE,
 )
-from utils.reference import generate_reference_code
 from lib.erp_base.models import BaseModel
 from lib.erp_base.utils.choices import JalaliYearChoices, JalaliMonthChoices
+from utils.reference import generate_reference_code
 
 
 class StatementManager(models.Manager):
@@ -184,20 +184,20 @@ class Statement(BaseModel):
                 Case(
                     When(amount__lt=0, then=-F("amount")), default=Value(0),
                     output_field=IntegerField()
-                    )
-                ),
+                )
+            ),
             total_credit=Sum(
                 Case(
                     When(amount__gt=0, then="amount"), default=Value(0),
                     output_field=IntegerField()
-                    )
-                ),
+                )
+            ),
         )
         total_debit = int(totals["total_debit"] or 0)
         total_credit = int(totals["total_credit"] or 0)
         closing_balance = int(
             locked.opening_balance
-            ) + total_credit - total_debit
+        ) + total_credit - total_debit
 
         Statement.objects.filter(pk=self.pk).update(
             total_debit=total_debit, total_credit=total_credit,
@@ -292,10 +292,9 @@ class Statement(BaseModel):
         Add a payment to a non-current statement (pending or overdue).
         This reduces the outstanding debt of that closed cycle.
         """
-        if self.status not in {StatementStatus.PENDING_PAYMENT,
-                               StatementStatus.OVERDUE}:
+        if self.status != StatementStatus.PENDING_PAYMENT:
             raise ValueError(
-                "Payments can only be applied to pending or overdue statements."
+                "Payments can only be applied to pending statements."
             )
 
         pay_amount = abs(int(amount))
@@ -360,8 +359,7 @@ class Statement(BaseModel):
         Daily penalty on overdue amount capped by STATEMENT_MAX_PENALTY_RATE of base debt.
         Returns total penalty to-date (idempotent consumer should apply delta).
         """
-        if self.status not in {StatementStatus.PENDING_PAYMENT,
-                               StatementStatus.OVERDUE}:
+        if self.status != StatementStatus.PENDING_PAYMENT:
             return 0
         if self.closing_balance >= 0:
             return 0
@@ -380,12 +378,6 @@ class Statement(BaseModel):
         daily_total = int(base * STATEMENT_PENALTY_RATE * overdue_days)
         cap = int(base * STATEMENT_MAX_PENALTY_RATE)
         return min(daily_total, cap)
-
-    def mark_overdue_if_needed(self):
-        """Transition pending -> overdue when due_date is passed."""
-        if self.status == StatementStatus.PENDING_PAYMENT and self.due_date and timezone.now() > self.due_date:
-            self.status = StatementStatus.OVERDUE
-            self.save(update_fields=["status"])
 
     # ---------- Interest helper (used by manager after rollover) ----------
 

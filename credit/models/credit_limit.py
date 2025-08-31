@@ -92,13 +92,10 @@ class CreditLimit(BaseModel):
         agg = (
             Statement.objects.filter(
                 user=self.user,
-                status__in=[
-                    StatementStatus.CURRENT,
-                    StatementStatus.PENDING_PAYMENT,
-                    StatementStatus.OVERDUE
-                ],
+                status=StatementStatus.CURRENT,
                 closing_balance__lt=0,
-            ).aggregate(total=models.Sum(models.F("closing_balance")))
+            )
+            .aggregate(total=models.Sum(models.F("closing_balance")))
         )
         total_negative = agg["total"] or 0
         return abs(int(total_negative))

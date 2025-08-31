@@ -3,17 +3,16 @@
 import logging
 
 from django.shortcuts import get_object_or_404
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from credit.api.public.v1.serializers.credit import (
+from credit.api.public.v1.serializers import (
     CreditLimitSerializer,
     StatementListSerializer,
     StatementDetailSerializer,
     StatementLineSerializer,
-    ApplyPenaltyResponseSerializer,
     CloseStatementResponseSerializer,
 )
 from credit.api.public.v1.views.schema import (
@@ -24,315 +23,196 @@ from credit.api.public.v1.views.schema import (
     statement_line_list_schema,
     add_purchase_schema,
     add_payment_schema,
-    apply_penalty_schema,
     close_statement_schema,
-    risk_score_schema,
 )
 from credit.models.credit_limit import CreditLimit
 from credit.models.statement import Statement
 from credit.models.statement_line import StatementLine
-from credit.utils.risk_scoring import RiskScoringEngine
+from credit.services.use_cases import StatementUseCases
 from wallets.models import Transaction
 from wallets.utils.choices import TransactionStatus
 
 logger = logging.getLogger(__name__)
 
 
-# --- CreditLimit Views ---
-
+# ---------- Credit Limits ----------
 
 @credit_limit_list_schema
 class CreditLimitListView(generics.ListAPIView):
-    """
-    List user's credit limits.
-
-    This view provides access to all credit limits belonging to the authenticated user.
-    Credit limits define the maximum amount a user can spend on credit and track
-    their current usage and availability.
-    """
-
-    queryset = CreditLimit.objects.all()
     serializer_class = CreditLimitSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
-        return CreditLimit.objects.filter(user=user).order_by("-created_at")
+        return (
+            CreditLimit.objects
+            .filter(user=self.request.user)
+            .order_by("-created_at")
+        )
 
 
 @credit_limit_detail_schema
 class CreditLimitDetailView(generics.RetrieveAPIView):
-    """
-    Get credit limit details.
-
-    This view provides detailed information about a specific credit limit
-    belonging to the authenticated user, including all limit information,
-    usage statistics, and status details.
-    """
-
-    queryset = CreditLimit.objects.all()
     serializer_class = CreditLimitSerializer
     permission_classes = [IsAuthenticated]
-    lookup_field = "id"
 
+    # keep DRF defaults: lookup_field=pk, lookup_url_kwarg=pk
     def get_queryset(self):
-        user = self.request.user
-        return CreditLimit.objects.filter(user=user)
+        return CreditLimit.objects.filter(user=self.request.user)
 
 
-# --- Statement Views ---
-
+# ---------- Statements ----------
 
 @statement_list_schema
 class StatementListView(generics.ListAPIView):
-    """
-    List user's credit statements.
-
-    This view provides a lightweight list of all credit statements belonging to
-    the authenticated user. Returns minimal statement information without detailed
-    line items for optimal performance. Use the detail endpoint to get complete
-    statement information including all transactions.
-    """
-
     serializer_class = StatementListSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
-        # Order by most recent first for better UX
-        return Statement.objects.filter(user=user).order_by(
-            "-year", "-month", "-created_at"
+        return (
+            Statement.objects
+            .filter(user=self.request.user)
+            .order_by("-year", "-month", "-created_at")
         )
 
 
 @statement_detail_schema
 class StatementDetailView(generics.RetrieveAPIView):
-    """
-    Get credit statement details.
-
-    This view provides detailed information about a specific credit statement
-    including all statement lines (transactions). Only returns statements
-    belonging to the authenticated user with complete transaction history.
-    """
-
     serializer_class = StatementDetailSerializer
     permission_classes = [IsAuthenticated]
-    lookup_field = "id"
 
     def get_queryset(self):
-        user = self.request.user
-        # Prefetch related lines to avoid N+1 queries when accessing lines
-        return Statement.objects.filter(user=user).prefetch_related("lines")
+        return (
+            Statement.objects
+            .filter(user=self.request.user)
+            .prefetch_related("lines")
+        )
 
 
-# --- StatementLine Views ---
-
+# ---------- Statement Lines ----------
 
 @statement_line_list_schema
 class StatementLineListView(generics.ListAPIView):
-    """
-    List user's statement lines.
-
-    This view provides access to all statement lines (transactions) belonging to
-    the authenticated user. Statement lines represent individual transactions within
-    credit statements including purchases, payments, fees, and penalties.
-    Results can be filtered by statement_id for specific statement transactions.
-    """
-
     serializer_class = StatementLineSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
-        # Optimize query with select_related to avoid N+1 queries
-        queryset = StatementLine.objects.filter(
-            statement__user=user
-        ).select_related(
-            "statement"
+        qs = (
+            StatementLine.objects
+            .filter(statement__user=self.request.user)
+            .select_related("statement", "transaction")
+            .order_by("-created_at")
         )
-
-        # Allow filtering by statement_id if provided
         statement_id = self.request.query_params.get("statement_id")
         if statement_id:
-            queryset = queryset.filter(statement_id=statement_id)
+            qs = qs.filter(statement_id=statement_id)
+        return qs
 
-        return queryset.order_by("-created_at")
 
-
-# --- Add Purchase/Payment API ---
-
+# ---------- Transactions on Statements ----------
 
 class AddPurchaseView(APIView):
-    """
-    Add purchase to credit statement.
-
-    This view processes purchase transactions and adds them to the user's current
-    credit statement. If no current statement exists, a new one will be created
-    automatically. The transaction must be valid and belong to the authenticated user.
-    """
-
     permission_classes = [IsAuthenticated]
 
     @add_purchase_schema
     def post(self, request):
         user = request.user
         transaction_id = request.data.get("transaction_id")
+        description = request.data.get("description") or "Purchase"
+
         if not transaction_id:
             return Response(
                 {"error": "transaction_id is required"}, status=400
             )
-        transaction = get_object_or_404(Transaction, id=transaction_id)
+
+        trx = get_object_or_404(
+            Transaction.objects.select_related("from_wallet", "to_wallet"),
+            pk=transaction_id
+        )
+
+        # Authorization: buyer must be the authenticated user
+        if not trx.from_wallet or trx.from_wallet.user_id != user.id:
+            return Response(
+                {"error": "transaction does not belong to user"}, status=403
+            )
+
+        if trx.status != TransactionStatus.SUCCESS:
+            return Response(
+                {"error": "transaction must be SUCCESS"}, status=400
+            )
 
         try:
-            from wallets.utils.choices import WalletKind
-            if getattr(
-                    transaction.from_wallet, "kind", None
-            ) != WalletKind.CREDIT:
-                return Response(
-                    {"error": "not a credit-wallet purchase"}, status=400
-                )
-            statement = Statement.objects.get_current_statement(user)
-            if not statement:
-                prev_stmt = (
-                    Statement.objects.filter(user=user)
-                    .exclude(status="current")
-                    .order_by("-year", "-month")
-                    .first()
-                )
-                starting_balance = prev_stmt.closing_balance if prev_stmt else 0
-                statement, _ = Statement.objects.get_or_create_current_statement(
-                    user, starting_balance=starting_balance
-                )
-            statement.add_transaction(transaction)
-        except ValueError as e:
+            # use case handles: ensuring CURRENT exists + validations + line append
+            StatementUseCases.record_purchase_from_transaction(
+                transaction_id=trx.id, description=description
+            )
+            return Response({"success": True}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.exception("AddPurchaseView error")
             return Response({"error": str(e)}, status=400)
-        return Response({"success": True}, status=201)
 
 
 class AddPaymentView(APIView):
-    """
-    Add payment to credit statement.
-
-    This view processes payment transactions and applies them to the user's current
-    credit statement. Payments reduce the outstanding balance and are validated
-    before being applied to ensure transaction integrity.
-    """
-
     permission_classes = [IsAuthenticated]
 
     @add_payment_schema
     def post(self, request):
         user = request.user
-        amount = request.data.get("amount")
+        raw_amount = request.data.get("amount")
         transaction_id = request.data.get("transaction_id")
-        if not amount:
+        description = request.data.get("description") or "Payment"
+
+        if raw_amount is None:
             return Response({"error": "amount is required"}, status=400)
+
         try:
-            amount = int(amount)
+            amount = int(raw_amount)
         except Exception:
             return Response({"error": "amount must be integer"}, status=400)
         if amount <= 0:
             return Response({"error": "amount must be > 0"}, status=400)
-        transaction = None
+
+        trx = None
         if transaction_id:
-            transaction = get_object_or_404(Transaction, id=transaction_id)
-            # Validate transaction for payments as well
-            if (
-                    hasattr(transaction, "status")
-                    and transaction.status != TransactionStatus.SUCCESS
-            ):
+            trx = get_object_or_404(
+                Transaction.objects.select_related("from_wallet", "to_wallet"),
+                pk=transaction_id
+            )
+            if trx.status != TransactionStatus.SUCCESS:
                 return Response(
-                    {"error": "invalid or unsuccessful transaction"},
-                    status=400
+                    {"error": "transaction must be SUCCESS"}, status=400
                 )
-            if not (
-                    transaction.from_wallet.user_id == user.id
-                    or transaction.to_wallet.user_id == user.id
-            ):
+            if user.id not in (trx.from_wallet.user_id, trx.to_wallet.user_id):
                 return Response(
                     {"error": "transaction does not belong to user"},
-                    status=400
+                    status=403
                 )
-        # Apply payment to current statement
-        curr = Statement.objects.get_current_statement(user)
-        if not curr:
-            return Response({"error": "No current statement"}, status=400)
-        curr.apply_payment(amount, transaction)
-        return Response({"success": True, "applied_to": "current"}, status=201)
 
-
-# --- Penalty Application API ---
-class ApplyPenaltyView(APIView):
-    """
-    Apply penalty to overgrace statement.
-
-    This view calculates and applies penalty charges to the user's latest pending
-    or overgrace statement. Penalties are calculated based on the overgrace amount
-    and number of days past the due date.
-    """
-
-    permission_classes = [IsAuthenticated]
-    serializer_class = ApplyPenaltyResponseSerializer
-
-    @apply_penalty_schema
-    def post(self, request):
-        user = request.user
-        # Target latest pending statement that is overgrace
-        statement = (
-            Statement.objects.filter(
-                user=user, status__in=["pending_payment", "overgrace"]
+        try:
+            StatementUseCases.record_payment_on_current(
+                user=user,
+                amount=amount,
+                transaction_obj=trx,
+                description=description,
             )
-            .order_by("-year", "-month")
-            .first()
-        )
-        if not statement:
-            return Response(
-                {"error": "No pending or overgrace statement"}, status=400
-            )
-        penalty_amount = statement.calculate_and_apply_penalty()
-        if penalty_amount > 0:
-            pass
-        return Response({"penalty_applied": penalty_amount}, status=200)
+            return Response({"success": True}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.exception("AddPaymentView error")
+            return Response({"error": str(e)}, status=400)
 
 
-# --- Statement Closing API ---
 class CloseStatementView(APIView):
-    """
-    Close current credit statement.
-
-    This view closes the user's current credit statement and transitions it to
-    pending_payment status. This action finalizes the statement for the current
-    period and sets up the due date for payment.
-    """
-
     permission_classes = [IsAuthenticated]
     serializer_class = CloseStatementResponseSerializer
 
     @close_statement_schema
     def post(self, request):
         user = request.user
-        statement = Statement.objects.get_current_statement(user)
-        if not statement:
+        stmt = Statement.objects.get_current_statement(user)
+        if not stmt:
             return Response({"error": "No current statement"}, status=400)
-        statement.close_statement()
-        return Response({"success": True}, status=200)
-
-
-# --- Risk Scoring API ---
-class RiskScoreView(APIView):
-    """
-    Get user's credit risk score.
-
-    This view calculates and returns the user's current credit risk score based on
-    payment history, outstanding balances, and other credit behavior factors.
-    Higher scores indicate lower risk and are used for credit decisions.
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    @risk_score_schema
-    def get(self, request):
-        user = request.user
-        engine = RiskScoringEngine()
-        score = engine.calculate_score(user)
-        return Response({"risk_score": score}, status=200)
+        try:
+            stmt.close_statement()
+            return Response({"success": True}, status=200)
+        except Exception as e:
+            logger.exception("CloseStatementView error")
+            return Response({"error": str(e)}, status=400)

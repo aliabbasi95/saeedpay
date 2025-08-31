@@ -73,8 +73,8 @@ class StatementLine(BaseModel):
                 if statement_obj.status != StatementStatus.CURRENT:
                     errors["type"] = _("This line type is only allowed on CURRENT statements.")
             elif self.type == StatementLineType.PAYMENT:
-                if statement_obj.status not in {StatementStatus.PENDING_PAYMENT, StatementStatus.OVERDUE}:
-                    errors["type"] = _("Payments are only allowed on PENDING/OVERDUE statements.")
+                if statement_obj.status != StatementStatus.CURRENT:
+                    errors["type"] = _("Payments are only allowed on CURRENT statements.")
             elif self.type == StatementLineType.PENALTY:
                 if statement_obj.status != StatementStatus.CURRENT:
                     errors["type"] = _("Penalty lines should be added to the CURRENT statement.")
@@ -122,21 +122,21 @@ class StatementLine(BaseModel):
                 name="uniq_interest_per_statement",
             ),
             # hard DB-level sign guard: payments > 0, charges < 0
-            # models.CheckConstraint(
-            #     name="amount_sign_by_type",
-            #     check=(
-            #         models.Q(type=StatementLineType.PAYMENT, amount__gt=0)
-            #         | models.Q(
-            #             type__in=[
-            #                 StatementLineType.PURCHASE,
-            #                 StatementLineType.FEE,
-            #                 StatementLineType.PENALTY,
-            #                 StatementLineType.INTEREST,
-            #             ],
-            #             amount__lt=0,
-            #         )
-            #     ),
-            # ),
+            models.CheckConstraint(
+                name="amount_sign_by_type",
+                check=(
+                    models.Q(type=StatementLineType.PAYMENT, amount__gt=0)
+                    | models.Q(
+                        type__in=[
+                            StatementLineType.PURCHASE,
+                            StatementLineType.FEE,
+                            StatementLineType.PENALTY,
+                            StatementLineType.INTEREST,
+                        ],
+                        amount__lt=0,
+                    )
+                ),
+            ),
         ]
         indexes = [
             models.Index(

@@ -1,3 +1,5 @@
+# credit/api/public/v1/serializers/credit.py
+
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -57,7 +59,7 @@ class StatementLineSerializer(serializers.ModelSerializer):
 
 
 class StatementListSerializer(serializers.ModelSerializer):
-    """Minimal serializer for statement list view - excludes heavy fields like lines"""
+    """Minimal serializer for list endpoints (no lines)."""
 
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
@@ -74,7 +76,7 @@ class StatementListSerializer(serializers.ModelSerializer):
             "closing_balance",
             "total_debit",
             "total_credit",
-            "grace_date",
+            "due_date",
             "created_at",
             "updated_at",
         ]
@@ -82,7 +84,7 @@ class StatementListSerializer(serializers.ModelSerializer):
 
 
 class StatementDetailSerializer(serializers.ModelSerializer):
-    """Full serializer for statement detail view - includes all fields and lines"""
+    """Full serializer including lines."""
 
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     lines = StatementLineSerializer(many=True, read_only=True)
@@ -100,28 +102,24 @@ class StatementDetailSerializer(serializers.ModelSerializer):
             "closing_balance",
             "total_debit",
             "total_credit",
-            "grace_date",
+            "due_date",
             "paid_at",
             "closed_at",
             "lines",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "reference_code", "created_at", "updated_at",
-                            "lines"]
-
-
-class ApplyPenaltyResponseSerializer(serializers.Serializer):
-    """Response serializer for penalty application"""
-
-    penalty_applied = serializers.IntegerField(
-        help_text="Amount of penalty applied in smallest currency unit"
-    )
+        read_only_fields = [
+            "id",
+            "reference_code",
+            "created_at",
+            "updated_at",
+            "lines",
+        ]
 
 
 class CloseStatementResponseSerializer(serializers.Serializer):
-    """Response serializer for statement closing"""
-
+    """Response serializer for closing the current statement."""
     success = serializers.BooleanField(
-        help_text="Whether the statement was successfully closed"
+        help_text="Whether the current statement was successfully closed"
     )
