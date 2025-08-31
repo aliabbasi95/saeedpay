@@ -22,12 +22,8 @@ class WalletAdmin(BaseAdmin):
         "jalali_creation_time",
     )
     list_filter = ("owner_type", "kind", "created_at")
-    search_fields = (
-        "wallet_number",
-        "user__username",
-        "user__first_name",
-        "user__last_name",
-    )
+    search_fields = ("wallet_number", "user__username", "user__first_name",
+                     "user__last_name")
     readonly_fields = (
         "wallet_number",
         "balance",
@@ -40,18 +36,19 @@ class WalletAdmin(BaseAdmin):
         (_("شناسه"), {"fields": ("wallet_number",)}),
         (_("مالک"), {"fields": ("user", "owner_type")}),
         (_("نوع"), {"fields": ("kind",)}),
-        (_("مبالغ"),
-         {
-             "fields": ("balance", "reserved_balance",
-                        "available_balance_display")
-         }),
-        (_("زمان‌بندی"),
-         {
-             "fields": (
-                 "jalali_creation_time",
-                 "jalali_update_time"
-             )
-         }),
+        (_("مبالغ"), {
+            "fields": (
+                "balance",
+                "reserved_balance",
+                "available_balance_display"
+            )
+        }),
+        (_("زمان‌بندی"), {
+            "fields": (
+                "jalali_creation_time",
+                "jalali_update_time"
+            )
+        }),
     )
     list_select_related = ("user",)
     autocomplete_fields = ("user",)
@@ -66,35 +63,27 @@ class WalletAdmin(BaseAdmin):
         except NoReverseMatch:
             return text
 
+    @admin.display(description=_("کاربر"), ordering="user")
     def user_link(self, obj: Wallet):
         if not obj.user_id:
             return "-"
         text = getattr(obj.user, "username", f"#{obj.user_id}")
         return self._change_link("auth", "user", obj.user_id, text)
 
-    user_link.short_description = _("کاربر")
-
+    @admin.display(description=_("موجودی"), ordering="balance")
     def balance_display(self, obj: Wallet):
-        return format_html(
-            '<span style="direction:ltr;">{:,.0f}</span>', obj.balance
-        )
+        txt = format(int(obj.balance or 0), ",d")
+        return format_html('<span style="direction:ltr;">{}</span>', txt)
 
-    balance_display.short_description = _("موجودی")
-
+    @admin.display(description=_("رزرو"), ordering="reserved_balance")
     def reserved_balance_display(self, obj: Wallet):
-        return format_html(
-            '<span style="direction:ltr;">{:,.0f}</span>', obj.reserved_balance
-        )
+        txt = format(int(obj.reserved_balance or 0), ",d")
+        return format_html('<span style="direction:ltr;">{}</span>', txt)
 
-    reserved_balance_display.short_description = _("رزرو")
-
+    @admin.display(description=_("قابل برداشت"))
     def available_balance_display(self, obj: Wallet):
-        return format_html(
-            '<span style="direction:ltr;">{:,.0f}</span>',
-            obj.available_balance
-        )
-
-    available_balance_display.short_description = _("قابل برداشت")
+        txt = format(int(obj.available_balance or 0), ",d")
+        return format_html('<span style="direction:ltr;">{}</span>', txt)
 
     # ---------- permissions ----------
     def has_delete_permission(self, request, obj=None):

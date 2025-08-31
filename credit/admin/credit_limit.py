@@ -1,13 +1,15 @@
 # credit/admin/credit_limit.py
+
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from credit.models import CreditLimit
+from lib.erp_base.admin import BaseAdmin
 
 
 @admin.register(CreditLimit)
-class CreditLimitAdmin(admin.ModelAdmin):
+class CreditLimitAdmin(BaseAdmin):
     list_display = [
         "reference_code",
         "user",
@@ -15,25 +17,25 @@ class CreditLimitAdmin(admin.ModelAdmin):
         "available_limit_display",
         "is_active_badge",
         "expiry_date",
-        "jalali_creation_date_time",
+        "jalali_creation_time",
     ]
     list_filter = [
         "is_active",
         "expiry_date",
         "created_at",
-        ("user", admin.RelatedOnlyFieldListFilter)
+        ("user", admin.RelatedOnlyFieldListFilter),
     ]
     search_fields = [
         "reference_code",
         "user__username",
         "user__first_name",
-        "user__last_name"
+        "user__last_name",
     ]
     readonly_fields = [
         "reference_code",
-        "jalali_creation_date_time",
-        "updated_at",
-        "available_limit_display"
+        "available_limit_display",
+        "jalali_creation_time",
+        "jalali_update_time",
     ]
     fieldsets = (
         (_("اطلاعات کاربر"), {"fields": ("user",)}),
@@ -45,7 +47,7 @@ class CreditLimitAdmin(admin.ModelAdmin):
          {
              "fields": (
                  "reference_code",
-                 "jalali_creation_date_time",
+                 "jalali_creation_time",
                  "jalali_update_time"
              )
          }),
@@ -55,21 +57,27 @@ class CreditLimitAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("user")
 
+    # ----- displays -----
+    @admin.display(description=_("حد اعتباری"), ordering="approved_limit")
     def approved_limit_display(self, obj):
-        return f"{obj.approved_limit:,} ریال"
+        return f"{int(obj.approved_limit):,} ریال"
 
+    @admin.display(description=_("اعتبارِ باقی‌مانده"))
     def available_limit_display(self, obj):
-        return "-" if obj.approved_limit is None else f"{obj.available_limit:,} ریال"
+        if obj.approved_limit is None:
+            return "-"
+        return f"{int(obj.available_limit):,} ریال"
 
+    @admin.display(description=_("وضعیت"), ordering="is_active")
     def is_active_badge(self, obj):
         color = "#28a745" if obj.is_active else "#6c757d"
-        label = "فعال" if obj.is_active else "غیرفعال"
+        label = _("فعال") if obj.is_active else _("غیرفعال")
         return format_html(
             '<span style="color:{};font-weight:bold;">{}</span>', color, label
         )
 
-    is_active_badge.short_description = _("وضعیت")
-
+    # ----- actions -----
+    @admin.action(description=_("فعال‌سازی موارد انتخاب‌شده"))
     def activate_selected(self, request, queryset):
         count = 0
         for limit in queryset:

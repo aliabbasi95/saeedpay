@@ -48,12 +48,9 @@ class TransactionAdmin(BaseAdmin):
     )
     fieldsets = (
         (_("اطلاعات پیگیری"), {"fields": ("reference_code",)}),
-        (_("جزئیات تراکنش"),
-         {"fields": ("status", "amount", "description")}),
-        (_("مسیر انتقال"),
-         {"fields": ("from_wallet", "to_wallet")}),
-        (_("ارتباطات"),
-         {"fields": ("payment_request",)}),
+        (_("جزئیات تراکنش"), {"fields": ("status", "amount", "description")}),
+        (_("مسیر انتقال"), {"fields": ("from_wallet", "to_wallet")}),
+        (_("ارتباطات"), {"fields": ("payment_request",)}),
         (_("زمان‌بندی"),
          {"fields": ("jalali_creation_time", "jalali_update_time")}),
     )
@@ -63,27 +60,23 @@ class TransactionAdmin(BaseAdmin):
     date_hierarchy = "created_at"
 
     # -------- display helpers --------
+    @admin.display(description=_("وضعیت"), ordering="status")
     def status_badge(self, obj: Transaction):
         colors = {
-            TransactionStatus.PENDING: "#ffc107",  # yellow
-            TransactionStatus.SUCCESS: "#28a745",  # green
-            TransactionStatus.FAILED: "#dc3545",  # red
+            TransactionStatus.PENDING: "#ffc107",
+            TransactionStatus.SUCCESS: "#28a745",
+            TransactionStatus.FAILED: "#dc3545",
         }
         color = colors.get(obj.status, "#6c757d")
         return format_html(
-            '<span style="color:{};font-weight:bold;">{}</span>',
-            color,
+            '<span style="color:{};font-weight:bold;">{}</span>', color,
             obj.get_status_display()
         )
 
-    status_badge.short_description = _("وضعیت")
-
+    @admin.display(description=_("مبلغ"), ordering="amount")
     def amount_display(self, obj: Transaction):
-        return format_html(
-            '<span style="direction:ltr;">{:,.0f}</span>', obj.amount
-        )
-
-    amount_display.short_description = _("مبلغ")
+        txt = format(int(obj.amount or 0), ",d")
+        return format_html('<span style="direction:ltr;">{}</span>', txt)
 
     def _admin_change_link(self, app_label, model_name, pk, text=None):
         try:
@@ -92,22 +85,21 @@ class TransactionAdmin(BaseAdmin):
         except NoReverseMatch:
             return text or str(pk)
 
+    @admin.display(description=_("از کیف پول"), ordering="from_wallet")
     def from_wallet_link(self, obj: Transaction):
         label = getattr(obj.from_wallet, "id", "-")
         return self._admin_change_link(
             "wallets", "wallet", obj.from_wallet_id, text=f"#{label}"
         )
 
-    from_wallet_link.short_description = _("از کیف پول")
-
+    @admin.display(description=_("به کیف پول"), ordering="to_wallet")
     def to_wallet_link(self, obj: Transaction):
         label = getattr(obj.to_wallet, "id", "-")
         return self._admin_change_link(
             "wallets", "wallet", obj.to_wallet_id, text=f"#{label}"
         )
 
-    to_wallet_link.short_description = _("به کیف پول")
-
+    @admin.display(description=_("درخواست پرداخت"), ordering="payment_request")
     def payment_request_link(self, obj: Transaction):
         if not obj.payment_request_id:
             return "-"
@@ -118,8 +110,7 @@ class TransactionAdmin(BaseAdmin):
             "wallets", "paymentrequest", obj.payment_request_id, text=label
         )
 
-    payment_request_link.short_description = _("درخواست پرداخت")
-
+    # -------- permissions --------
     def has_add_permission(self, request):
         return False
 

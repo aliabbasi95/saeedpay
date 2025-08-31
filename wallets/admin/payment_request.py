@@ -48,11 +48,27 @@ class PaymentRequestAdmin(BaseAdmin):
         "jalali_update_time",
     )
     fieldsets = (
-        (_("شناسه"), {"fields": ("reference_code",)}),
+        (_("شناسه"), {
+            "fields": (
+                "reference_code",
+            )
+        }),
         (_("جزئیات"),
-         {"fields": ("status", "amount", "description", "return_url")}),
-        (_("ارتباطات"),
-         {"fields": ("store", "paid_by", "paid_wallet")}),
+         {
+             "fields": (
+                 "status",
+                 "amount",
+                 "description",
+                 "return_url"
+             )
+         }),
+        (_("ارتباطات"), {
+            "fields": (
+                "store",
+                "paid_by",
+                "paid_wallet"
+            )
+        }),
         (_("زمان‌بندی"),
          {
              "fields": (
@@ -82,13 +98,12 @@ class PaymentRequestAdmin(BaseAdmin):
         except NoReverseMatch:
             return text
 
+    @admin.display(description=_("مبلغ"), ordering="amount")
     def amount_display(self, obj: PaymentRequest):
-        return format_html(
-            '<span style="direction:ltr;">{:,.0f}</span>', obj.amount
-        )
+        txt = format(int(obj.amount or 0), ",d")
+        return format_html('<span style="direction:ltr;">{}</span>', txt)
 
-    amount_display.short_description = _("مبلغ")
-
+    @admin.display(description=_("وضعیت"), ordering="status")
     def status_badge(self, obj: PaymentRequest):
         colors = {
             PaymentRequestStatus.CREATED: "#6c757d",
@@ -99,28 +114,27 @@ class PaymentRequestAdmin(BaseAdmin):
         }
         color = colors.get(obj.status, "#6c757d")
         return format_html(
-            '<span style="color:{};font-weight:bold;">{}</span>',
-            color, obj.get_status_display()
+            '<span style="color:{};font-weight:bold;">{}</span>', color,
+            obj.get_status_display()
         )
 
-    status_badge.short_description = _("وضعیت")
-
+    @admin.display(description=_("فروشگاه"), ordering="store")
     def store_link(self, obj: PaymentRequest):
         if not obj.store_id:
             return "-"
         name = getattr(obj.store, "name", f"#{obj.store_id}")
         return self._change_link("store", "store", obj.store_id, name)
 
-    store_link.short_description = _("فروشگاه")
-
+    @admin.display(description=_("پرداخت‌کننده"), ordering="paid_by")
     def paid_by_link(self, obj: PaymentRequest):
         if not obj.paid_by_id:
             return "-"
         text = getattr(obj.paid_by, "username", f"#{obj.paid_by_id}")
         return self._change_link("auth", "user", obj.paid_by_id, text)
 
-    paid_by_link.short_description = _("پرداخت‌کننده")
-
+    @admin.display(
+        description=_("کیف پول پرداخت‌کننده"), ordering="paid_wallet"
+    )
     def paid_wallet_link(self, obj: PaymentRequest):
         if not obj.paid_wallet_id:
             return "-"
@@ -131,8 +145,6 @@ class PaymentRequestAdmin(BaseAdmin):
             "wallets", "wallet", obj.paid_wallet_id, label
         )
 
-    paid_wallet_link.short_description = _("کیف پول پرداخت‌کننده")
-
     # ---------- actions ----------
     def _apply_action(
             self, request, queryset, method_name, success_msg,
@@ -142,7 +154,6 @@ class PaymentRequestAdmin(BaseAdmin):
         failed = 0
         invalid_states = set(invalid_states or ())
         for pr in queryset:
-            # اگر وضعیت فعلی اجازه این اکشن را نمی‌دهد، عبور کن
             if pr.status in invalid_states:
                 failed += 1
                 continue
@@ -165,13 +176,14 @@ class PaymentRequestAdmin(BaseAdmin):
 
     @admin.action(description=_("علامت‌گذاری به عنوان تکمیل‌شده"))
     def mark_completed_action(self, request, queryset):
-        # Completed دوباره قابل تغییر نیست
         self._apply_action(
             request, queryset, "mark_completed",
             success_msg=_("{done} مورد تکمیل شد."),
-            invalid_states={PaymentRequestStatus.COMPLETED,
-                            PaymentRequestStatus.CANCELLED,
-                            PaymentRequestStatus.EXPIRED},
+            invalid_states={
+                PaymentRequestStatus.COMPLETED,
+                PaymentRequestStatus.CANCELLED,
+                PaymentRequestStatus.EXPIRED,
+            },
         )
 
     @admin.action(description=_("لغو کردن درخواست‌ها"))
@@ -193,10 +205,10 @@ class PaymentRequestAdmin(BaseAdmin):
 
     # ---------- permissions ----------
     def has_add_permission(self, request):
-        return False  # ایجاد دستی درخواست پرداخت از ادمین ممنوع
+        return False
 
     def has_change_permission(self, request, obj=None):
-        return False  # ویرایشِ دستی نیز ممنوع؛ فقط اکشن‌های دامینی بالا مجازند
+        return False
 
     def has_delete_permission(self, request, obj=None):
         return False

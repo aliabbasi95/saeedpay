@@ -15,7 +15,7 @@ class StatementLineAdmin(BaseAdmin):
     list_display = (
         "id",
         "statement_link",
-        "type",
+        "type_badge",
         "amount_colored",
         "transaction_id",
         "jalali_creation_time",
@@ -46,6 +46,7 @@ class StatementLineAdmin(BaseAdmin):
             "statement", "transaction"
         )
 
+    @admin.display(description=_("نوع"), ordering="type")
     def type_badge(self, obj):
         colors = {
             StatementLineType.PURCHASE: "#dc3545",
@@ -56,27 +57,23 @@ class StatementLineAdmin(BaseAdmin):
         }
         color = colors.get(obj.type, "#6c757d")
         return format_html(
-            '<span style="color:{};font-weight:600;">{}</span>',
-            color,
-            obj.get_type_display(),
+            '<span style="color:{};font-weight:600;">{}</span>', color,
+            obj.get_type_display()
         )
 
-    type_badge.short_description = _("نوع")
-
+    @admin.display(description=_("صورتحساب"), ordering="statement")
     def statement_link(self, obj):
         url = reverse("admin:credit_statement_change", args=[obj.statement_id])
         label = obj.statement.reference_code or obj.statement_id
         return format_html('<a href="{}">{}</a>', url, label)
 
-    statement_link.short_description = _("صورتحساب")
-
+    @admin.display(description=_("مبلغ"), ordering="amount")
     def amount_colored(self, obj):
         if obj.amount is None:
             return "-"
         val = int(obj.amount)
         color = "#28a745" if val >= 0 else "#dc3545"
+        formatted = format(val, ",d")
         return format_html(
-            '<span style="color:{};direction:ltr;">{:,}</span>', color, val
+            '<span style="color:{};direction:ltr;">{}</span>', color, formatted
         )
-
-    amount_colored.short_description = _("مبلغ")
