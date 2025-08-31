@@ -63,9 +63,14 @@ class CreditLimit(BaseModel):
             for _ in range(5):
                 self.reference_code = generate_reference_code(prefix="CR")
                 try:
-                    return super().save(*args, **kwargs)
-                except IntegrityError:
-                    self.reference_code = None
+                    with transaction.atomic():
+                        return super().save(*args, **kwargs)
+                except IntegrityError as exc:
+                    msg = str(exc)
+                    if "reference_code" in msg or "creditlimit_reference_code" in msg:
+                        self.reference_code = None
+                        continue
+                    raise
         return super().save(*args, **kwargs)
 
     @property
