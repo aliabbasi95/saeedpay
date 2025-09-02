@@ -516,3 +516,77 @@ def test_transaction_belongs_to_statement_user__passes_on_to_side(
         transaction_id=888,
     )
     line.full_clean()  # should NOT raise
+
+
+def test_void_deactivates_payment_line_and_recomputes_parent_balances(user):
+    """
+    void() performs a soft-void:
+      - the line disappears from the default/active queryset (count decreases by 1),
+      - parent statement balances are recomputed (the payment effect is removed).
+    """
+    stmt = _make_statement(user, StatementStatus.CURRENT, opening=0)
+
+    StatementLine.objects.create(
+        statement=stmt, type=StatementLineType.PURCHASE, amount=10_000
+        # -> -10_000
+    )
+    pay = StatementLine.objects.create(
+        statement=stmt, type=StatementLineType.PAYMENT, amount=3_000
+        # -> +3_000
+    )
+
+    stmt.refresh_from_db()
+    assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
+        10_000, 3_000, -7_000)
+
+    before_count = stmt.lines.count()
+    pay_id = pay.id
+
+    # Act
+    pay.void(reason="test-void")
+    stmt.refresh_from_db()
+
+    # The voided line should be gone from the active queryset (soft-void), so count decreases by 1
+    assert stmt.lines.count() == before_count - 1
+    assert not stmt.lines.filter(id=pay_id).exists()
+
+    # Parent balances recomputed: payment effect removed
+    assert stmt.total_debit == 10_000
+    assert stmt.total_credit == 0
+    assert stmt.closing_balance == -10_000
+
+
+def test_void_deactivates_purchase_line_and_recomputes_parent_balances(user):
+    """
+    Voiding a debit line (e.g., PURCHASE) should remove it from the active queryset
+    and recompute the parent's balances accordingly.
+    """
+    stmt = _make_statement(user, StatementStatus.CURRENT, opening=0)
+
+    p = StatementLine.objects.create(
+        statement=stmt, type=StatementLineType.PURCHASE, amount=10_000
+        # -> -10_000
+    )
+    StatementLine.objects.create(
+        statement=stmt, type=StatementLineType.PAYMENT, amount=3_000
+        # -> +3_000
+    )
+    stmt.refresh_from_db()
+    assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
+        10_000, 3_000, -7_000)
+
+    before_count = stmt.lines.count()
+    pid = p.id
+
+    # Act
+    p.void(reason="test-void")
+    stmt.refresh_from_db()
+
+    # The purchase line should be removed from the active queryset
+    assert stmt.lines.count() == before_count - 1
+    assert not stmt.lines.filter(id=pid).exists()
+
+    # Parent balances recomputed: debit removed
+    assert stmt.total_debit == 0
+    assert stmt.total_credit == 3_000
+    assert stmt.closing_balance == 3_000

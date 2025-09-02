@@ -460,3 +460,299 @@ def test_statement_reference_code_retries_on_collision(monkeypatch, user):
     )
     obj.save()
     assert obj.reference_code == "ST-UNIQ"
+
+
+# --- add_payment: success and guards ---
+
+def test_add_payment_success_creates_positive_payment_line(user):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT, opening_balance=0
+    )
+    stmt.add_payment(5_000, description="Pay")
+    stmt.refresh_from_db()
+    # payment stored positive
+    assert stmt.lines.filter(
+        type=StatementLineType.PAYMENT, amount=5_000
+    ).count() == 1
+    # closing = 0 + 5_000 - 0
+    assert stmt.closing_balance == 5_000
+
+
+def test_add_payment_raises_on_zero_amount(user):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT
+    )
+    with pytest.raises(ValueError):
+        stmt.add_payment(0)
+
+def test_add_payment_raises_on_non_current(user):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.PENDING_PAYMENT
+    )
+    with pytest.raises(ValueError):
+        stmt.add_payment(1000)
+
+
+# --- add_purchase: validations and happy-path ---
+
+def _make_dummy_tx(user_id, amount, status_ok=True, belong="from"):
+    # Minimal stub for transaction object (no DB row needed)
+    class _W:
+        def __init__(self, uid): self.user_id = uid
+
+    class _T:
+        pass
+
+    from wallets.utils.choices import TransactionStatus
+    t = _T()
+    t.amount = amount
+    t.status = TransactionStatus.SUCCESS if status_ok else "NOT_SUCCESS"
+    t.from_wallet = _W(user_id if belong in ("from", "both") else 999_001)
+    t.to_wallet = _W(user_id if belong in ("to", "both") else 999_002)
+    return t
+
+
+def _stub_credit_limit(is_active=True, days_ahead=10, available=1_000_000):
+    class _CL:
+        def __init__(self):
+            from django.utils import timezone
+            self.is_active = is_active
+            self.expiry_date = timezone.localdate() + timezone.timedelta(
+                days=days_ahead
+            )
+            self.available_limit = available
+
+    return _CL()
+
+
+def test_add_purchase_raises_on_non_current(user, monkeypatch):
+    # PENDING -> not allowed
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.PENDING_PAYMENT
+    )
+    # stub credit limit to avoid unrelated errors
+    from credit.models.credit_limit import CreditLimit
+    monkeypatch.setattr(
+        CreditLimit.objects, "get_user_credit_limit",
+        lambda u: _stub_credit_limit()
+    )
+    with pytest.raises(ValueError):
+        stmt.add_purchase(
+            _make_dummy_tx(user.id, 10_000, status_ok=True, belong="both")
+        )
+
+
+def test_add_purchase_raises_on_non_success_tx(user, monkeypatch):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT
+    )
+    from credit.models.credit_limit import CreditLimit
+    monkeypatch.setattr(
+        CreditLimit.objects, "get_user_credit_limit",
+        lambda u: _stub_credit_limit()
+    )
+    with pytest.raises(ValueError):
+        stmt.add_purchase(
+            _make_dummy_tx(user.id, 10_000, status_ok=False, belong="both")
+        )
+
+
+def test_add_purchase_raises_when_tx_not_belongs_to_user(user, monkeypatch):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT
+    )
+    from credit.models.credit_limit import CreditLimit
+    monkeypatch.setattr(
+        CreditLimit.objects, "get_user_credit_limit",
+        lambda u: _stub_credit_limit()
+    )
+    with pytest.raises(ValueError):
+        stmt.add_purchase(
+            _make_dummy_tx(user.id, 10_000, status_ok=True, belong="none")
+        )
+
+
+def test_add_purchase_raises_without_active_credit_limit(user, monkeypatch):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT
+    )
+    from credit.models.credit_limit import CreditLimit
+    monkeypatch.setattr(
+        CreditLimit.objects, "get_user_credit_limit", lambda u: None
+    )
+    with pytest.raises(ValueError):
+        stmt.add_purchase(
+            _make_dummy_tx(user.id, 10_000, status_ok=True, belong="both")
+        )
+
+
+@pytest.mark.parametrize("is_active,days_ahead", [(False, 10), (True, 0)])
+def test_add_purchase_raises_on_inactive_or_expired_limit(
+        user, monkeypatch, is_active, days_ahead
+):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT
+    )
+    from credit.models.credit_limit import CreditLimit
+    monkeypatch.setattr(
+        CreditLimit.objects, "get_user_credit_limit",
+        lambda u: _stub_credit_limit(
+            is_active=is_active, days_ahead=days_ahead
+        )
+    )
+    with pytest.raises(ValueError):
+        stmt.add_purchase(
+            _make_dummy_tx(user.id, 10_000, status_ok=True, belong="both")
+        )
+
+
+def test_add_purchase_raises_on_insufficient_available_limit(
+        user, monkeypatch
+):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT
+    )
+    from credit.models.credit_limit import CreditLimit
+    monkeypatch.setattr(
+        CreditLimit.objects, "get_user_credit_limit",
+        lambda u: _stub_credit_limit(available=5_000)
+    )
+    with pytest.raises(ValueError):
+        stmt.add_purchase(
+            _make_dummy_tx(user.id, 10_001, status_ok=True, belong="both")
+        )
+
+
+def test_add_purchase_success_calls_add_line_with_abs_amount(
+        user, monkeypatch
+):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT
+    )
+    # credit limit ok
+    from credit.models.credit_limit import CreditLimit
+    monkeypatch.setattr(
+        CreditLimit.objects, "get_user_credit_limit",
+        lambda u: _stub_credit_limit(available=999_999)
+    )
+
+    called = {}
+
+    def fake_add_line(self, type_, amount, transaction=None, description=""):
+        called["type"] = type_
+        called["amount"] = amount
+        called["transaction"] = transaction
+        called["description"] = description
+
+    monkeypatch.setattr(Statement, "add_line", fake_add_line, raising=False)
+
+    trx = _make_dummy_tx(user.id, amount=12_345, status_ok=True, belong="both")
+    stmt.add_purchase(trx, description="Shop A")
+
+    # add_purchase should pass abs(amount) into add_line (sign normalization is tested elsewhere)
+    assert called["type"] == StatementLineType.PURCHASE
+    assert called["amount"] == 12_345
+    assert called["transaction"] == trx
+    assert called["description"] == "Shop A"
+
+
+# --- manager: nothing to close when no CURRENT exists ---
+
+def test_close_monthly_statements_no_currents_returns_zero():
+    result = Statement.objects.close_monthly_statements()
+    assert result == {
+        "statements_closed": 0,
+        "statements_created": 0,
+        "interest_lines_added": 0,
+    }
+
+
+# --- minimum payment: non-pending or non-negative must be zero ---
+
+@pytest.mark.parametrize(
+    "status,closing,expected", [
+        (StatementStatus.CURRENT, -100_000, 0),
+        (StatementStatus.PENDING_PAYMENT, 100_000, 0),
+    ]
+)
+def test_minimum_payment_zero_when_not_pending_or_non_negative(
+        user, status, closing, expected
+):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month, status=status,
+        closing_balance=closing
+    )
+    assert stmt.calculate_minimum_payment_amount() == expected
+
+
+# --- Statement reference_code: 5 collisions -> NULL fallback ---
+
+def test_statement_reference_code_five_collisions_then_null(monkeypatch, user):
+    from credit.models import statement as st_mod
+
+    def dup_gen(prefix="ST"): return "ST-DUP"
+
+    monkeypatch.setattr(st_mod, "generate_reference_code", dup_gen)
+    # pre-create with the dup code to ensure collisions
+    today = JalaliDate.today()
+    # use previous month to avoid (user,year,month) uniqueness
+    py, pm = (today.year - (1 if today.month == 1 else 0),
+              12 if today.month == 1 else today.month - 1)
+    Statement.objects.create(
+        user=user, year=py, month=pm,
+        status=StatementStatus.CURRENT, reference_code="ST-DUP"
+    )
+
+    obj = Statement(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT
+    )
+    obj.save()
+    assert obj.reference_code is None  # fell back after 5 collisions
+
+
+# --- __str__ formatting ---
+
+def test_statement_str_format(user):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT
+    )
+    s = str(stmt)
+    assert f"{today.year}/{today.month:02d}" in s
+    assert "(" in s and ")" in s
+
+def test_add_payment_accepts_negative_and_normalizes_to_positive(user):
+    today = JalaliDate.today()
+    stmt = Statement.objects.create(
+        user=user, year=today.year, month=today.month,
+        status=StatementStatus.CURRENT, opening_balance=0
+    )
+    stmt.add_payment(-3_000, description="neg")
+    stmt.refresh_from_db()
+
+    # A positive PAYMENT line must be stored
+    assert stmt.lines.filter(type=StatementLineType.PAYMENT, amount=3_000).count() == 1
+    assert stmt.closing_balance == 3_000
