@@ -93,8 +93,16 @@ class StatementLine(BaseModel):
         elif self.type in self._credit_types() and amount_value < 0:
             self.amount = abs(amount_value)
 
+        amount_changed_by_normalization = (self.amount != amount_value)
+
         # model-level validation (includes clean())
         self.full_clean()
+        if kwargs.get("update_fields") is not None:
+            ufs = set(kwargs["update_fields"])
+            if amount_changed_by_normalization:
+                ufs.add("amount")
+            kwargs["update_fields"] = list(ufs)
+
         super().save(*args, **kwargs)
 
         # recompute parent balances when needed

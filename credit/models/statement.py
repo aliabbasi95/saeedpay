@@ -295,7 +295,7 @@ class Statement(BaseModel):
         if self.status != StatementStatus.CURRENT:
             raise ValueError(
                 "Payments are only allowed on CURRENT statements."
-                )
+            )
 
         pay_amount = abs(int(amount))
         if pay_amount <= 0:
@@ -404,9 +404,11 @@ class Statement(BaseModel):
             for _ in range(5):
                 self.reference_code = generate_reference_code(prefix="ST")
                 try:
-                    return super().save(*args, **kwargs)
+                    with transaction.atomic():
+                        return super().save(*args, **kwargs)
                 except IntegrityError:
                     self.reference_code = None
+                    continue
         return super().save(*args, **kwargs)
 
     def __str__(self):
