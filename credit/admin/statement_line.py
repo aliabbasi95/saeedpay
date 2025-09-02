@@ -17,6 +17,7 @@ class StatementLineAdmin(BaseAdmin):
         "statement_link",
         "type_badge",
         "amount_colored",
+        "is_voided",
         "transaction_id",
         "jalali_creation_time",
         "description",
@@ -24,6 +25,7 @@ class StatementLineAdmin(BaseAdmin):
     list_filter = (
         "type",
         "created_at",
+        "is_voided",
         "statement__status",
         "statement__year",
         "statement__month",
@@ -40,9 +42,11 @@ class StatementLineAdmin(BaseAdmin):
     autocomplete_fields = ("statement", "transaction")
     list_select_related = ("statement", "transaction")
     ordering = ("-created_at",)
+    actions = ("action_void_selected",)
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related(
+        # include voided lines as well
+        return StatementLine.all_objects.select_related(
             "statement", "transaction"
         )
 
@@ -72,8 +76,23 @@ class StatementLineAdmin(BaseAdmin):
         if obj.amount is None:
             return "-"
         val = int(obj.amount)
-        color = "#28a745" if val >= 0 else "#dc3545"
+        color = "#6c757d" if obj.is_voided else (
+            "#28a745" if val >= 0 else "#dc3545")
         formatted = format(val, ",d")
+        style = "text-decoration:line-through;" if obj.is_voided else ""
         return format_html(
-            '<span style="color:{};direction:ltr;">{}</span>', color, formatted
+            '<span style="color:{};{};direction:ltr;">{}</span>', color, style,
+            formatted
         )
+
+    @admin.action(description=_("باطل کردن سطرهای انتخاب‌شده"))
+    def action_void_selected(self, request, queryset):
+        done = 0
+        for line in queryset:
+            try:
+                if line.void(by=request.user, reason="Admin action"):
+                    done += 1
+            except Exception:
+                continue
+        if done:
+            self.message_user(request, _("%d line(s) voided.") % done)

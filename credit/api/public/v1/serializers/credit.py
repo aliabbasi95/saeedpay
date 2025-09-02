@@ -54,8 +54,19 @@ class StatementLineSerializer(serializers.ModelSerializer):
             "transaction",
             "created_at",
             "description",
+            "is_voided",
+            "voided_at",
+            "void_reason",
+            "reverses",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "is_voided",
+            "voided_at",
+            "void_reason",
+            "reverses"
+        ]
 
 
 class StatementListSerializer(serializers.ModelSerializer):

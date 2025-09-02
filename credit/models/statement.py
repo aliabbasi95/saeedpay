@@ -13,7 +13,8 @@ from credit.utils.choices import StatementStatus, StatementLineType
 from credit.utils.constants import (
     MONTHLY_INTEREST_RATE,
     MINIMUM_PAYMENT_PERCENTAGE,
-    MINIMUM_PAYMENT_THRESHOLD, STATEMENT_PENALTY_RATE,
+    MINIMUM_PAYMENT_THRESHOLD,
+    STATEMENT_PENALTY_RATE,
     STATEMENT_MAX_PENALTY_RATE,
 )
 from lib.erp_base.models import BaseModel
@@ -103,18 +104,18 @@ class Statement(BaseModel):
     )
     year = models.SmallIntegerField(
         choices=JalaliYearChoices.choices(1404),
-        verbose_name=_("سال")
+        verbose_name=_("سال"),
     )
     month = models.SmallIntegerField(
         choices=JalaliMonthChoices.choices,
-        verbose_name=_("ماه")
+        verbose_name=_("ماه"),
     )
     reference_code = models.CharField(
         max_length=20,
         unique=True,
         null=True,
         blank=True,
-        verbose_name=_("کد پیگیری")
+        verbose_name=_("کد پیگیری"),
     )
 
     status = models.CharField(
@@ -165,21 +166,19 @@ class Statement(BaseModel):
     objects = StatementManager()
 
     # ---------- Properties ----------
-
     @property
     def balance(self) -> int:
         return int(self.closing_balance)
 
     # ---------- Core mechanics ----------
-
     @transaction.atomic
     def update_balances(self):
         """
         Recompute totals and closing balance from lines.
-        Debit lines are stored negative, but we aggregate them as positive numbers in total_debit.
+        Only active (non-voided) lines are considered.
         """
         locked = Statement.objects.select_for_update().get(pk=self.pk)
-        totals = locked.lines.aggregate(
+        totals = locked.lines.filter(is_voided=False).aggregate(
             total_debit=Sum(
                 Case(
                     When(amount__lt=0, then=-F("amount")), default=Value(0),
@@ -200,7 +199,8 @@ class Statement(BaseModel):
         ) + total_credit - total_debit
 
         Statement.objects.filter(pk=self.pk).update(
-            total_debit=total_debit, total_credit=total_credit,
+            total_debit=total_debit,
+            total_credit=total_credit,
             closing_balance=closing_balance
         )
         self.refresh_from_db()
@@ -395,8 +395,9 @@ class Statement(BaseModel):
             abs(previous_stmt.closing_balance) * MONTHLY_INTEREST_RATE
         )
         self.add_line(
-            StatementLineType.INTEREST, -interest_amount,
-            description=f"Monthly interest on {previous_stmt.year}/{previous_stmt.month:02d}"
+            StatementLineType.INTEREST,
+            -interest_amount,
+            description=f"Monthly interest on {previous_stmt.year}/{previous_stmt.month:02d}",
         )
 
     def save(self, *args, **kwargs):

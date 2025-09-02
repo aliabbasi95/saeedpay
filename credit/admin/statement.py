@@ -28,8 +28,12 @@ class StatementLineInline(BaseInlineAdmin):
     readonly_fields = fields
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request).select_related("transaction")
-        return qs.order_by("-created_at")
+        # show all lines (including voided)
+        return (
+            StatementLine.all_objects.select_related("transaction").order_by(
+                "-created_at"
+            )
+        )
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -55,10 +59,13 @@ class StatementLineInline(BaseInlineAdmin):
         if obj.amount is None:
             return "-"
         val = int(obj.amount)
-        color = "#28a745" if val >= 0 else "#dc3545"
+        color = "#6c757d" if obj.is_voided else (
+            "#28a745" if val >= 0 else "#dc3545")
         formatted = format(val, ",d")
+        style = "text-decoration:line-through;" if obj.is_voided else ""
         return format_html(
-            '<span style="color:{};direction:ltr;">{}</span>', color, formatted
+            '<span style="color:{};{};direction:ltr;">{}</span>', color, style,
+            formatted
         )
 
     @admin.display(description=_("تراکنش"), ordering="transaction")
@@ -216,7 +223,7 @@ class StatementAdmin(BaseAdmin):
                 self.message_user(
                     request,
                     f"خطا در محاسبه مانده برای {stmt.reference_code}: {e}",
-                    level=messages.ERROR,
+                    level=messages.ERROR
                 )
         if updated:
             self.message_user(
@@ -235,7 +242,7 @@ class StatementAdmin(BaseAdmin):
                 self.message_user(
                     request,
                     f"خطا در بستن صورتحساب {stmt.reference_code}: {e}",
-                    level=messages.ERROR,
+                    level=messages.ERROR
                 )
         if closed:
             self.message_user(
