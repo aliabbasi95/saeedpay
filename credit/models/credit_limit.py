@@ -7,8 +7,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from credit.utils.constants import STATEMENT_GRACE_DAYS
-from utils.reference import generate_reference_code
 from lib.erp_base.models import BaseModel
+from utils.reference import generate_reference_code
 
 
 class CreditLimitManager(models.Manager):
