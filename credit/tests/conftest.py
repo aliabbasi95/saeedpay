@@ -238,3 +238,10 @@ def isolate_user_statements():
         return _isolate_user_statements(user)
 
     return _wrap
+
+
+@pytest.fixture(autouse=True)
+def celery_eager_settings(settings):
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    settings.CELERY_TASK_EAGER_PROPAGATES = True
+    return settings

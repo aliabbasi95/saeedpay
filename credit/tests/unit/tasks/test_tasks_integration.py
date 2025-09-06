@@ -1,4 +1,4 @@
-# credit/tests/unit/tasks/test_tasks.py
+# credit/tests/unit/tasks/test_tasks_integration.py
 
 import datetime as dt
 
@@ -75,7 +75,7 @@ def _make_pending_past_due_on_prev_month(
     stmt.due_date = now - dt.timedelta(days=grace_days_ago)
     stmt.save(
         update_fields=["status", "closed_at", "due_date", "closing_balance"]
-        )
+    )
     return stmt
 
 
@@ -126,7 +126,7 @@ class TestMonthEndRolloverTask:
         assert res2["status"] == "success"
         assert res2["result"]["statements_closed"] == 0
         assert res2["result"]["statements_created"] == 0
-        # Typically 0 on the second run
+        # Typically 0 on the second run (implementation-dependent; keep flexible)
         assert res2["result"]["interest_lines_added"] in (0, 1)
 
 
@@ -181,6 +181,37 @@ class TestFinalizeDueWindowsTask:
         stmt.refresh_from_db()
         assert stmt.status == StatementStatus.CLOSED_NO_PENALTY
 
+    def test_window_payments_close_without_penalty(
+            self, user, active_credit_limit_factory
+    ):
+        """
+        Payments recorded on CURRENT within [closed_at .. due_date] should be considered when finalizing.
+        This test ensures a pending statement gets CLOSED_NO_PENALTY when enough window-payments exist.
+        """
+        active_credit_limit_factory(user=user, is_active=True, expiry_days=60)
+        pending = _make_pending_past_due_on_prev_month(
+            user, debt=1_000_000, grace_days_ago=1, closed_days_ago=10
+        )
+
+        # Ensure CURRENT exists for the *current* month and record a payment inside the window:
+        current_stmt, _ = Statement.objects.get_or_create_current_statement(
+            user
+        )
+        # simulate a payment that happened between closed_at and due_date
+        current_stmt.add_line(
+            StatementLineType.PAYMENT, 1_000_000, description="Window payment"
+        )
+        # Manually set created_at into the window and save
+        line = current_stmt.lines.order_by("-id").first()
+        line.created_at = pending.closed_at + dt.timedelta(days=1)
+        line.save(update_fields=["created_at"])
+
+        res = task_finalize_due_windows.apply().result
+        assert res["status"] == "success"
+
+        pending.refresh_from_db()
+        assert pending.status == StatementStatus.CLOSED_NO_PENALTY
+
     def test_idempotent_second_run_does_not_duplicate_penalty(
             self, user, active_credit_limit_factory
     ):
@@ -195,6 +226,77 @@ class TestFinalizeDueWindowsTask:
         assert res2["status"] == "success"
         # On second pass, finalized_count should be zero (already finalized)
         assert res2["result"]["finalized_count"] == 0
+
+    def test_window_payment_on_closed_at_is_counted(
+            self, user, active_credit_limit_factory
+    ):
+        active_credit_limit_factory(user=user, is_active=True, expiry_days=60)
+        pending = _make_pending_past_due_on_prev_month(
+            user, debt=500_000, grace_days_ago=1, closed_days_ago=10
+        )
+
+        current_stmt, _ = Statement.objects.get_or_create_current_statement(
+            user
+        )
+        current_stmt.add_line(
+            StatementLineType.PAYMENT, 500_000, description="edge closed_at"
+        )
+
+        line = current_stmt.lines.order_by("-id").first()
+        line.created_at = pending.closed_at  # exact left boundary
+        line.save(update_fields=["created_at"])
+
+        res = task_finalize_due_windows.apply().result
+        assert res["status"] == "success"
+        pending.refresh_from_db()
+        assert pending.status == StatementStatus.CLOSED_NO_PENALTY
+
+    def test_window_payment_on_due_date_is_counted(
+            self, user, active_credit_limit_factory
+    ):
+        active_credit_limit_factory(user=user, is_active=True, expiry_days=60)
+        pending = _make_pending_past_due_on_prev_month(
+            user, debt=500_000, grace_days_ago=1, closed_days_ago=10
+        )
+
+        current_stmt, _ = Statement.objects.get_or_create_current_statement(
+            user
+        )
+        current_stmt.add_line(
+            StatementLineType.PAYMENT, 500_000, description="edge due_date"
+        )
+
+        line = current_stmt.lines.order_by("-id").first()
+        line.created_at = pending.due_date  # exact right boundary
+        line.save(update_fields=["created_at"])
+
+        res = task_finalize_due_windows.apply().result
+        assert res["status"] == "success"
+        pending.refresh_from_db()
+        assert pending.status == StatementStatus.CLOSED_NO_PENALTY
+
+    def test_finalize_creates_current_if_missing(
+            self, user, active_credit_limit_factory
+    ):
+        active_credit_limit_factory(user=user, is_active=True, expiry_days=60)
+        pending = _make_pending_past_due_on_prev_month(
+            user, debt=400_000, grace_days_ago=2, closed_days_ago=10
+        )
+
+        Statement.objects.filter(
+            user=user, status=StatementStatus.CURRENT
+        ).delete()
+
+        res = task_finalize_due_windows.apply().result
+        assert res["status"] == "success"
+
+        assert Statement.objects.filter(
+            user=user, status=StatementStatus.CURRENT
+        ).exists()
+
+        pending.refresh_from_db()
+        assert pending.status in (StatementStatus.CLOSED_NO_PENALTY,
+                                  StatementStatus.CLOSED_WITH_PENALTY)
 
 
 class TestDailyMaintenanceTask:
