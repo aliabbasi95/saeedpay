@@ -159,6 +159,8 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PAGINATION_CLASS": "lib.erp_base.utils.pagination.StandardPagination",
+    "PAGE_SIZE": 20,
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle'
@@ -302,7 +304,9 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # reCAPTCHA Configuration
-RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY', '6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs')
+RECAPTCHA_SECRET_KEY = os.getenv(
+    'RECAPTCHA_SECRET_KEY', '6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs'
+)
 RECAPTCHA_V3 = False  # Set to False for reCAPTCHA v2
 RECAPTCHA_V3_THRESHOLD = 0.5  # Score threshold for v3 (ignored when v2)
 RECAPTCHA_ACTION = 'submit'  # Default action name for v3 (ignored when v2)

@@ -1,3 +1,5 @@
+# credit/api/public/v1/views/credit.py
+
 import logging
 
 from django.shortcuts import get_object_or_404
@@ -37,8 +39,10 @@ logger = logging.getLogger(__name__)
 
 @credit_limit_list_schema
 class CreditLimitListView(generics.ListAPIView):
+    """List all credit limits for the authenticated user, newest first. Unpaginated by design."""
     serializer_class = CreditLimitSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         return (
@@ -61,6 +65,7 @@ class CreditLimitDetailView(generics.RetrieveAPIView):
 
 @statement_list_schema
 class StatementListView(generics.ListAPIView):
+    """Paginated list of user's statements, ordered by year, month, then creation (desc)."""
     serializer_class = StatementListSerializer
     permission_classes = [IsAuthenticated]
 
@@ -89,6 +94,7 @@ class StatementDetailView(generics.RetrieveAPIView):
 
 @statement_line_list_schema
 class StatementLineListView(generics.ListAPIView):
+    """Paginated list of user's statement lines; optionally filterable by ?statement_id=..."""
     serializer_class = StatementLineSerializer
     permission_classes = [IsAuthenticated]
 
@@ -100,8 +106,13 @@ class StatementLineListView(generics.ListAPIView):
             .order_by("-created_at")
         )
         statement_id = self.request.query_params.get("statement_id")
-        if statement_id:
-            qs = qs.filter(statement_id=statement_id)
+        if statement_id is not None:
+            try:
+                sid = int(statement_id)
+            except (TypeError, ValueError):
+                return StatementLine.objects.none()
+            qs = qs.filter(statement_id=sid)
+
         return qs
 
 

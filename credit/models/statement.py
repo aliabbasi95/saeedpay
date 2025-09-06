@@ -17,8 +17,8 @@ from credit.utils.constants import (
     STATEMENT_PENALTY_RATE,
     STATEMENT_MAX_PENALTY_RATE,
 )
+from lib.erp_base.constants import JalaliYearChoices, JalaliMonthChoices
 from lib.erp_base.models import BaseModel
-from lib.erp_base.utils.choices import JalaliYearChoices, JalaliMonthChoices
 from utils.reference import generate_reference_code
 
 
