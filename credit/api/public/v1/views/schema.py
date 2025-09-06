@@ -1,3 +1,5 @@
+# credit/api/public/v1/views/schema.py
+
 from drf_spectacular.utils import (
     extend_schema_view,
     extend_schema,
@@ -13,27 +15,49 @@ from credit.api.public.v1.serializers.credit import (
     StatementLineSerializer,
 )
 
-# ---------- Credit Limit ----------
+# ---------- Credit Limits ----------
 
+# List is UNPAGINATED (pagination_class=None in the view)
 credit_limit_list_schema = extend_schema_view(
     get=extend_schema(
         summary="List user's credit limits",
         description=(
             "Retrieve all credit limits belonging to the authenticated user. "
-            "Each credit limit exposes approved_limit, availability, status and expiry."
+            "Each item includes approved_limit, available_limit, status and expiry."
         ),
         tags=["Credit Limits"],
         responses={
             200: CreditLimitSerializer(many=True),
             401: OpenApiResponse(
                 description="Authentication required",
-                examples=[OpenApiExample(
-                    "Unauthorized", value={
-                        "detail": "Authentication credentials were not provided."
-                    }
-                )],
+                examples=[
+                    OpenApiExample(
+                        "Unauthorized",
+                        value={
+                            "detail": "Authentication credentials were not provided."
+                        },
+                    )
+                ],
             ),
         },
+        examples=[
+            OpenApiExample(
+                "Success (unpaginated)",
+                value=[
+                    {
+                        "id": 10,
+                        "user": 123,
+                        "approved_limit": 2000000,
+                        "available_limit": 1500000,
+                        "is_active": True,
+                        "is_approved": True,
+                        "expiry_date": "2026-09-06",
+                        "created_at": "2025-09-01T08:00:00Z",
+                        "updated_at": "2025-09-06T08:00:00Z",
+                    }
+                ],
+            )
+        ],
     )
 )
 
@@ -60,36 +84,46 @@ credit_limit_detail_schema = extend_schema_view(
 
 # ---------- Statements ----------
 
+# List is PAGINATED (uses project default pagination)
 statement_list_schema = extend_schema_view(
     get=extend_schema(
         summary="List user's credit statements",
         description=(
-            "Retrieve all statements of the authenticated user. "
-            "Ordered by most recent first. This is a lightweight view (no lines)."
+            "Paginated list of statements belonging to the authenticated user. "
+            "Ordered by most recent first (year, month, created_at descending). "
+            "This is a lightweight list (does not include lines)."
         ),
         tags=["Credit Statements"],
         responses={
             200: StatementListSerializer(many=True),
+            # drf-spectacular wraps in pagination schema
             401: OpenApiResponse(description="Authentication required"),
         },
         examples=[
             OpenApiExample(
-                "Example",
-                value=[{
-                    "id": 17,
-                    "user": 123,
-                    "year": 1403,
-                    "month": 8,
-                    "reference_code": "ST-1403-08-001",
-                    "status": "pending_payment",
-                    "opening_balance": 0,
-                    "closing_balance": -150000,
-                    "total_debit": 200000,
-                    "total_credit": 50000,
-                    "due_date": "2024-11-15T23:59:59Z",
-                    "created_at": "2024-11-01T00:00:00Z",
-                    "updated_at": "2024-11-10T12:30:00Z"
-                }]
+                "Success (paginated)",
+                value={
+                    "count": 23,
+                    "next": "https://api.example.com/credit/statements/?page=2",
+                    "previous": None,
+                    "results": [
+                        {
+                            "id": 17,
+                            "user": 123,
+                            "year": 1403,
+                            "month": 8,
+                            "reference_code": "ST-1403-08-001",
+                            "status": "pending_payment",
+                            "opening_balance": 0,
+                            "closing_balance": -150000,
+                            "total_debit": 200000,
+                            "total_credit": 50000,
+                            "due_date": "2024-11-15T23:59:59Z",
+                            "created_at": "2024-11-01T00:00:00Z",
+                            "updated_at": "2024-11-10T12:30:00Z",
+                        }
+                    ],
+                },
             )
         ],
     )
@@ -99,7 +133,7 @@ statement_detail_schema = extend_schema_view(
     get=extend_schema(
         summary="Get a credit statement with lines",
         description=(
-            "Retrieve a single statement (owned by the user) including all statement lines."
+            "Retrieve a single statement (owned by the user) including its statement lines."
         ),
         tags=["Credit Statements"],
         parameters=[
@@ -117,7 +151,7 @@ statement_detail_schema = extend_schema_view(
         },
         examples=[
             OpenApiExample(
-                "Example",
+                "Success",
                 value={
                     "id": 17,
                     "user": 123,
@@ -142,7 +176,7 @@ statement_detail_schema = extend_schema_view(
                             "amount": -100000,
                             "transaction": 456,
                             "description": "Online purchase",
-                            "created_at": "2024-11-02T10:15:00Z"
+                            "created_at": "2024-11-02T10:15:00Z",
                         },
                         {
                             "id": 2,
@@ -151,10 +185,10 @@ statement_detail_schema = extend_schema_view(
                             "amount": 50000,
                             "transaction": 789,
                             "description": "Payment received",
-                            "created_at": "2024-11-05T14:30:00Z"
-                        }
-                    ]
-                }
+                            "created_at": "2024-11-05T14:30:00Z",
+                        },
+                    ],
+                },
             )
         ],
     )
@@ -162,12 +196,14 @@ statement_detail_schema = extend_schema_view(
 
 # ---------- Statement Lines ----------
 
+# List is PAGINATED, optional ?statement_id=... (string values are tolerated but non-integers yield empty result)
 statement_line_list_schema = extend_schema_view(
     get=extend_schema(
         summary="List user's statement lines",
         description=(
-            "List statement lines owned by the authenticated user. "
-            "Filterable by ?statement_id=..."
+            "Paginated list of statement lines belonging to the authenticated user. "
+            "Optionally filter by a specific statement using the 'statement_id' query parameter. "
+            "If 'statement_id' is not a valid integer, an empty result is returned."
         ),
         tags=["Statement Lines"],
         parameters=[
@@ -181,8 +217,36 @@ statement_line_list_schema = extend_schema_view(
         ],
         responses={
             200: StatementLineSerializer(many=True),
+            # wrapped in pagination schema
             401: OpenApiResponse(description="Authentication required"),
         },
+        examples=[
+            OpenApiExample(
+                "Success (paginated)",
+                value={
+                    "count": 3,
+                    "next": None,
+                    "previous": None,
+                    "results": [
+                        {
+                            "id": 101,
+                            "statement": 17,
+                            "type": "purchase",
+                            "amount": -250000,
+                            "transaction": 999,
+                            "description": "POS purchase",
+                            "created_at": "2024-11-02T10:15:00Z",
+                        }
+                    ],
+                },
+            ),
+            OpenApiExample(
+                "Filtered with non-integer statement_id (empty)",
+                value={
+                    "count": 0, "next": None, "previous": None, "results": []
+                },
+            ),
+        ],
     )
 )
 
@@ -191,7 +255,7 @@ statement_line_list_schema = extend_schema_view(
 add_purchase_schema = extend_schema(
     summary="Record a purchase from a successful transaction",
     description=(
-        "Append a PURCHASE line to the current statement of the buyer "
+        "Append a PURCHASE line to the CURRENT statement of the buyer "
         "(owner of transaction.from_wallet). The transaction must be SUCCESS "
         "and belong to the authenticated user."
     ),
@@ -201,10 +265,7 @@ add_purchase_schema = extend_schema(
             "type": "object",
             "properties": {
                 "transaction_id": {"type": "integer"},
-                "description": {
-                    "type": "string",
-                    "default": "Purchase"
-                },
+                "description": {"type": "string", "default": "Purchase"},
             },
             "required": ["transaction_id"],
         }
@@ -223,8 +284,8 @@ add_purchase_schema = extend_schema(
 add_payment_schema = extend_schema(
     summary="Record a payment on the current statement",
     description=(
-        "Append a PAYMENT line to the CURRENT statement. Positive amount required. "
-        "If transaction_id is provided, it must be SUCCESS and belong to the user."
+        "Append a PAYMENT line to the CURRENT statement. Positive amount is required. "
+        "If 'transaction_id' is provided, it must be SUCCESS and belong to the user."
     ),
     tags=["Credit Transactions"],
     request={
@@ -252,7 +313,7 @@ close_statement_schema = extend_schema(
     summary="Close the current statement",
     description=(
         "Close the CURRENT statement and move it to PENDING_PAYMENT. "
-        "Sets due_date based on active credit limit."
+        "The due_date will be set based on the active credit limit."
     ),
     tags=["Credit Management"],
     responses={

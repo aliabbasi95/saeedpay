@@ -1,5 +1,7 @@
 # blogs/api/public/v1/views/article.py
-from django.db.models import Q
+
+from django.db.models import Q, Count, Prefetch
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -12,63 +14,80 @@ from blogs.api.public.v1.serializers import (
     ArticleDetailSerializer,
 )
 from blogs.filters import ArticleFilter
-from blogs.models import Article
+from blogs.models import Article, Comment
 
 
 @article_viewset_schema
 class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Read-only ViewSet for Article model exposing only list and retrieve.
+    Read-only ViewSet for Article.
+    - List: published & time passed for non-authors; include author's own drafts if authenticated.
+    - Retrieve: same visibility; increments view_count atomically.
     """
     serializer_class = ArticleListSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ArticleFilter
-    search_fields = ['title', 'content', 'excerpt']
-    ordering_fields = ['created_at', 'published_at', 'view_count', 'title']
-    ordering = ['-created_at']
-    lookup_field = 'slug'
+    search_fields = ["title", "sections__content", "excerpt"]
+    ordering_fields = ["created_at", "published_at", "view_count", "title"]
+    ordering = ["-created_at"]
+    lookup_field = "slug"
 
     def get_queryset(self):
-        queryset = Article.objects.select_related(
-            'author__profile'
-            ).prefetch_related('tags', 'sections', 'comments')
+        now = timezone.now()
 
-        # For list view, only show published articles to non-authors
-        if self.action == 'list':
+        # Base queryset
+        qs = Article.objects.select_related("author__profile")
+
+        # Visibility rules
+        if self.action in ["list", "retrieve"]:
             if self.request.user.is_authenticated:
-                # Show user's own articles (any status) + published articles from others
-                queryset = queryset.filter(
-                    Q(author=self.request.user) | Q(status='published')
+                qs = qs.filter(
+                    Q(author=self.request.user) | Q(
+                        status="published", published_at__lte=now
+                    )
                 )
             else:
-                # Anonymous users only see published articles
-                queryset = queryset.filter(status='published')
+                qs = qs.filter(status="published", published_at__lte=now)
 
-        # For detail view, check permissions
-        elif self.action == 'retrieve':
-            if self.request.user.is_authenticated:
-                # Show user's own articles + published articles
-                queryset = queryset.filter(
-                    Q(author=self.request.user) | Q(status='published')
+        # Prefetch tune per action
+        if self.action == "list":
+            qs = qs.prefetch_related("tags").distinct()
+        else:  # retrieve
+            qs = qs.prefetch_related(
+                "tags",
+                Prefetch(
+                    "sections",
+                    queryset=Article.sections.rel.related_model.objects.order_by(
+                        "order"
+                    )
+                ),
+                Prefetch(
+                    "comments",
+                    queryset=Comment.objects.select_related("author").filter(
+                        is_approved=True
+                    ).order_by("created_at"),
+                ),
+            ).annotate(
+                approved_comment_count=Count(
+                    "comments", filter=Q(
+                        comments__is_approved=True
+                    ), distinct=True
                 )
-            else:
-                # Anonymous users only see published articles
-                queryset = queryset.filter(status='published')
+            ).distinct()
 
-        return queryset
+        return qs
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return ArticleListSerializer
         return ArticleDetailSerializer
 
     def retrieve(self, request, *args, **kwargs):
-        """Override retrieve to increment view count"""
+        """
+        Override retrieve to increment view count atomically.
+        """
         instance = self.get_object()
-
-        # Increment view count
         instance.increment_view_count()
-
         serializer = self.get_serializer(instance)
         return Response(serializer.data)

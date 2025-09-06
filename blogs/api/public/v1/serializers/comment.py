@@ -1,7 +1,9 @@
 # blogs/api/public/v1/serializers/comment.py
-from rest_framework import serializers
+
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
+from rest_framework import serializers
+
 from blogs.models import Comment
 
 User = get_user_model()
@@ -13,85 +15,102 @@ class CommentAuthorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name']
+        fields = ["id", "username", "first_name", "last_name"]
 
     @extend_schema_field(serializers.CharField)
     def get_first_name(self, obj) -> str:
-        if hasattr(obj, 'profile') and obj.profile.first_name:
-            return obj.profile.first_name
-        return ''
+        # Safe access to optional profile.first_name
+        try:
+            prof = obj.profile
+            if getattr(prof, "first_name", None):
+                return prof.first_name
+        except Exception:
+            pass
+        return ""
 
     @extend_schema_field(serializers.CharField)
     def get_last_name(self, obj) -> str:
-        if hasattr(obj, 'profile') and obj.profile.last_name:
-            return obj.profile.last_name
-        return ''
+        # Safe access to optional profile.last_name
+        try:
+            prof = obj.profile
+            if getattr(prof, "last_name", None):
+                return prof.last_name
+        except Exception:
+            pass
+        return ""
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    """Basic comment serializer"""
+    """Basic comment serializer."""
     author = CommentAuthorSerializer(read_only=True)
     reply_count = serializers.SerializerMethodField()
     jalali_creation_date_time = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Comment
         fields = [
-            'id',
-            'author',
-            'reply_to',
-            'content',
-            'rating',
-            'is_approved',
-            'reply_count',
-            'like_count',
-            'dislike_count',
-            'jalali_creation_date_time',
+            "id",
+            "author",
+            "reply_to",
+            "content",
+            "rating",
+            "is_approved",
+            "reply_count",
+            "like_count",
+            "dislike_count",
+            "jalali_creation_date_time",
         ]
-        read_only_fields = ['is_approved', 'like_count', 'dislike_count']
-    
+        read_only_fields = ["is_approved", "like_count", "dislike_count"]
+
     @extend_schema_field(serializers.IntegerField)
     def get_reply_count(self, obj) -> int:
         return obj.reply_count
-    
+
     @extend_schema_field(serializers.CharField)
     def get_jalali_creation_date_time(self, obj) -> str:
         return obj.jalali_creation_date_time
 
 
 class CommentListSerializer(serializers.ModelSerializer):
-    """Serializer for comment lists with nested replies"""
+    """
+    Serializer for listing root comments with a limited set of direct replies.
+    """
     author = CommentAuthorSerializer(read_only=True)
     replies = serializers.SerializerMethodField()
     reply_count = serializers.SerializerMethodField()
     jalali_creation_date_time = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Comment
         fields = [
-            'id',
-            'author',
-            'content',
-            'rating',
-            'reply_count',
-            'replies',
-            'like_count',
-            'dislike_count',
-            'jalali_creation_date_time',
+            "id",
+            "author",
+            "content",
+            "rating",
+            "reply_count",
+            "replies",
+            "like_count",
+            "dislike_count",
+            "jalali_creation_date_time",
         ]
-    
+
     @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_replies(self, obj):
-        """Get approved direct replies"""
-        if obj.reply_to is None:  # Only get replies for root comments
-            replies = obj.get_replies()[:5]  # Limit to 5 replies
-            return CommentSerializer(replies, many=True, context=self.context).data
+        """
+        Return up to 5 approved direct replies.
+        NOTE: Deep nesting should be handled in the client if needed.
+        """
+        if obj.reply_to is None:
+            replies = obj.get_replies()[:5]
+            return CommentSerializer(
+                replies, many=True, context=self.context
+            ).data
         return []
-    
+
     @extend_schema_field(serializers.IntegerField)
     def get_reply_count(self, obj) -> int:
         return obj.reply_count
-    
+
     @extend_schema_field(serializers.CharField)
     def get_jalali_creation_date_time(self, obj) -> str:
         return obj.jalali_creation_date_time
@@ -99,58 +118,55 @@ class CommentListSerializer(serializers.ModelSerializer):
 
 from utils.recaptcha import ReCaptchaField
 
+
 class CommentCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating comments"""
+    """Serializer for creating comments."""
     recaptcha_token = ReCaptchaField(required=True)
-    
+
     class Meta:
         model = Comment
-        fields = [
-            'article',
-            'reply_to',
-            'content',
-            'rating',
-            'recaptcha_token',
-        ]
-    
+        fields = ["article", "reply_to", "content", "rating",
+                  "recaptcha_token"]
+
     def validate_rating(self, value):
         if value < 1 or value > 5:
             raise serializers.ValidationError("امتیاز باید بین 1 تا 5 باشد.")
         return value
-    
+
     def validate(self, attrs):
-        # Validate reply_to comment belongs to same article
-        reply_to = attrs.get('reply_to')
-        article = attrs.get('article')
-        
+        """
+        Ensure reply_to belongs to the same article.
+        If only reply_to is provided, inherit its article.
+        """
+        reply_to = attrs.get("reply_to")
+        article = attrs.get("article")
+
         if reply_to and article and reply_to.article != article:
             raise serializers.ValidationError(
                 "نظر پاسخ باید متعلق به همان مقاله باشد."
             )
-        
-        # If replying to a comment, article should be the same as reply_to's article
         if reply_to and not article:
-            attrs['article'] = reply_to.article
-        
+            attrs["article"] = reply_to.article
         return attrs
-    
+
 
 class CommentUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for updating comments"""
-    
+    """Serializer for updating comments by their owner."""
+
     class Meta:
         model = Comment
-        fields = ['content', 'rating']
-    
+        fields = ["content", "rating"]
+
     def validate_rating(self, value):
         if value < 1 or value > 5:
             raise serializers.ValidationError("امتیاز باید بین 1 تا 5 باشد.")
         return value
-    
+
     def update(self, instance, validated_data):
-        # Only allow author to update their own comments
-        request = self.context.get('request')
+        # Enforce author-only updates
+        request = self.context.get("request")
         if request and request.user != instance.author:
-            raise serializers.ValidationError("شما فقط می‌توانید نظرات خود را ویرایش کنید.")
-        
+            raise serializers.ValidationError(
+                "شما فقط می‌توانید نظرات خود را ویرایش کنید."
+            )
         return super().update(instance, validated_data)

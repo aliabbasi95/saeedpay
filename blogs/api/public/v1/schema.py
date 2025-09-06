@@ -1,4 +1,6 @@
 # blogs/api/public/v1/schema.py
+
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
@@ -6,10 +8,6 @@ from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiResponse,
 )
-from drf_spectacular.types import OpenApiTypes
-
-from blogs.models import Article
-
 
 # Article ViewSet Schema
 article_viewset_schema = extend_schema_view(
@@ -242,7 +240,6 @@ article_viewset_schema = extend_schema_view(
     ),
 )
 
-
 # Tag ViewSet Schema
 tag_viewset_schema = extend_schema_view(
     list=extend_schema(
@@ -322,7 +319,6 @@ tag_viewset_schema = extend_schema_view(
         },
     ),
 )
-
 
 # Comment ViewSet Schema
 comment_viewset_schema = extend_schema_view(
@@ -440,7 +436,9 @@ comment_viewset_schema = extend_schema_view(
         description="دریافت لیست نظرات کاربر جاری",
         tags=["Comments"],
         responses={
-            200: OpenApiResponse(description="لیست نظرات کاربر با موفقیت دریافت شد"),
+            200: OpenApiResponse(
+                description="لیست نظرات کاربر با موفقیت دریافت شد"
+            ),
             401: OpenApiResponse(description="احراز هویت مورد نیاز است"),
         },
     ),
@@ -464,7 +462,9 @@ comment_viewset_schema = extend_schema_view(
             ),
         ],
         responses={
-            200: OpenApiResponse(description="نظرات مقاله با موفقیت دریافت شد"),
+            200: OpenApiResponse(
+                description="نظرات مقاله با موفقیت دریافت شد"
+            ),
             400: OpenApiResponse(description="شناسه مقاله مورد نیاز است"),
         },
     ),
