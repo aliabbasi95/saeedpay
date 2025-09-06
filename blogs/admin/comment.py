@@ -21,6 +21,7 @@ class CommentAdmin(BaseAdmin):
         "content_preview",
         "author",
         "article",
+        "store",
         "rating",
         "is_approved",
         "is_spam",
@@ -30,13 +31,14 @@ class CommentAdmin(BaseAdmin):
         "dislike_count",
         "jalali_creation_date_time",
     ]
-    list_filter = ["is_approved", "is_spam", "rating", "article", "created_at"]
+    list_filter = ["is_approved", "is_spam", "rating", "article", "created_at", "store"]
     search_fields = [
         "content",
         "author__username",
         "author__first_name",
         "author__last_name",
-        "article__title"
+        "article__title",
+        "store__name",
     ]
     readonly_fields = [
         "like_count",
@@ -56,7 +58,7 @@ class CommentAdmin(BaseAdmin):
 
     fieldsets = (
         (_("محتوا"),
-         {"fields": ("article", "author", "reply_to", "content", "rating")}),
+         {"fields": ("article", "author", "reply_to", "content", "rating", "store")}),
         (_("وضعیت"), {"fields": ("is_approved", "is_spam")}),
         (_("آمار"), {
             "fields": ("like_count", "dislike_count", "spam_score"),

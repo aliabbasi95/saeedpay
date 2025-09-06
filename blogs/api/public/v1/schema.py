@@ -340,6 +340,18 @@ comment_viewset_schema = extend_schema_view(
                 ],
             ),
             OpenApiParameter(
+                name="store",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="فیلتر بر اساس فروشگاه",
+                examples=[
+                    OpenApiExample(
+                        "نظرات فروشگاه با ID 1",
+                        value=1,
+                    ),
+                ],
+            ),
+            OpenApiParameter(
                 name='article__isnull',
                 type=OpenApiTypes.BOOL,
                 location=OpenApiParameter.QUERY,
@@ -347,6 +359,18 @@ comment_viewset_schema = extend_schema_view(
                 examples=[
                     OpenApiExample(
                         'فقط نظرات بدون مقاله',
+                        value=True,
+                    ),
+                ],
+            ),
+            OpenApiParameter(
+                name='store__isnull',
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description='فیلتر برای نظراتی که به هیچ فروشگاهی مرتبط نیستند (ارسال `true` برای فعال‌سازی)',
+                examples=[
+                    OpenApiExample(
+                        'فقط نظرات بدون فروشگاه',
                         value=True,
                     ),
                 ],
@@ -382,6 +406,8 @@ comment_viewset_schema = extend_schema_view(
                                         "first_name": "علی"
                                     },
                                     "article": 1,
+                                    "store": None,
+                                    "rating": 5,
                                     "reply_to": None,
                                     "replies": [
                                         {
@@ -391,6 +417,9 @@ comment_viewset_schema = extend_schema_view(
                                                 "id": 2,
                                                 "username": "author"
                                             },
+                                            "article": 1,
+                                            "store": None,
+                                            "rating": 4,
                                             "reply_to": 1,
                                         }
                                     ],
@@ -410,6 +439,76 @@ comment_viewset_schema = extend_schema_view(
         summary="ایجاد نظر جدید",
         description="ایجاد یک نظر جدید (نیاز به تایید مدیر)",
         tags=["Comments"],
+        request={
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": "string",
+                        "description": "محتوای نظر",
+                        "example": "نظر بسیار مفیدی بود"
+                    },
+                    "article": {
+                        "type": "integer",
+                        "nullable": True,
+                        "description": "شناسه مقاله (اختیاری)",
+                        "example": 1
+                    },
+                    "store": {
+                        "type": "integer",
+                        "nullable": True,
+                        "description": "شناسه فروشگاه (اختیاری)",
+                        "example": 1
+                    },
+                    "rating": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5,
+                        "description": "امتیاز از 1 تا 5",
+                        "example": 5
+                    },
+                    "reply_to": {
+                        "type": "integer",
+                        "nullable": True,
+                        "description": "شناسه نظر مرجع (برای پاسخ)",
+                        "example": None
+                    }
+                },
+                "required": ["content"],
+                "examples": [
+                    {
+                        "name": "نظر مقاله",
+                        "value": {
+                            "content": "مقاله بسیار مفیدی بود",
+                            "article": 1,
+                            "store": None,
+                            "rating": 5,
+                            "reply_to": None
+                        }
+                    },
+                    {
+                        "name": "نظر فروشگاه",
+                        "value": {
+                            "content": "خدمات عالی فروشگاه",
+                            "article": None,
+                            "store": 1,
+                            "rating": 4,
+                            "reply_to": None
+                        }
+                    },
+                    {
+                        "name": "پاسخ به نظر",
+                        "value": {
+                            "content": "متشکرم از نظرتان",
+                            "article": 1,
+                            "store": None,
+                            "rating": 5,
+                            "reply_to": 1
+                        }
+                    }
+                ]
+            }
+        },
         responses={
             201: OpenApiResponse(
                 description="نظر با موفقیت ایجاد شد",
@@ -420,6 +519,8 @@ comment_viewset_schema = extend_schema_view(
                             "id": 1,
                             "content": "نظر جدید",
                             "article": 1,
+                            "store": None,
+                            "rating": 5,
                             "reply_to": None,
                             "is_approved": False,
                             "created_at": "2024-01-15T10:30:00Z"

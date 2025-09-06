@@ -1,33 +1,57 @@
 # store/api/public/v1/views/store.py
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema_view
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.mixins import (
-    CreateModelMixin, ListModelMixin,
-    RetrieveModelMixin, UpdateModelMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    UpdateModelMixin,
+    DestroyModelMixin,
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
+from rest_framework.pagination import PageNumberPagination
 
 from merchants.permissions import IsMerchant
 from store.api.public.v1.serializers import (
     StoreSerializer,
     StoreCreateSerializer,
+    PublicStoreSerializer,
+)
+from store.api.public.v1.schema import (
+    store_list_schema,
+    store_create_schema,
+    store_retrieve_schema,
+    store_update_schema,
+    store_delete_schema,
+    public_store_list_schema,
+    public_store_retrieve_schema,
 )
 from store.models import Store
 
 
-@extend_schema(
-    tags=["Store · Management"],
-    summary="مدیریت فروشگاه‌ها توسط فروشنده",
-    description="ایجاد، مشاهده، و ویرایش فروشگاه‌های متعلق به فروشنده جاری"
+class PublicStorePagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
+@extend_schema_view(
+    list=store_list_schema,
+    create=store_create_schema,
+    retrieve=store_retrieve_schema,
+    update=store_update_schema,
+    partial_update=store_update_schema,
+    destroy=store_delete_schema,
 )
 class StoreViewSet(
     CreateModelMixin,
     ListModelMixin,
     RetrieveModelMixin,
     UpdateModelMixin,
-    GenericViewSet
+    DestroyModelMixin,
+    GenericViewSet,
 ):
     permission_classes = [IsAuthenticated, IsMerchant]
     queryset = Store.objects.none()
@@ -49,8 +73,26 @@ class StoreViewSet(
 
     def perform_update(self, serializer):
         instance = self.get_object()
-        if instance.get_status_number() > 1:
-            raise PermissionDenied(
-                "ویرایش فروشگاه پس از تأیید امکان‌پذیر نیست."
-            )
+        # Check if store is already finalized (status 2) or rejected (status 3)
+        if instance.status > 1:
+            raise PermissionDenied("ویرایش فروشگاه پس از تأیید امکان‌پذیر نیست.")
+        # Reset verification to pending when updating
+        instance.store_reviewer_verification = 0
         serializer.save()
+
+
+@extend_schema_view(
+    list=public_store_list_schema,
+    retrieve=public_store_retrieve_schema,
+)
+class PublicStoreViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
+    permission_classes = []
+    serializer_class = PublicStoreSerializer
+    pagination_class = PublicStorePagination
+
+    def get_queryset(self):
+        # Only show finalized stores (status 2 = finalized/approved in cardboard system)
+        return Store.objects.filter(
+            status=2,  # 2=finalized/approved (store_reviewer_verification=1)
+            is_active=True,
+        )

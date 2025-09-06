@@ -31,11 +31,11 @@ class TestBankCardModel:
         card = BankCard.objects.create(
             user=user,
             bank=bank,
-            card_number="1234567812345670",
+            card_number="5022291333461554",
             card_holder_name="Test User",
             status=BankCardStatus.PENDING,
         )
-        assert str(card) == f"{user}'s card - 5670"
+        assert str(card) == f"{user}'s card - 1554"
         assert BankCard.objects.count() == 1
 
     def test_default_card_uniqueness(self, user, bank):
@@ -49,7 +49,7 @@ class TestBankCardModel:
         card2 = BankCard.objects.create(
             user=user,
             bank=bank,
-            card_number="6362141111393551",
+            card_number="5022291333461554",
             is_default=True,
             status=BankCardStatus.VERIFIED,
         )
@@ -64,7 +64,7 @@ class TestBankCardModel:
             BankCard.objects.create(
                 user=user,
                 bank=bank,
-                card_number="1234567812345670",
+                card_number="6037701689094463",
                 is_default=True,
                 status=BankCardStatus.PENDING,
             )
@@ -73,13 +73,13 @@ class TestBankCardModel:
         card = BankCard.objects.create(
             user=user,
             bank=bank,
-            card_number="1234567812345670",
+            card_number="6362141111393550",
             card_holder_name="Test User",
             status=BankCardStatus.REJECTED,
             sheba="IR123456789012345678901234",
             rejection_reason="Previous rejection reason",
         )
-        card.card_number = "9876543210987654"
+        card.card_number = "6037997514567321"
         card.save()
 
         updated_card = BankCard.objects.get(id=card.id)
@@ -94,7 +94,7 @@ class TestBankCardModel:
         """Test that rejection_reason field works correctly."""
         card = BankCard.objects.create(
             user=user,
-            card_number="1234567812345670",
+            card_number="6393461074742327",
             status=BankCardStatus.REJECTED,
             rejection_reason="شماره کارت نامعتبر است",
         )

@@ -31,11 +31,9 @@ DEFAULT_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     "rest_framework",
     "rest_framework_simplejwt",
-    'rest_framework_simplejwt.token_blacklist',
-
+    "rest_framework_simplejwt.token_blacklist",
     "django_admin_listfilter_dropdown",
     "admin_searchable_dropdown",
     "corsheaders",
@@ -43,10 +41,8 @@ DEFAULT_APPS = [
     "import_export",
     "drf_spectacular",
     "django_filters",
-
     "sweetify",
     "tinymce",
-
     "lib.cas_auth",
     "lib.erp_base",
 ]
@@ -61,8 +57,9 @@ LOCAL_APPS = [
     "chatbot",
     "banking",
     "tickets",
-    'credit',
+    "credit",
     "blogs",
+    "contact",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS
@@ -117,12 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "lib.erp_base.validators.SymbolValidator",
     },
-    {
-        "NAME": "lib.erp_base.validators.LengthValidator",
-        "OPTIONS": {
-            "min_length": 8
-        }
-    },
+    {"NAME": "lib.erp_base.validators.LengthValidator", "OPTIONS": {"min_length": 8}},
 ]
 
 # Internationalization
@@ -130,7 +122,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'Asia/Tehran'
+TIME_ZONE = "Asia/Tehran"
 
 USE_I18N = True
 
@@ -155,8 +147,8 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "lib.cas_auth.authentication.PublicAuthentication",
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "lib.erp_base.utils.pagination.StandardPagination",
@@ -165,11 +157,11 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle'
     ],
-    'DEFAULT_THROTTLE_RATES': {
-        'otp_by_phone': '5/hour',
-        'anon': '100/hour',
-        'user': '100/hour',
-    }
+    "DEFAULT_THROTTLE_RATES": {
+        "otp_by_phone": "5/hour",
+        "anon": "100/hour",
+        "user": "100/hour",
+    },
 }
 
 SIMPLE_JWT = {
@@ -206,7 +198,7 @@ def spectacular_preprocess_hook(endpoints):
 
     def is_compatible(view):
         try:
-            return isinstance(getattr(view.cls, 'schema', None), AutoSchema)
+            return isinstance(getattr(view.cls, "schema", None), AutoSchema)
         except Exception:
             return False
 
@@ -223,7 +215,6 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SECURITY": [{"PublicAuth": []}],
-
     "COMPONENT_SPLIT_REQUEST": True,
     "COMPONENTS": {
         "securitySchemes": {
@@ -234,9 +225,7 @@ SPECTACULAR_SETTINGS = {
             }
         }
     },
-    "PREPROCESSING_HOOKS": [
-        "saeedpay.settings.spectacular_preprocess_hook"
-    ],
+    "PREPROCESSING_HOOKS": ["saeedpay.settings.spectacular_preprocess_hook"],
 }
 
 # Redis
@@ -271,24 +260,23 @@ CELERY_TASK_ROUTES = {
 
 CELERY_BEAT_SCHEDULE = {
     # wallet
-    'expire-pending-payment-requests-every-minute': {
-        'task': 'wallets.tasks.task_expire_pending_payment_requests',
-        'schedule': crontab(minute='*/1'),
+    "expire-pending-payment-requests-every-minute": {
+        "task": "wallets.tasks.task_expire_pending_payment_requests",
+        "schedule": crontab(minute="*/1"),
     },
-    'cleanup-cancelled-and-expired-requests-every-hour': {
-        'task': 'wallets.tasks.task_cleanup_cancelled_and_expired_requests',
-        'schedule': crontab(minute=0, hour='*/1'),
+    "cleanup-cancelled-and-expired-requests-every-hour": {
+        "task": "wallets.tasks.task_cleanup_cancelled_and_expired_requests",
+        "schedule": crontab(minute=0, hour="*/1"),
     },
-    'expire-pending-transfer-every-minute': {
-        'task': 'wallets.tasks.task_expire_pending_transfer_requests',
-        'schedule': crontab(minute='*/1'),
+    "expire-pending-transfer-every-minute": {
+        "task": "wallets.tasks.task_expire_pending_transfer_requests",
+        "schedule": crontab(minute="*/1"),
     },
-
     # banking
-    'reenqueue-stale-pending-cards-every-minute': {
-        'task': 'banking.tasks.reenqueue_stale_pending_cards',
-        'schedule': crontab(minute='*/1'),
-        'kwargs': {'limit': 200, 'older_than_minutes': 1},
+    "reenqueue-stale-pending-cards-every-minute": {
+        "task": "banking.tasks.reenqueue_stale_pending_cards",
+        "schedule": crontab(minute="*/1"),
+        "kwargs": {"limit": 200, "older_than_minutes": 1},
     },
     # credit
     # Credit: safe daily run; idempotent—only acts when month has rolled over
@@ -309,4 +297,4 @@ RECAPTCHA_SECRET_KEY = os.getenv(
 )
 RECAPTCHA_V3 = False  # Set to False for reCAPTCHA v2
 RECAPTCHA_V3_THRESHOLD = 0.5  # Score threshold for v3 (ignored when v2)
-RECAPTCHA_ACTION = 'submit'  # Default action name for v3 (ignored when v2)
+RECAPTCHA_ACTION = "submit"  # Default action name for v3 (ignored when v2)

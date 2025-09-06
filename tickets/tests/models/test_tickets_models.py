@@ -23,21 +23,21 @@ class TestTicketsModels:
         assert str(category) == "Support"
 
     def test_ticket_defaults_and_str(self, user, category):
-        t = Ticket.objects.create(user=user, title="Cannot login", description="...", category=category)
+        t = Ticket.objects.create(user=user, title="Cannot login", category=category)
         assert t.status == TicketStatus.OPEN
         assert t.priority == TicketPriority.NORMAL
         s = str(t)
         assert str(t.id) in s and "Cannot login" in s
 
     def test_ticket_message_str_and_reply_to(self, user):
-        ticket = Ticket.objects.create(user=user, title="x", description="y")
+        ticket = Ticket.objects.create(user=user, title="x")
         m1 = TicketMessage.objects.create(ticket=ticket, sender=TicketMessage.Sender.USER, content="hi")
         m2 = TicketMessage.objects.create(ticket=ticket, sender=TicketMessage.Sender.USER, content="re", reply_to=m1)
         assert f"Ticket#{ticket.id}" in str(m1)
         assert m2.reply_to_id == m1.id
 
     def test_ticket_message_attachment_create_with_file(self, user):
-        ticket = Ticket.objects.create(user=user, title="x", description="y")
+        ticket = Ticket.objects.create(user=user, title="x")
         msg = TicketMessage.objects.create(ticket=ticket, sender=TicketMessage.Sender.USER, content="file")
         f = SimpleUploadedFile("doc.txt", b"hello", content_type="text/plain")
         att = TicketMessageAttachment.objects.create(message=msg, file=f)

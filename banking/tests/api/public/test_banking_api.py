@@ -32,7 +32,7 @@ class TestBankingAPI:
         return BankCard.objects.create(
             user=user,
             bank=bank,
-            card_number="1111222233334444",
+            card_number="6362141111393550",
             status=BankCardStatus.VERIFIED,
             is_active=True,
         )
@@ -42,7 +42,7 @@ class TestBankingAPI:
         return BankCard.objects.create(
             user=user,
             bank=bank,
-            card_number="5555666677778888",
+            card_number="6362141111393550",
             status=BankCardStatus.REJECTED,
             is_active=True,
         )
@@ -51,7 +51,7 @@ class TestBankingAPI:
     def pending_card(self, user):
         return BankCard.objects.create(
             user=user,
-            card_number="4444333322221111",
+            card_number="6362141111393550",
             status=BankCardStatus.PENDING,
             is_active=True,
         )
@@ -73,25 +73,26 @@ class TestBankingAPI:
         response = api_client.get("/saeedpay/api/banking/v1/cards/")
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(verified_card.id)
+        assert str(response.data[0]["id"]) == str(verified_card.id)
 
     def test_create_card(self, api_client):
         """Test card creation schedules validation task."""
-        data = {"card_number": "6362141111393550"}  # Luhn-valid card number
+        data = {"card_number": "5022291333461554"}  # Luhn-valid card number
 
-        with patch("banking.tasks.validate_card_task.delay") as mock_task:
-            response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
-            print(
-                "RESPONSE DATA:", response.data
-            )  # Debug print for error details
-            assert response.status_code == status.HTTP_201_CREATED
-            assert BankCard.objects.count() == 1
+        with patch("django.db.transaction.on_commit", lambda func: func()):
+            with patch("banking.services.bank_card_service.validate_card_task.delay") as mock_task:
+                response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
+                print(
+                    "RESPONSE DATA:", response.data
+                )  # Debug print for error details
+                assert response.status_code == status.HTTP_201_CREATED
+                assert BankCard.objects.count() == 1
 
-            card = BankCard.objects.first()
-            assert card.status == BankCardStatus.PENDING
+                card = BankCard.objects.first()
+                assert card.status == BankCardStatus.PENDING
 
-            # Verify task was scheduled
-            mock_task.assert_called_once_with(str(card.id))
+                # Verify task was scheduled
+                mock_task.assert_called_once_with(str(response.data["id"]))
 
     def test_create_card_invalid_luhn(self, api_client):
         data = {"card_number": "1234567812345678"}
@@ -102,16 +103,17 @@ class TestBankingAPI:
         """Test updating rejected card schedules validation task."""
         data = {"card_number": "6362141111393550"}
 
-        with patch("banking.tasks.validate_card_task.delay") as mock_task:
-            response = api_client.patch(
-                f"/saeedpay/api/banking/v1/cards/{rejected_card.id}/", data
-            )
-            assert response.status_code == status.HTTP_200_OK
-            rejected_card.refresh_from_db()
-            assert rejected_card.status == BankCardStatus.PENDING
+        with patch("django.db.transaction.on_commit", lambda func: func()):
+            with patch("banking.services.bank_card_service.validate_card_task.delay") as mock_task:
+                response = api_client.patch(
+                    f"/saeedpay/api/banking/v1/cards/{rejected_card.id}/", data
+                )
+                assert response.status_code == status.HTTP_200_OK
+                rejected_card.refresh_from_db()
+                assert rejected_card.status == BankCardStatus.PENDING
 
-            # Verify task was scheduled
-            mock_task.assert_called_once_with(str(rejected_card.id))
+                # Verify task was scheduled
+                mock_task.assert_called_once_with(str(rejected_card.id))
 
     def test_update_verified_card_not_allowed(self, api_client, verified_card):
         data = {"card_number": "6362141111393550"}
@@ -207,7 +209,7 @@ class TestBankingAPI:
         rejected_card = BankCard.objects.create(
             user=user,
             bank=bank,
-            card_number="5555666677778888",
+            card_number="6362141111393550",
             status=BankCardStatus.REJECTED,
             rejection_reason="شماره کارت نامعتبر است",
             is_active=True,
@@ -234,13 +236,13 @@ class TestBankingAPI:
         card1 = BankCard.objects.create(
             user=user1,
             bank=bank,
-            card_number="1111222233334444",
+            card_number="6362141111393550",
             status=BankCardStatus.VERIFIED,
         )
         card2 = BankCard.objects.create(
             user=user2,
             bank=bank,
-            card_number="5555666677778888",
+            card_number="5022291333461554",
             status=BankCardStatus.VERIFIED,
         )
 
@@ -248,7 +250,7 @@ class TestBankingAPI:
         response = client1.get("/saeedpay/api/banking/v1/cards/")
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
-        assert response.data[0]["id"] == str(card1.id)
+        assert str(response.data[0]["id"]) == str(card1.id)
 
         # User1 should not be able to access User2's card
         response = client1.get(f"/saeedpay/api/banking/v1/cards/{card2.id}/")
@@ -276,7 +278,7 @@ class TestBankingAPI:
     def test_user_cannot_access_other_user_cards(self, api_client, bank):
         other_user = User.objects.create(username="otheruser")
         other_card = BankCard.objects.create(
-            user=other_user, bank=bank, card_number="8765432187654321"
+            user=other_user, bank=bank, card_number="5022291333461554"
         )
 
         response = api_client.get(

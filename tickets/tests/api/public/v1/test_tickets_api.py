@@ -80,7 +80,7 @@ class TestTicketsAPI:
         assert list_resp.status_code == status.HTTP_200_OK
         assert len(list_resp.data) == 1
         item = list_resp.data[0]
-        assert item["title"] == "Payment issue"
+        assert item["title"] == "مشکل در ورود به حساب"
         assert item["priority"] == TicketPriority.HIGH
         assert item["status"] == TicketStatus.OPEN
         assert item["category"]["name"] == "General"

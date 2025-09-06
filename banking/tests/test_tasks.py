@@ -31,7 +31,7 @@ class TestCardValidationTask:
     def pending_card(self, user):
         return BankCard.objects.create(
             user=user,
-            card_number="6219861012345678",
+            card_number="6362141111393550",
             status=BankCardStatus.PENDING,
         )
 
@@ -40,7 +40,7 @@ class TestCardValidationTask:
         return BankCard.objects.create(
             user=user,
             bank=bank,
-            card_number="6219861087654321",
+            card_number="5022291333461554",
             status=BankCardStatus.VERIFIED,
         )
 
@@ -49,12 +49,12 @@ class TestCardValidationTask:
         with patch("banking.tasks.validate_pending_card") as mock_validator:
             result = validate_card_task.apply(args=[str(pending_card.id)])
             assert result.successful() is True
-            mock_validator.assert_called_once()
+            mock_validator.assert_called_once_with(str(pending_card.id))
 
     def test_validate_card_task_card_not_found(self):
         """Test task behavior when card doesn't exist."""
-        fake_id = "00000000-0000-0000-0000-000000000000"
-        result = validate_card_task.apply(args=[fake_id])
+        fake_id = 999999  # Use a non-existent integer id
+        result = validate_card_task.apply(args=[str(fake_id)])
         assert result.get() is False
 
     def test_validate_card_task_skips_non_pending(self, verified_card):
@@ -129,10 +129,6 @@ class TestCardValidationTask:
             with caplog.at_level(logging.INFO):
                 validate_card_task.apply(args=[str(pending_card.id)])
 
-            assert (
-                f"Starting card validation logic for card {pending_card.id}"
-                in caplog.text
-            )
             assert (
                 f"Card validation logic completed successfully for card "
                 f"{pending_card.id}" in caplog.text

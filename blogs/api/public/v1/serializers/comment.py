@@ -5,6 +5,10 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from blogs.models import Comment
+from store.models import Store
+from utils.recaptcha import ReCaptchaField
+from blogs.models import Article
+
 
 User = get_user_model()
 
@@ -42,6 +46,7 @@ class CommentAuthorSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     """Basic comment serializer."""
+
     author = CommentAuthorSerializer(read_only=True)
     reply_count = serializers.SerializerMethodField()
     jalali_creation_date_time = serializers.SerializerMethodField()
@@ -116,37 +121,74 @@ class CommentListSerializer(serializers.ModelSerializer):
         return obj.jalali_creation_date_time
 
 
-from utils.recaptcha import ReCaptchaField
-
-
 class CommentCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating comments."""
     recaptcha_token = ReCaptchaField(required=True)
 
     class Meta:
         model = Comment
-        fields = ["article", "reply_to", "content", "rating",
-                  "recaptcha_token"]
+        fields = [
+            "article",
+            "store",
+            "reply_to",
+            "content",
+            "rating",
+            "recaptcha_token",
+        ]
 
     def validate_rating(self, value):
         if value < 1 or value > 5:
             raise serializers.ValidationError("امتیاز باید بین 1 تا 5 باشد.")
         return value
 
+    def validate_article(self, value):
+        """Validate article exists, set to None if it doesn't"""
+        if value is not None:
+            try:
+                Article.objects.get(pk=value.pk)
+                return value
+            except Article.DoesNotExist:
+                return None
+        return value
+
+    def validate_store(self, value):
+        """Validate store exists, set to None if it doesn't"""
+        if value is not None:
+            try:
+                Store.objects.get(pk=value.pk)
+                return value
+            except Store.DoesNotExist:
+                return None
+        return value
+
     def validate(self, attrs):
-        """
-        Ensure reply_to belongs to the same article.
-        If only reply_to is provided, inherit its article.
-        """
         reply_to = attrs.get("reply_to")
         article = attrs.get("article")
+        store = attrs.get("store")
 
-        if reply_to and article and reply_to.article != article:
+        # Prevent both article and store being provided
+        if article is not None and store is not None:
             raise serializers.ValidationError(
-                "نظر پاسخ باید متعلق به همان مقاله باشد."
+                "نظر نمی‌تواند همزمان به مقاله و فروشگاه مرتبط باشد."
             )
-        if reply_to and not article:
-            attrs["article"] = reply_to.article
+
+        # Handle reply validation
+        if reply_to:
+            # Validate reply_to comment belongs to same article/store
+            if article and reply_to.article != article:
+                raise serializers.ValidationError(
+                    "نظر پاسخ باید متعلق به همان مقاله باشد."
+                )
+            if store and reply_to.store != store:
+                raise serializers.ValidationError(
+                    "نظر پاسخ باید متعلق به همان فروشگاه باشد."
+                )
+
+            # If replying to a comment, inherit the parent's article/store
+            if not article and not store:
+                attrs["article"] = reply_to.article
+                attrs["store"] = reply_to.store
+
         return attrs
 
 
@@ -169,4 +211,5 @@ class CommentUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "شما فقط می‌توانید نظرات خود را ویرایش کنید."
             )
+
         return super().update(instance, validated_data)

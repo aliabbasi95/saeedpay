@@ -1,9 +1,37 @@
+# Django and core dependencies
+Django>=4.2,<5.0
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+dj-database-url
+psycopg2-binary
+
+# Celery and Redis
+celery
+redis
+django-celery-beat
+
+# Admin enhancements
+django-admin-listfilter-dropdown
+django-admin-searchable-dropdown
+django-import-export
+
+# UI and content
 sweetify
 django-tinymce
 
-pyotp
+# API documentation
 drf-spectacular
+
+# Authentication and security
+pyotp
+
+# Testing
 pytest
 pytest-django
 pytest-mock
 freezegun
+
+# Utilities
+Faker
+Pillow

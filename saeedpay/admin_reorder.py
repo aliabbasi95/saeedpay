@@ -10,6 +10,13 @@ ADMIN_REORDER = (
         ),
     },
     {
+        "app": "contact",
+        "label": "فرم تماس",
+        "models": (
+            "contact.Contact",
+        ),
+    },
+    {
         "app": "store",
         "label": "فروشگاه‌ها",
         "models": (

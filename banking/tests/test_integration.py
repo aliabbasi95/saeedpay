@@ -41,9 +41,8 @@ class TestCardValidationIntegration:
         # Step 1: Create a card via API
         data = {"card_number": "6362141111393550"}
 
-        with patch(
-            "banking.tasks.validate_card_task.delay"
-        ) as mock_task_delay:
+        with patch("banking.tasks.validate_card_task.delay") as mock_task_delay, \
+     patch("banking.services.bank_card_service.enqueue_validation_if_pending", side_effect=lambda old_status, card: validate_card_task.delay(str(card.id))):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
             assert response.status_code == 201
 
@@ -107,7 +106,8 @@ class TestCardValidationIntegration:
 
         # Step 4: Verify rejected card can be updated
         data = {"card_number": "6362141111393154"}
-        with patch("banking.tasks.validate_card_task.delay") as mock_task:
+        with patch("banking.tasks.validate_card_task.delay") as mock_task, \
+     patch("banking.services.bank_card_service.enqueue_validation_if_pending", side_effect=lambda old_status, card: validate_card_task.delay(str(card.id))):
             response = api_client.patch(
                 f"/saeedpay/api/banking/v1/cards/{card.id}/", data
             )
@@ -178,7 +178,8 @@ class TestCardValidationIntegration:
 
         # Verify rejected card can still be updated to retry validation
         data = {"card_number": "6362141111393154"}
-        with patch("banking.tasks.validate_card_task.delay") as mock_task:
+        with patch("banking.tasks.validate_card_task.delay") as mock_task, \
+     patch("banking.services.bank_card_service.enqueue_validation_if_pending", side_effect=lambda old_status, card: validate_card_task.delay(str(card.id))):
             response = api_client.patch(
                 f"/saeedpay/api/banking/v1/cards/{card.id}/", data
             )
@@ -199,7 +200,7 @@ class TestCardValidationIntegration:
             "banking.services.card_validator._production_validation"
         ) as mock_prod:
             validate_card_task(str(card.id))
-            mock_prod.assert_called_once_with(card)
+            mock_prod.assert_called_once_with(str(card.id))
 
     def test_concurrent_card_operations(self, api_client, bank):
         """Test handling of concurrent operations on the same card."""
@@ -218,7 +219,7 @@ class TestCardValidationIntegration:
 
         with patch(
             "banking.services.card_validator.validate_pending_card",
-            side_effect=change_status_during_validation,
+            side_effect=lambda card_id: change_status_during_validation(BankCard.objects.get(id=card_id)),
         ):
             result = validate_card_task(str(card.id))
             assert (
@@ -255,5 +256,5 @@ class TestCardValidationIntegration:
 
         assert len(response1.data) == 1
         assert len(response2.data) == 1
-        assert response1.data[0]["card_number"] == "6362141111393550"
-        assert response2.data[0]["card_number"] == "6362141111393154"
+        assert response1.data[0]["last4"] == "3550"
+        assert response2.data[0]["last4"] == "3154"

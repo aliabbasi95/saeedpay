@@ -42,14 +42,14 @@ class TestTicketSerializers:
         assert not ser.is_valid()
         assert "non_field_errors" in ser.errors
 
-    def test_ticket_create_serializer_open_limit(self, rf, user):
+    def test_ticket_create_serializer_open_limit(self, rf, user, category):
         # create 15 open tickets
         for _ in range(15):
             Ticket.objects.create(user=user, title="t", status=Ticket.Status.OPEN)
         req = rf.post("/")
         req.user = user
         ser = TicketCreateSerializer(
-            data={"title": "x", "description": "y", "priority": TicketPriority.HIGH},
+            data={"title": "x", "priority": TicketPriority.HIGH, "category_id": category.id},
             context={"request": req},
         )
         assert not ser.is_valid()
@@ -59,7 +59,7 @@ class TestTicketSerializers:
         req = rf.post("/")
         req.user = user
         ser = TicketCreateSerializer(
-            data={"title": "t", "description": "d", "priority": TicketPriority.LOW, "category_id": category.id},
+            data={"title": "t", "priority": TicketPriority.LOW, "category_id": category.id},
             context={"request": req},
         )
         assert ser.is_valid(), ser.errors
@@ -69,8 +69,8 @@ class TestTicketSerializers:
         assert obj.status == TicketStatus.OPEN
 
     def test_message_serializer_sender_and_reply_validation(self, rf, user):
-        t1 = Ticket.objects.create(user=user, title="t", description="d")
-        t2 = Ticket.objects.create(user=user, title="t2", description="d2")
+        t1 = Ticket.objects.create(user=user, title="t")
+        t2 = Ticket.objects.create(user=user, title="t2")
         other_msg = TicketMessage.objects.create(ticket=t1, sender=TicketMessage.Sender.USER, content="x")
 
         req = rf.post("/")
@@ -84,7 +84,7 @@ class TestTicketSerializers:
         assert "reply_to" in ser.errors or "sender" in ser.errors
 
     def test_message_serializer_requires_owner(self, rf, user, other_user):
-        ticket = Ticket.objects.create(user=user, title="t", description="d")
+        ticket = Ticket.objects.create(user=user, title="t")
         req = rf.post("/")
         req.user = other_user
         ser = TicketMessageCreateSerializer(
@@ -95,7 +95,7 @@ class TestTicketSerializers:
         assert "non_field_errors" in ser.errors
 
     def test_message_serializer_files_rules(self, rf, user):
-        ticket = Ticket.objects.create(user=user, title="t", description="d")
+        ticket = Ticket.objects.create(user=user, title="t")
         req = rf.post("/")
         req.user = user
 
@@ -131,7 +131,7 @@ class TestTicketSerializers:
         assert "files" in ser3.errors
 
     def test_message_serializer_creates_attachments(self, rf, user):
-        ticket = Ticket.objects.create(user=user, title="t", description="d")
+        ticket = Ticket.objects.create(user=user, title="t")
         req = rf.post("/")
         req.user = user
         f1 = SimpleUploadedFile("a.txt", b"a", content_type="text/plain")

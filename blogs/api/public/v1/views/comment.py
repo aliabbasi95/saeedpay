@@ -34,9 +34,10 @@ class CommentViewSet(ReCaptchaMixin, viewsets.ModelViewSet):
     recaptcha_actions = {"create"}
     recaptcha_action_name = "comment"
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = {"article": ["exact", "isnull"], "reply_to": ["exact"]}
-    ordering_fields = ["created_at", "like_count"]
-    ordering = ["-created_at"]
+    filterset_fields = {'article': ['exact', 'isnull'], 'store': ['exact', 'isnull'], 'reply_to': ['exact']}
+    ordering_fields = ['created_at', 'like_count']
+    ordering = ['-created_at']
+    pagination_class = CustomPagination
 
     def get_queryset(self):
         qs = (
@@ -49,9 +50,15 @@ class CommentViewSet(ReCaptchaMixin, viewsets.ModelViewSet):
         if self.request.user.is_authenticated:
             qs = qs.filter(Q(author=self.request.user) | Q(is_approved=True))
         else:
-            qs = qs.filter(is_approved=True)
-        return qs
-
+            # Anonymous users only see approved comments
+            queryset = queryset.filter(is_approved=True)
+        
+        # For list action, only return root comments (replies are included via serializer)
+        if self.action == 'list':
+            queryset = queryset.filter(reply_to__isnull=True)
+        
+        return queryset
+    
     def get_serializer_class(self):
         if self.action == "list":
             return CommentListSerializer
