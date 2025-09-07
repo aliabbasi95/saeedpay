@@ -1,6 +1,6 @@
 # blogs/api/public/v1/urls.py
-from rest_framework.routers import DefaultRouter
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
 from blogs.api.public.v1.views import (
     ArticleViewSet,

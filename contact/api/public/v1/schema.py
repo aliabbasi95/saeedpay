@@ -1,9 +1,11 @@
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
-from rest_framework import status
-from contact.api.public.v1.serializers.contact import ContactCreateSerializer
+# contact/api/public/v1/schema.py
 
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
+from drf_spectacular.utils import (
+    extend_schema, OpenApiExample,
+    OpenApiResponse,
+)
 from rest_framework import status
+
 from contact.api.public.v1.serializers.contact import ContactCreateSerializer
 
 contact_create_schema = extend_schema(

@@ -114,7 +114,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "lib.erp_base.validators.SymbolValidator",
     },
-    {"NAME": "lib.erp_base.validators.LengthValidator", "OPTIONS": {"min_length": 8}},
+    {
+        "NAME": "lib.erp_base.validators.LengthValidator",
+        "OPTIONS": {"min_length": 8}
+    },
 ]
 
 # Internationalization

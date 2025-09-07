@@ -13,11 +13,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
 
 from merchants.permissions import IsMerchant
-from store.api.public.v1.serializers import (
-    StoreSerializer,
-    StoreCreateSerializer,
-    PublicStoreSerializer,
-)
 from store.api.public.v1.schema import (
     store_list_schema,
     store_create_schema,
@@ -27,9 +22,12 @@ from store.api.public.v1.schema import (
     public_store_list_schema,
     public_store_retrieve_schema,
 )
+from store.api.public.v1.serializers import (
+    StoreSerializer,
+    StoreCreateSerializer,
+    PublicStoreSerializer,
+)
 from store.models import Store
-
-
 
 
 @extend_schema_view(
@@ -70,7 +68,9 @@ class StoreViewSet(
         instance = self.get_object()
         # Check if store is already finalized (status 2) or rejected (status 3)
         if instance.status > 1:
-            raise PermissionDenied("ویرایش فروشگاه پس از تأیید امکان‌پذیر نیست.")
+            raise PermissionDenied(
+                "ویرایش فروشگاه پس از تأیید امکان‌پذیر نیست."
+            )
         # Reset verification to pending when updating
         instance.store_reviewer_verification = 0
         serializer.save()

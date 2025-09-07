@@ -37,8 +37,10 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Override to support both ID and slug lookup.
         """
-        lookup_value = self.kwargs.get(self.lookup_url_kwarg or self.lookup_field)
-        
+        lookup_value = self.kwargs.get(
+            self.lookup_url_kwarg or self.lookup_field
+        )
+
         # Try to determine if it's an ID (numeric) or slug (string)
         if lookup_value.isdigit():
             # It's an ID, use pk lookup

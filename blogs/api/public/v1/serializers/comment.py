@@ -4,11 +4,10 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from blogs.models import Article
 from blogs.models import Comment
 from store.models import Store
 from utils.recaptcha import ReCaptchaField
-from blogs.models import Article
-
 
 User = get_user_model()
 

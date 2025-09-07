@@ -51,13 +51,13 @@ class CommentViewSet(ReCaptchaMixin, viewsets.ModelViewSet):
         else:
             # Anonymous users only see approved comments
             qs = qs.filter(is_approved=True)
-        
+
         # For list action, only return root comments (replies are included via serializer)
         if self.action == 'list':
             qs = qs.filter(reply_to__isnull=True)
-        
+
         return qs
-    
+
     def get_serializer_class(self):
         if self.action == "list":
             return CommentListSerializer
@@ -119,14 +119,15 @@ class CommentViewSet(ReCaptchaMixin, viewsets.ModelViewSet):
         queryset = self.get_queryset().filter(
             article__isnull=True, store__isnull=True
         )
-        
+
         # Apply ordering
         ordering = request.query_params.get('ordering', '-created_at')
-        if ordering in ['created_at', '-created_at', 'like_count', '-like_count', 'dislike_count', '-dislike_count']:
+        if ordering in ['created_at', '-created_at', 'like_count',
+                        '-like_count', 'dislike_count', '-dislike_count']:
             queryset = queryset.order_by(ordering)
         else:
             queryset = queryset.order_by('-created_at')
-        
+
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = CommentListSerializer(

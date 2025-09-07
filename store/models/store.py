@@ -2,9 +2,10 @@
 
 import os
 import uuid
+
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
 
 from lib.erp_base.models import dynamic_cardboard
 from merchants.models import Merchant
@@ -16,7 +17,9 @@ def validate_image_extension(value):
     ext = os.path.splitext(value.name)[1].lower()
     if ext not in allowed_extensions:
         raise ValidationError(
-            _('فقط فایل‌های تصویری با فرمت‌های jpg, jpeg, png, gif, bmp, webp مجاز هستند.')
+            _(
+                'فقط فایل‌های تصویری با فرمت‌های jpg, jpeg, png, gif, bmp, webp مجاز هستند.'
+            )
         )
 
 
@@ -73,7 +76,7 @@ class Store(
         blank=True,
         verbose_name=_("لینک وب‌سایت فروشگاه")
     )
-    
+
     logo = models.ImageField(
         upload_to=store_logo_upload_path,
         null=True,
