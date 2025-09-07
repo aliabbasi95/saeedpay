@@ -126,7 +126,7 @@ class Article(BaseModel):
                     with transaction.atomic():
                         self.slug = candidate
                         # If published & no timestamp, set it before initial save
-                        if self.status == self.Status.PUBLISHED and not self.published_at:
+                        if self.status == ArticleStatus.PUBLISHED and not self.published_at:
                             self.published_at = timezone.now()
                         return super().save(*args, **kwargs)
                 except IntegrityError:
@@ -134,7 +134,7 @@ class Article(BaseModel):
                     candidate = f"{base}-{suffix}"
         else:
             # Keep published_at consistent if transitioning to published without a timestamp
-            if self.status == self.Status.PUBLISHED and not self.published_at:
+            if self.status == ArticleStatus.PUBLISHED and not self.published_at:
                 self.published_at = timezone.now()
             return super().save(*args, **kwargs)
 
@@ -146,7 +146,7 @@ class Article(BaseModel):
     def is_published(self):
         """True if status is published and time has passed."""
         return (
-                self.status == self.Status.PUBLISHED
+                self.status == ArticleStatus.PUBLISHED
                 and self.published_at is not None
                 and self.published_at <= timezone.now()
         )
@@ -260,7 +260,7 @@ class ArticleSection(BaseModel):
         """Validate section fields consistency based on section type."""
         from django.core.exceptions import ValidationError
 
-        if self.section_type == self.SectionType.IMAGE:
+        if self.section_type == SectionType.IMAGE:
             if not self.image:
                 raise ValidationError(_("تصویر برای بخش تصویری الزامی است"))
         else:
@@ -272,14 +272,14 @@ class ArticleSection(BaseModel):
         Render section as minimal HTML snippet.
         NOTE: If content originates from untrusted users, sanitize before rendering.
         """
-        if self.section_type in [self.SectionType.H1, self.SectionType.H2,
-                                 self.SectionType.H3, self.SectionType.H4]:
+        if self.section_type in [SectionType.H1, SectionType.H2,
+                                 SectionType.H3, SectionType.H4]:
             return f"<{self.section_type}>{self.content}</{self.section_type}>"
-        elif self.section_type == self.SectionType.PARAGRAPH:
+        elif self.section_type == SectionType.PARAGRAPH:
             return f"<p>{self.content}</p>"
-        elif self.section_type == self.SectionType.IMAGE and self.image:
+        elif self.section_type == SectionType.IMAGE and self.image:
             alt_text = self.image_alt or ""
             return f'<img src="{self.image.url}" alt="{alt_text}" class="article-image" />'
-        elif self.section_type == self.SectionType.CITE:
+        elif self.section_type == SectionType.CITE:
             return f"<blockquote>{self.content}</blockquote>"
         return ""

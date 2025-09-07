@@ -351,42 +351,6 @@ comment_viewset_schema = extend_schema_view(
                     ),
                 ],
             ),
-            OpenApiParameter(
-                name='article__isnull',
-                type=OpenApiTypes.BOOL,
-                location=OpenApiParameter.QUERY,
-                description='فیلتر برای نظراتی که به هیچ مقاله‌ای مرتبط نیستند (ارسال `true` برای فعال‌سازی)',
-                examples=[
-                    OpenApiExample(
-                        'فقط نظرات بدون مقاله',
-                        value=True,
-                    ),
-                ],
-            ),
-            OpenApiParameter(
-                name='store__isnull',
-                type=OpenApiTypes.BOOL,
-                location=OpenApiParameter.QUERY,
-                description='فیلتر برای نظراتی که به هیچ فروشگاهی مرتبط نیستند (ارسال `true` برای فعال‌سازی)',
-                examples=[
-                    OpenApiExample(
-                        'فقط نظرات بدون فروشگاه',
-                        value=True,
-                    ),
-                ],
-            ),
-            OpenApiParameter(
-                name="reply_to",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="فیلتر بر اساس شناسه نظر مرجع (برای دریافت پاسخ‌ها)",
-                examples=[
-                    OpenApiExample(
-                        "نظرات اصلی (بدون پاسخ به نظر دیگر)",
-                        value="null",
-                    ),
-                ],
-            ),
         ],
         responses={
             200: OpenApiResponse(
@@ -543,20 +507,20 @@ comment_viewset_schema = extend_schema_view(
             401: OpenApiResponse(description="احراز هویت مورد نیاز است"),
         },
     ),
-    article_comments=extend_schema(
-        summary="نظرات مقاله",
-        description="دریافت نظرات یک مقاله خاص با پاسخ‌ها",
+    store_comments=extend_schema(
+        summary="نظرات فروشگاه",
+        description="دریافت نظرات یک فروشگاه خاص با پاسخ‌ها",
         tags=["Comments"],
         parameters=[
             OpenApiParameter(
-                name="article_id",
+                name="store_id",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="شناسه مقاله",
+                description="شناسه فروشگاه",
                 required=True,
                 examples=[
                     OpenApiExample(
-                        "نظرات مقاله با ID 1",
+                        "نظرات فروشگاه با ID 1",
                         value=1,
                     ),
                 ],
@@ -564,9 +528,72 @@ comment_viewset_schema = extend_schema_view(
         ],
         responses={
             200: OpenApiResponse(
-                description="نظرات مقاله با موفقیت دریافت شد"
+                description="نظرات فروشگاه با موفقیت دریافت شد"
             ),
-            400: OpenApiResponse(description="شناسه مقاله مورد نیاز است"),
+            400: OpenApiResponse(description="شناسه فروشگاه مورد نیاز است"),
+        },
+    ),
+    orphaned_comments=extend_schema(
+        summary="نظرات بدون پیوند",
+        description="دریافت نظراتی که به هیچ مقاله یا فروشگاهی مرتبط نیستند (هر دو فیلد null هستند)",
+        tags=["Comments"],
+        parameters=[
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="مرتب‌سازی نتایج",
+                examples=[
+                    OpenApiExample(
+                        "جدیدترین نظرات",
+                        value="-created_at",
+                    ),
+                    OpenApiExample(
+                        "قدیمی‌ترین نظرات",
+                        value="created_at",
+                    ),
+                    OpenApiExample(
+                        "پربازدیدترین نظرات",
+                        value="-like_count",
+                    ),
+                    OpenApiExample(
+                        "کم‌بازدیدترین نظرات",
+                        value="like_count",
+                    ),
+                ],
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="نظرات بدون پیوند با موفقیت دریافت شد",
+                examples=[
+                    OpenApiExample(
+                        "مثال پاسخ موفق",
+                        value={
+                            "count": 5,
+                            "next": "http://example.com/api/blogs/public/v1/comments/orphaned_comments/?page=2",
+                            "previous": None,
+                            "results": [
+                                {
+                                    "id": 10,
+                                    "content": "نظر عمومی بدون پیوند",
+                                    "author": {
+                                        "id": 1,
+                                        "username": "user1",
+                                        "first_name": "علی"
+                                    },
+                                    "rating": 4,
+                                    "reply_count": 0,
+                                    "replies": [],
+                                    "like_count": 2,
+                                    "dislike_count": 0,
+                                    "jalali_creation_date_time": "1403/01/15 10:30:00"
+                                }
+                            ]
+                        },
+                    )
+                ],
+            ),
         },
     ),
     like=extend_schema(

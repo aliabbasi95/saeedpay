@@ -188,6 +188,18 @@ class CommentCreateSerializer(serializers.ModelSerializer):
             if not article and not store:
                 attrs["article"] = reply_to.article
                 attrs["store"] = reply_to.store
+            elif article and not store:
+                # Ensure we're replying to an article comment
+                if reply_to.store is not None:
+                    raise serializers.ValidationError(
+                        "نمی‌توان به نظر فروشگاه، پاسخ مقاله داد."
+                    )
+            elif store and not article:
+                # Ensure we're replying to a store comment
+                if reply_to.article is not None:
+                    raise serializers.ValidationError(
+                        "نمی‌توان به نظر مقاله، پاسخ فروشگاه داد."
+                    )
 
         return attrs
 

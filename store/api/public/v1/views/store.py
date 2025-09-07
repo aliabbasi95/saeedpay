@@ -11,7 +11,6 @@ from rest_framework.mixins import (
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import GenericViewSet
-from rest_framework.pagination import PageNumberPagination
 
 from merchants.permissions import IsMerchant
 from store.api.public.v1.serializers import (
@@ -31,10 +30,6 @@ from store.api.public.v1.schema import (
 from store.models import Store
 
 
-class PublicStorePagination(PageNumberPagination):
-    page_size = 20
-    page_size_query_param = "page_size"
-    max_page_size = 100
 
 
 @extend_schema_view(
@@ -88,7 +83,6 @@ class StoreViewSet(
 class PublicStoreViewSet(ListModelMixin, RetrieveModelMixin, GenericViewSet):
     permission_classes = []
     serializer_class = PublicStoreSerializer
-    pagination_class = PublicStorePagination
 
     def get_queryset(self):
         # Only show finalized stores (status 2 = finalized/approved in cardboard system)

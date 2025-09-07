@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 
 from lib.erp_base.models import BaseModel
 
@@ -122,11 +123,26 @@ class Comment(BaseModel):
         ]
 
     def clean(self):
-        """Validate that comment is linked to either article or store, but not both"""
+        """
+        Validate comment relationships and thread consistency.
+        """
+
+        # Validate that comment is linked to either article or store, but not both
         if self.article and self.store:
             raise ValidationError({
                 '__all__': _("نظر نمی‌تواند همزمان به مقاله و فروشگاه مرتبط باشد")
             })
+
+        # Ensure reply_to has the same article/store for thread consistency
+        if self.reply_to:
+            if self.article_id != self.reply_to.article_id:
+                raise ValidationError(
+                    _("مقاله‌ی نظر پاسخ باید با مقاله‌ی نظر اصلی یکسان باشد.")
+                )
+            if self.store_id != self.reply_to.store_id:
+                raise ValidationError(
+                    _("فروشگاه نظر پاسخ باید با فروشگاه نظر اصلی یکسان باشد.")
+                )
     
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -142,19 +158,6 @@ class Comment(BaseModel):
             return f"نظر {author_name} در {self.store.name}"
         else:
             return f"نظر عمومی {author_name}"
-
-    def clean(self):
-        """
-        Ensure reply_to has the same article for thread consistency.
-        Either both are null or both refer to the same article.
-        """
-        from django.core.exceptions import ValidationError
-
-        if self.reply_to:
-            if self.article_id != self.reply_to.article_id:
-                raise ValidationError(
-                    _("مقاله‌ی نظر پاسخ باید با مقاله‌ی نظر اصلی یکسان باشد.")
-                )
 
     @property
     def is_reply(self):

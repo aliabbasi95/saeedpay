@@ -33,6 +33,25 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["-created_at"]
     lookup_field = "slug"
 
+    def get_object(self):
+        """
+        Override to support both ID and slug lookup.
+        """
+        lookup_value = self.kwargs.get(self.lookup_url_kwarg or self.lookup_field)
+        
+        # Try to determine if it's an ID (numeric) or slug (string)
+        if lookup_value.isdigit():
+            # It's an ID, use pk lookup
+            queryset = self.get_queryset()
+            obj = queryset.filter(pk=lookup_value).first()
+            if obj is None:
+                from rest_framework.exceptions import NotFound
+                raise NotFound("Article not found")
+            return obj
+        else:
+            # It's a slug, use slug lookup
+            return super().get_object()
+
     def get_queryset(self):
         now = timezone.now()
 

@@ -34,10 +34,9 @@ class CommentViewSet(ReCaptchaMixin, viewsets.ModelViewSet):
     recaptcha_actions = {"create"}
     recaptcha_action_name = "comment"
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = {'article': ['exact', 'isnull'], 'store': ['exact', 'isnull'], 'reply_to': ['exact']}
+    filterset_fields = {'article': ['exact'], 'store': ['exact']}
     ordering_fields = ['created_at', 'like_count']
     ordering = ['-created_at']
-    pagination_class = CustomPagination
 
     def get_queryset(self):
         qs = (
@@ -51,13 +50,13 @@ class CommentViewSet(ReCaptchaMixin, viewsets.ModelViewSet):
             qs = qs.filter(Q(author=self.request.user) | Q(is_approved=True))
         else:
             # Anonymous users only see approved comments
-            queryset = queryset.filter(is_approved=True)
+            qs = qs.filter(is_approved=True)
         
         # For list action, only return root comments (replies are included via serializer)
         if self.action == 'list':
-            queryset = queryset.filter(reply_to__isnull=True)
+            qs = qs.filter(reply_to__isnull=True)
         
-        return queryset
+        return qs
     
     def get_serializer_class(self):
         if self.action == "list":
@@ -112,20 +111,22 @@ class CommentViewSet(ReCaptchaMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
-    def article_comments(self, request):
+    def orphaned_comments(self, request):
         """
-        Get root-level approved comments for a specific article.
+        Get comments that are not linked to any article or store (both fields are null).
+        Supports ordering by created_at, like_count, and dislike_count.
         """
-        article_id = request.query_params.get("article_id")
-        if not article_id:
-            return Response(
-                {"detail": "article_id parameter is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         queryset = self.get_queryset().filter(
-            article_id=article_id, reply_to__isnull=True
+            article__isnull=True, store__isnull=True
         )
+        
+        # Apply ordering
+        ordering = request.query_params.get('ordering', '-created_at')
+        if ordering in ['created_at', '-created_at', 'like_count', '-like_count', 'dislike_count', '-dislike_count']:
+            queryset = queryset.order_by(ordering)
+        else:
+            queryset = queryset.order_by('-created_at')
+        
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = CommentListSerializer(
