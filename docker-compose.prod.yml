@@ -1,0 +1,90 @@
+services:
+  db:
+    image: public.ecr.aws/docker/library/postgres:16
+    container_name: saeedpay-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set-in-env-file}
+      POSTGRES_DB: saeedpay
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d saeedpay" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: always
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  redis:
+    image: public.ecr.aws/docker/library/redis:7
+    container_name: saeedpay-redis
+    command: [ "redis-server", "--appendonly", "yes" ]
+    volumes:
+      - redisdata_prod:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: always
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  web:
+    build: { context: ., dockerfile: Dockerfile, target: runtime }
+    container_name: saeedpay-web
+    env_file: .env.prod
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    ports: [ "8000:8000" ]
+    command: [ "bash", "docker/cmd-web.sh" ]
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8000/saeedpay/readyz || exit 1" ]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+    restart: always
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  worker:
+    build: { context: ., dockerfile: Dockerfile, target: runtime }
+    container_name: saeedpay-worker
+    env_file: .env.prod
+    environment:
+      DJANGO_MIGRATE: "0"
+      DJANGO_COLLECTSTATIC: "0"
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    command: [ "bash", "docker/cmd-celery-worker.sh" ]
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  beat:
+    build: { context: ., dockerfile: Dockerfile, target: runtime }
+    container_name: saeedpay-beat
+    env_file: .env.prod
+    environment:
+      DJANGO_MIGRATE: "0"
+      DJANGO_COLLECTSTATIC: "0"
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    command: [ "bash", "docker/cmd-celery-beat.sh" ]
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  pgdata_prod:
+  redisdata_prod:

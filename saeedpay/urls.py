@@ -24,6 +24,7 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
     SpectacularRedocView,
 )
+from rest_framework.permissions import AllowAny
 
 from lib.cas_auth.admin.utils import has_admin_permission
 
@@ -47,10 +48,17 @@ api_urlpatterns = [
 ]
 
 schema_urlpatterns = [
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/schema/",
+        SpectacularAPIView.as_view(
+            permission_classes=[AllowAny], authentication_classes=[]
+            ),
+
+        name="schema"
+    ),
     path(
         "api/schema/swagger/",
-        SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"
+        SpectacularSwaggerView.as_view(url_name="schema", ), name="swagger-ui"
     ),
     path(
         "api/schema/redoc/", SpectacularRedocView.as_view(url_name="schema"),
@@ -76,8 +84,13 @@ urlpatterns = [
 
 # Serve media files during development
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static('/public_data/', document_root='/home/erfan/Projects/saeedpay/public_data')
+    urlpatterns += static(
+        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
+    )
+    urlpatterns += static(
+        '/public_data/',
+        document_root='/home/erfan/Projects/saeedpay/public_data'
+    )
 
 admin.autodiscover()
 admin.site.enable_nav_sidebar = False

@@ -84,3 +84,8 @@ celerybeat-schedule.db
 public_data/*
 
 staticfiles/
+
+# Environment variables
+.env
+.env.*
+!*.example

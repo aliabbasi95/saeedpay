@@ -1,0 +1,80 @@
+services:
+  db:
+    image: public.ecr.aws/docker/library/postgres:16
+    container_name: saeedpay-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: saeedpay
+    volumes: [ pgdata_dev:/var/lib/postgresql/data ]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d saeedpay" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: public.ecr.aws/docker/library/redis:7
+    container_name: saeedpay-redis
+    volumes: [ redisdata_dev:/data ]
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saeedpay-web
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports: [ "8000:8000" ]
+    command: [ "bash", "docker/cmd-web.sh" ]
+    volumes: [ .:/app ]
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://localhost:8000/saeedpay/readyz || exit 1" ]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saeedpay-worker
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: [ "bash", "docker/cmd-celery-worker.sh" ]
+    volumes: [ .:/app ]
+    environment:
+      DJANGO_MIGRATE: "0"
+
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saeedpay-beat
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: [ "bash", "docker/cmd-celery-beat.sh" ]
+    volumes: [ .:/app ]
+    environment:
+      DJANGO_MIGRATE: "0"
+
+volumes:
+  pgdata_dev:
+  redisdata_dev:

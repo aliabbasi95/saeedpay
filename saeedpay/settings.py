@@ -64,8 +64,15 @@ LOCAL_APPS = [
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS
 
+if DEBUG:
+    INSTALLED_APPS = ["whitenoise.runserver_nostatic", *INSTALLED_APPS]
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_AUTOREFRESH = True
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -214,10 +221,15 @@ def spectacular_preprocess_hook(endpoints):
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaeedPay API",
-    "DESCRIPTION": "مستندات احراز هویت کاربران (مشتری، فروشگاه)",
     "VERSION": "1.0.0",
-    "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_PUBLIC": True,
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "SERVE_AUTHENTICATION": [],
     "SECURITY": [{"PublicAuth": []}],
+    "SWAGGER_UI_SETTINGS": {
+        "persistAuthorization": True,
+        "deepLinking": True,
+    },
     "COMPONENT_SPLIT_REQUEST": True,
     "COMPONENTS": {
         "securitySchemes": {
@@ -238,15 +250,7 @@ REDIS_PORT = 6379
 REDIS_BROKER_DB = int(os.getenv("REDIS_BROKER_DB", "0"))
 REDIS_BACKEND_DB = int(os.getenv("REDIS_BACKEND_DB", "1"))
 
-
-def _redis_url(db: int) -> str:
-    pwd = f":{REDIS_PASSWORD}@" if REDIS_PASSWORD else ""
-    return f"redis://{pwd}{REDIS_HOST}:{REDIS_PORT}/{db}"
-
-
 # Celery
-CELERY_BROKER_URL = _redis_url(REDIS_BROKER_DB)
-CELERY_RESULT_BACKEND = _redis_url(REDIS_BACKEND_DB)
 
 CELERY_TIMEZONE = "Asia/Tehran"
 CELERY_ENABLE_UTC = True
@@ -294,10 +298,10 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-# reCAPTCHA Configuration
-RECAPTCHA_SECRET_KEY = os.getenv(
-    'RECAPTCHA_SECRET_KEY', '6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs'
-)
 RECAPTCHA_V3 = False  # Set to False for reCAPTCHA v2
 RECAPTCHA_V3_THRESHOLD = 0.5  # Score threshold for v3 (ignored when v2)
 RECAPTCHA_ACTION = "submit"  # Default action name for v3 (ignored when v2)
+
+# chatbot config
+CHATBOT_HISTORY_LIMIT = 4
+CHATBOT_SESSION_LIMIT = 2

@@ -1,36 +1,18 @@
-# Django and core dependencies
-Django>=4.2,<5.0
-djangorestframework
-djangorestframework-simplejwt
-django-cors-headers
-dj-database-url
-psycopg2-binary
-
-# Celery and Redis
-celery
-redis
-django-celery-beat
-
-# Admin enhancements
-django-admin-listfilter-dropdown
-django-admin-searchable-dropdown
-django-import-export
-
-# UI and content
 sweetify
 django-tinymce
+django_filter
 
-# API documentation
-drf-spectacular
-
-# Authentication and security
 pyotp
-
-# Testing
+drf-spectacular
 pytest
 pytest-django
 pytest-mock
 freezegun
+
+dj-database-url
+
+python-dotenv
+whitenoise
 
 # Utilities
 Faker
