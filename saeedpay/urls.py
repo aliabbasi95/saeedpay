@@ -44,6 +44,7 @@ api_urlpatterns = [
     path("api/blogs/", include("blogs.api.urls")),
     path("api/customers/", include("customers.api.urls")),
     path("api/contact/", include("contact.api.urls")),
+    path("api/kyc/", include("kyc.api.urls")),
 ]
 
 schema_urlpatterns = [

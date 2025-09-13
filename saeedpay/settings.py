@@ -60,6 +60,7 @@ LOCAL_APPS = [
     "credit",
     "blogs",
     "contact",
+    "kyc",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS
