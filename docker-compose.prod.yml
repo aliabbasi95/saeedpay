@@ -34,6 +34,18 @@ services:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
 
+  init_static:
+    image: ${YOUR_WEB_IMAGE:-saeedpay-web}
+    env_file: .env.prod
+    user: root
+    entrypoint: [ "bash", "-c" ]
+    command: "mkdir -p /app/staticfiles && chown -R 1000:1000 /app/staticfiles"
+    volumes:
+      - staticfiles_prod:/app/staticfiles
+    deploy:
+      restart_policy:
+        condition: none
+
   web:
     build: { context: ., dockerfile: Dockerfile, target: runtime }
     container_name: saeedpay-web
@@ -41,8 +53,13 @@ services:
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
+      init_static: { condition: service_completed_successfully }
+    volumes:
+      - staticfiles_prod:/app/staticfiles
     ports: [ "8000:8000" ]
-    command: [ "bash", "docker/cmd-web.sh" ]
+    command: [ "bash", "-c",
+               "mkdir -p /app/staticfiles && chown -R 1000:1000 /app/staticfiles || true && exec bash docker/cmd-web.sh"
+    ]
     healthcheck:
       test: [ "CMD-SHELL", "curl -fsS http://localhost:8000/saeedpay/readyz || exit 1" ]
       interval: 15s
@@ -88,3 +105,4 @@ services:
 volumes:
   pgdata_prod:
   redisdata_prod:
+  staticfiles_prod:
