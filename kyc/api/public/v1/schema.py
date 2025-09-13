@@ -1,0 +1,1 @@
+# KYC API schema definitions
