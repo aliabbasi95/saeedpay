@@ -4,6 +4,7 @@ import random
 
 from django.contrib.auth import get_user_model
 from django.db import models, IntegrityError
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
@@ -84,3 +85,9 @@ class Wallet(BaseModel):
         unique_together = ("user", "owner_type", "kind")
         verbose_name = _("کیف پول")
         verbose_name_plural = _("کیف پول‌ها")
+        constraints = [
+            models.CheckConstraint(
+                name="balance_non_negative_for_cash_like",
+                check=(~Q(kind__in=["cash", "cashback"])) | Q(balance__gte=0),
+            ),
+        ]

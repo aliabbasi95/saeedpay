@@ -17,6 +17,7 @@ from wallets.services.payment import (
 )
 from wallets.utils.choices import OwnerType
 
+
 @extend_schema(
     responses=PaymentRequestDetailSerializer,
     tags=["Wallet · Payment Requests"],
@@ -64,6 +65,7 @@ class PaymentRequestDetailView(PublicGetAPIView):
         self.response_status = status.HTTP_200_OK
 
         return self.response
+
 
 @extend_schema(
     request=PaymentConfirmSerializer,

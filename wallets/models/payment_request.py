@@ -7,9 +7,9 @@ from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
 from store.models import Store
+from utils.reference import generate_reference_code
 from wallets.models.wallet import Wallet
 from wallets.utils.choices import PaymentRequestStatus
-from utils.reference import generate_reference_code
 
 
 class PaymentRequest(BaseModel):
@@ -32,6 +32,13 @@ class PaymentRequest(BaseModel):
         null=True,
         blank=True,
         verbose_name="کد پیگیری"
+    )
+    external_guid = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        verbose_name=_("شناسه بیرونی (external_guid)"),
+        help_text=_("شناسهٔ یکتا از سمت فروشگاه/سیستم بیرونی")
     )
     amount = models.BigIntegerField(
         verbose_name=_("مبلغ")
@@ -112,3 +119,21 @@ class PaymentRequest(BaseModel):
     class Meta:
         verbose_name = _("درخواست پرداخت")
         verbose_name_plural = _("درخواست‌های پرداخت")
+        indexes = [
+            models.Index(fields=["status"], name="pr_status_idx"),
+            models.Index(fields=["expires_at"], name="pr_expires_idx"),
+            models.Index(
+                fields=["store", "status"], name="pr_store_status_idx"
+                ),
+            models.Index(fields=["reference_code"], name="pr_ref_idx"),
+            models.Index(
+                fields=["store", "external_guid"], name="pr_store_ext_idx"
+                ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["store", "external_guid"],
+                name="uniq_store_external_guid",
+                condition=models.Q(external_guid__isnull=False),
+            ),
+        ]

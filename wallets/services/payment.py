@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_payment_request(
-        store, amount, return_url, description=""
+        store, amount, return_url, description="", external_guid=None
 ):
     expires_at = timezone.now() + timedelta(minutes=10)
     req = PaymentRequest.objects.create(
@@ -24,6 +24,7 @@ def create_payment_request(
         status=PaymentRequestStatus.CREATED,
         description=description,
         return_url=return_url,
+        external_guid=external_guid,
     )
     return req
 
@@ -38,15 +39,29 @@ def pay_payment_request(request_obj, user, wallet: Wallet):
         raise Exception("این درخواست منقضی شده است.")
 
     with transaction.atomic():
-        if wallet.available_balance < request_obj.amount:
-            raise Exception("موجودی کافی نیست.")
-        escrow_wallet = Wallet.objects.get(
+        wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
+        escrow_wallet = Wallet.objects.select_for_update().get(
             user__username=ESCROW_USER_NAME, kind=ESCROW_WALLET_KIND
         )
-        wallet.balance -= request_obj.amount
-        wallet.save()
+
+        if wallet.kind == "credit":
+            from credit.models.credit_limit import CreditLimit
+            cl = CreditLimit.objects.get_user_credit_limit(user)
+            if not cl or not cl.is_active or cl.expiry_date <= timezone.localdate():
+                raise Exception("اعتبار فعال یافت نشد یا منقضی شده است.")
+            if int(cl.available_limit) < int(request_obj.amount):
+                raise Exception("اعتبار کافی نیست.")
+            wallet.balance -= request_obj.amount
+            wallet.save(update_fields=["balance"])
+        else:
+            if wallet.available_balance < request_obj.amount:
+                raise Exception("موجودی کافی نیست.")
+            wallet.balance -= request_obj.amount
+            wallet.save(update_fields=["balance"])
+
         escrow_wallet.balance += request_obj.amount
-        escrow_wallet.save()
+        escrow_wallet.save(update_fields=["balance"])
+
         txn = Transaction.objects.create(
             from_wallet=wallet,
             to_wallet=escrow_wallet,
@@ -55,11 +70,14 @@ def pay_payment_request(request_obj, user, wallet: Wallet):
             status=TransactionStatus.PENDING,
             description="انتقال به Escrow برای پرداخت"
         )
+
         request_obj.paid_by = user
         request_obj.paid_wallet = wallet
         request_obj.paid_at = timezone.now()
         request_obj.status = PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
-        request_obj.save()
+        request_obj.save(
+            update_fields=["paid_by", "paid_wallet", "paid_at", "status"]
+        )
 
     return txn
 
@@ -79,16 +97,19 @@ def verify_payment_request(payment_request):
         raise ValidationError(
             "پرداخت قابل نهایی‌سازی نیست یا قبلاً تایید شده است."
         )
+
     with transaction.atomic():
-        txn = Transaction.objects.filter(
+        txn = Transaction.objects.select_for_update().filter(
             payment_request=payment_request, status=TransactionStatus.PENDING
         ).first()
         if not txn:
             raise ValidationError("تراکنش مرتبط با این پرداخت یافت نشد.")
 
-        escrow_wallet = txn.to_wallet
+        escrow_wallet = Wallet.objects.select_for_update().get(
+            pk=txn.to_wallet_id
+        )
         try:
-            merchant_wallet = Wallet.objects.get(
+            merchant_wallet = Wallet.objects.select_for_update().get(
                 user=payment_request.store.merchant.user,
                 kind="merchant_gateway",
                 owner_type="merchant"
@@ -112,15 +133,23 @@ def verify_payment_request(payment_request):
 
         escrow_wallet.balance -= payment_request.amount
         merchant_wallet.balance += payment_request.amount
-        escrow_wallet.save()
-        merchant_wallet.save()
+        escrow_wallet.save(update_fields=["balance"])
+        merchant_wallet.save(update_fields=["balance"])
 
         txn.status = TransactionStatus.SUCCESS
         txn.description = ""
         txn.to_wallet = merchant_wallet
-        txn.save()
+        txn.save(update_fields=["status", "description", "to_wallet"])
+
+        if txn.from_wallet.kind == "credit":
+            from credit.services.use_cases import StatementUseCases
+            StatementUseCases.record_successful_purchase_from_transaction(
+                txn.id,
+                description=f"Purchase PR {payment_request.reference_code}"
+            )
 
         payment_request.mark_completed()
+
     return payment_request
 
 

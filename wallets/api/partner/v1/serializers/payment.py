@@ -2,6 +2,7 @@
 
 from rest_framework import serializers
 
+from wallets.models import PaymentRequest
 from wallets.utils.validators import https_only_validator
 
 
@@ -13,6 +14,34 @@ class PaymentRequestCreateSerializer(serializers.Serializer):
     description = serializers.CharField(
         required=False, allow_blank=True, max_length=255
     )
+    external_guid = serializers.CharField(
+        required=False, allow_blank=False, max_length=64
+    )
+
+
+class PaymentRequestPartnerDetailSerializer(serializers.ModelSerializer):
+    store_id = serializers.IntegerField(source="store.id", read_only=True)
+    store_name = serializers.CharField(source="store.name", read_only=True)
+
+    class Meta:
+        model = PaymentRequest
+        fields = [
+            "reference_code",
+            "external_guid",
+            "amount",
+            "description",
+            "status",
+            "expires_at",
+            "paid_at",
+            "paid_by",
+            "paid_wallet",
+            "store_id",
+            "store_name",
+            "return_url",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
 
 
 class PaymentVerifyResponseSerializer(serializers.Serializer):
