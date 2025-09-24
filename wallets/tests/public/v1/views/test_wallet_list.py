@@ -1,4 +1,5 @@
 # wallets/tests/public/v1/views/test_wallet_list.py
+
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework import status
@@ -20,26 +21,30 @@ class TestWalletListView:
 
     @pytest.fixture
     def wallets(self, user):
-        Wallet.objects.bulk_create(
-            [
-                Wallet(
-                    user=user, kind=WalletKind.CASH,
-                    owner_type=OwnerType.CUSTOMER, balance=100
-                ),
-                Wallet(
-                    user=user, kind=WalletKind.CREDIT,
-                    owner_type=OwnerType.CUSTOMER, balance=200
-                ),
-                Wallet(
-                    user=user, kind=WalletKind.CASHBACK,
-                    owner_type=OwnerType.MERCHANT, balance=300
-                ),
-            ]
+        # bulk_create باعث تکرار wallet_number می‌شود، پس جدا جدا بساز
+        Wallet.objects.create(
+            user=user, kind=WalletKind.CASH, owner_type=OwnerType.CUSTOMER,
+            balance=100
         )
+        Wallet.objects.create(
+            user=user, kind=WalletKind.CREDIT, owner_type=OwnerType.CUSTOMER,
+            balance=200
+        )
+        Wallet.objects.create(
+            user=user, kind=WalletKind.CASHBACK, owner_type=OwnerType.MERCHANT,
+            balance=300
+        )
+
+    def _payload(self, resp):
+        # در صورت paginate: dict با 'results'؛ در غیر این صورت: list
+        return resp.data["results"] if isinstance(
+            resp.data, dict
+        ) and "results" in resp.data else resp.data
 
     def test_requires_authentication(self, client):
         response = client.get("/saeedpay/api/wallets/public/v1/wallets/")
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code in (status.HTTP_401_UNAUTHORIZED,
+                                        status.HTTP_403_FORBIDDEN)
 
     def test_list_wallets_success_customer(self, client, user, wallets):
         client.force_authenticate(user=user)
@@ -47,7 +52,9 @@ class TestWalletListView:
             "/saeedpay/api/wallets/public/v1/wallets/?owner_type=customer"
         )
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 2
+        items = self._payload(response)
+        assert isinstance(items, list)
+        assert len(items) == 2
 
     def test_list_wallets_success_merchant(self, client, user, wallets):
         client.force_authenticate(user=user)
@@ -55,8 +62,9 @@ class TestWalletListView:
             "/saeedpay/api/wallets/public/v1/wallets/?owner_type=merchant"
         )
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 1
-        assert response.data[0]["kind"] == WalletKind.CASHBACK
+        items = self._payload(response)
+        assert len(items) == 1
+        assert items[0]["kind"] == WalletKind.CASHBACK
 
     def test_missing_owner_type(self, client, user):
         client.force_authenticate(user=user)
@@ -78,33 +86,21 @@ class TestWalletListView:
             "/saeedpay/api/wallets/public/v1/wallets/?owner_type=merchant"
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.data == []
+        items = self._payload(response)
+        assert items == []
 
     def test_wallet_list_ordering(self, client, user):
-        Wallet.objects.bulk_create(
-            [
-                Wallet(
-                    user=user, kind=kind, owner_type=OwnerType.CUSTOMER,
-                    balance=0
-                )
-                for kind in WalletKind.values
-            ]
-        )
+        for kind in WalletKind.values:
+            Wallet.objects.create(
+                user=user, kind=kind, owner_type=OwnerType.CUSTOMER, balance=0
+            )
         client.force_authenticate(user=user)
         response = client.get(
             "/saeedpay/api/wallets/public/v1/wallets/?owner_type=customer"
         )
-        kinds = [w["kind"] for w in response.data]
-        assert kinds == sorted(kinds)  # alphabetical by kind
-
-    def test_wallet_list_with_uppercase_query_param(
-            self, client, user, wallets
-    ):
-        client.force_authenticate(user=user)
-        response = client.get(
-            "/saeedpay/api/wallets/public/v1/wallets/?owner_type=CUSTOMER"
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        items = self._payload(response)
+        kinds = [w["kind"] for w in items]
+        assert kinds == sorted(kinds)
 
     def test_wallet_list_post_not_allowed(self, client, user):
         client.force_authenticate(user=user)

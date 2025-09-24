@@ -1,8 +1,8 @@
 # wallets/api/public/v1/views/payment.py
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
-from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from lib.cas_auth.views import PublicAPIView, PublicGetAPIView
 from wallets.api.public.v1.serializers import (
@@ -29,10 +29,11 @@ class PaymentRequestDetailView(PublicGetAPIView):
     serializer_class = PaymentRequestDetailSerializer
 
     def get(self, request, reference_code):
-        payment_req = PaymentRequest.objects.filter(
-            reference_code=reference_code
-        ).first()
-        if not payment_req:
+        try:
+            payment_req = PaymentRequest.objects.get(
+                reference_code=reference_code
+            )
+        except PaymentRequest.DoesNotExist:
             self.response_data = {"detail": "درخواست پرداخت پیدا نشد."}
             self.response_status = status.HTTP_404_NOT_FOUND
             return self.response
@@ -78,10 +79,11 @@ class PaymentConfirmView(PublicAPIView):
     serializer_class = PaymentConfirmSerializer
 
     def post(self, request, reference_code):
-        payment_request = PaymentRequest.objects.get(
-            reference_code=reference_code
-        )
-        if not payment_request:
+        try:
+            payment_request = PaymentRequest.objects.get(
+                reference_code=reference_code
+            )
+        except PaymentRequest.DoesNotExist:
             self.response_data = {"detail": "درخواست پرداخت پیدا نشد."}
             self.response_status = status.HTTP_404_NOT_FOUND
             return self.response
@@ -102,7 +104,14 @@ class PaymentConfirmView(PublicAPIView):
             }
             self.response_status = status.HTTP_400_BAD_REQUEST
             return self.response
-        wallet = Wallet.objects.get(id=wallet_id, user=self.request.user)
+        try:
+            wallet = Wallet.objects.get(id=wallet_id, user=self.request.user)
+        except Wallet.DoesNotExist:
+            self.response_data = {
+                "detail": "کیف پول پیدا نشد یا متعلق به شما نیست."
+            }
+            self.response_status = status.HTTP_400_BAD_REQUEST
+            return self.response
         try:
             txn = pay_payment_request(
                 payment_request, self.request.user, wallet

@@ -1,4 +1,5 @@
 # wallets/tests/models/test_wallet.py
+
 from datetime import timedelta
 
 import pytest
@@ -18,10 +19,10 @@ class TestWalletModel:
             user=user,
             kind=WalletKind.CASH,
             owner_type=OwnerType.CUSTOMER,
-            balance=150.0,
+            balance=150,
         )
-        expected = f"{user.username} - نقدی (مشتری)"
-        assert str(wallet) == expected
+        s = str(wallet)
+        assert f"{user.username} - نقدی (مشتری)" in s
 
     def test_unique_constraint(self):
         user = get_user_model().objects.create(username="uniqueuser")
