@@ -41,7 +41,6 @@ logger = logging.getLogger(__name__)
 class CreditLimitListView(generics.ListAPIView):
     """List all credit limits for the authenticated user, newest first. Unpaginated by design."""
     serializer_class = CreditLimitSerializer
-    permission_classes = [IsAuthenticated]
     pagination_class = None
 
     def get_queryset(self):
@@ -55,7 +54,6 @@ class CreditLimitListView(generics.ListAPIView):
 @credit_limit_detail_schema
 class CreditLimitDetailView(generics.RetrieveAPIView):
     serializer_class = CreditLimitSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return CreditLimit.objects.filter(user=self.request.user)
@@ -67,7 +65,6 @@ class CreditLimitDetailView(generics.RetrieveAPIView):
 class StatementListView(generics.ListAPIView):
     """Paginated list of user's statements, ordered by year, month, then creation (desc)."""
     serializer_class = StatementListSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return (
@@ -80,7 +77,6 @@ class StatementListView(generics.ListAPIView):
 @statement_detail_schema
 class StatementDetailView(generics.RetrieveAPIView):
     serializer_class = StatementDetailSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return (
@@ -96,7 +92,6 @@ class StatementDetailView(generics.RetrieveAPIView):
 class StatementLineListView(generics.ListAPIView):
     """Paginated list of user's statement lines; optionally filterable by ?statement_id=..."""
     serializer_class = StatementLineSerializer
-    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         qs = (
@@ -119,7 +114,6 @@ class StatementLineListView(generics.ListAPIView):
 # ---------- Transactions on Statements ----------
 
 class AddPurchaseView(APIView):
-    permission_classes = [IsAuthenticated]
 
     @add_purchase_schema
     def post(self, request):
@@ -165,7 +159,6 @@ class AddPurchaseView(APIView):
 
 
 class AddPaymentView(APIView):
-    permission_classes = [IsAuthenticated]
 
     @add_payment_schema
     def post(self, request):

@@ -1,9 +1,11 @@
 # wallets/api/partner/v1/views/payment.py
 
 from django.conf import settings
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.generics import RetrieveAPIView
 
 from lib.cas_auth.views import PublicAPIView
 from merchants.permissions import IsMerchant
@@ -18,6 +20,7 @@ from wallets.services.payment import (
     create_payment_request,
     verify_payment_request,
 )
+from wallets.utils.choices import PaymentRequestStatus
 from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
 
 
@@ -64,22 +67,28 @@ class PaymentRequestCreateView(PublicAPIView):
     summary="جزییات درخواست پرداخت (سمت فروشگاه)",
     description="بازیابی اطلاعات کامل درخواست پرداخت با reference_code از سمت فروشگاه"
 )
-class PaymentRequestRetrieveView(PublicAPIView):
+class PaymentRequestRetrieveView(RetrieveAPIView):
     authentication_classes = [StoreApiKeyAuthentication]
     permission_classes = [IsMerchant]
     serializer_class = PaymentRequestPartnerDetailSerializer
+    lookup_field = "reference_code"
 
-    def get(self, request, reference_code):
-        pr = PaymentRequest.objects.filter(
-            reference_code=reference_code, store=request.store
-        ).first()
-        if not pr:
-            self.response_data = {"detail": "درخواست پرداخت پیدا نشد."}
-            self.response_status = status.HTTP_404_NOT_FOUND
-            return self.response
-        self.response_data = self.serializer_class(pr).data
-        self.response_status = status.HTTP_200_OK
-        return self.response
+    def get_queryset(self):
+        return (
+            PaymentRequest.objects
+            .select_related("store", "paid_by", "paid_wallet")
+            .filter(store=self.request.store)
+        )
+
+    def get_object(self):
+        obj = super().get_object()
+        if obj.expires_at and obj.status not in (
+                PaymentRequestStatus.EXPIRED, PaymentRequestStatus.CANCELLED,
+                PaymentRequestStatus.COMPLETED
+        ):
+            if obj.expires_at < timezone.localtime(timezone.now()):
+                obj.mark_expired()
+        return obj
 
 
 @extend_schema(
