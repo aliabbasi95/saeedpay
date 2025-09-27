@@ -1,6 +1,9 @@
 # auth_api/tests/public/v1/views/test_reset_password.py
+
 import pytest
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
@@ -15,6 +18,10 @@ class TestResetPasswordView(APITestCase):
 
     def setUp(self):
         self.client = APIClient()
+        cache.clear()
+        settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"][
+            "otp_by_phone"] = "1000/hour"
+
         self.user = get_user_model().objects.create(
             username="09123456789"
         )
@@ -132,4 +139,4 @@ class TestResetPasswordView(APITestCase):
         assert "phone_number" in response.data
         assert "code" in response.data
         assert "new_password" in response.data
-        assert "confirm_password" in response.data 
+        assert "confirm_password" in response.data

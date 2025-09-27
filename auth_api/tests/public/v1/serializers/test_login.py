@@ -76,7 +76,12 @@ class TestLoginSerializer:
         user = self.create_user("09121111111", "TestPass123!")
         serializer = LoginSerializer()
         output = serializer.to_representation(user)
-        assert output["roles"] == []
-        assert output["phone_number"] == "09121111111"
-        assert "access" in output
-        assert "refresh" in output
+        assert set(output.keys()) == {
+            "user_id",
+            "phone_number",
+            "roles",
+            "first_name",
+            "last_name"
+        }
+
+        assert "access" not in output and "refresh" not in output

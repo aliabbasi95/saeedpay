@@ -195,6 +195,7 @@ logger = logging.getLogger(__name__)
 class BankCardViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     lookup_field = "id"
+    pagination_class = None
 
     def get_queryset(self):
         return BankCard.objects.filter(user=self.request.user, is_active=True)
@@ -221,7 +222,6 @@ class BankCardViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         instance = serializer.save()
         bank_card_service.enqueue_validation_if_pending(None, instance)
-
 
     def perform_update(self, serializer):
         old_status = serializer.instance.status

@@ -1,4 +1,5 @@
 # auth_api/tests/public/v1/views/test_login.py
+
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework import status
@@ -32,6 +33,7 @@ class TestLoginView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["user_id"] == user.id
         assert "access" in response.data
+        assert "sp_refresh" in response.cookies
 
     def test_wrong_password(self):
         self.create_user("09123456789", "CorrectPassword")
@@ -98,7 +100,6 @@ class TestLoginView:
                 "phone_number": "09301234567",
                 "password": "MyPass123!"
             }
-            )
+        )
         token = response.data["access"]
         assert len(token.split(".")) == 3
-

@@ -1,4 +1,5 @@
 # auth_api/tests/public/v1/views/test_register_merchant.py
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -37,7 +38,7 @@ class TestRegisterMerchantView:
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
         assert res.status_code == status.HTTP_201_CREATED
         assert "access" in res.data
-        assert "refresh" in res.data
+        assert "sp_refresh" in res.cookies
         assert res.data["phone_number"] == "09121110000"
         assert "merchant" in res.data["roles"]
         assert Merchant.objects.filter(user__username="09121110000").exists()

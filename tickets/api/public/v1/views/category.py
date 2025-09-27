@@ -29,6 +29,7 @@ class TicketCategoryViewSet(
 ):
     queryset = TicketCategory.objects.all().order_by("id")
     permission_classes = [AllowAny]
+    pagination_class = None
 
     def get_serializer_class(self):
         if self.action == "list":

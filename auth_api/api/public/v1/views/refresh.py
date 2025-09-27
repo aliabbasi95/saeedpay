@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import TokenError
 
-from auth_api.tokens import CustomRefreshToken  # مهم
+from auth_api.tokens import CustomRefreshToken
 from auth_api.utils.cookies import set_refresh_cookie
 from lib.cas_auth.views import PublicAPIView
 
@@ -23,7 +23,7 @@ MAX_SESSION_LIFETIME = getattr(
     request=None,
     responses={
         200: OpenApiResponse(description="New access token issued."),
-        401: OpenApiResponse(description="Session expired or token invalid."),
+        401: OpenApiResponse(description="Session expired or token invalid.")
     },
     tags=["Authentication"]
 )
@@ -39,50 +39,65 @@ class TokenRefreshView(PublicAPIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
+        def _unauth(detail):
+            resp = Response(
+                {"detail": detail}, status=status.HTTP_401_UNAUTHORIZED
+            )
+            resp.delete_cookie(cookie_name, path="/")
+            return resp
+
         try:
             old_refresh = CustomRefreshToken(refresh_str)
+
+            try:
+                old_refresh.check_blacklist()
+            except TokenError:
+                return _unauth("رفرش‌توکن نامعتبر یا بلاک شده است.")
+
             orig_iat = old_refresh.payload.get("orig_iat")
             if orig_iat is None:
-                return Response(
-                    {"detail": "اطلاعات شروع نشست موجود نیست."},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-
+                return _unauth("اطلاعات شروع نشست موجود نیست.")
             session_start = datetime.fromtimestamp(orig_iat, tz=timezone.utc)
             if datetime.now(
                     tz=timezone.utc
             ) - session_start > MAX_SESSION_LIFETIME:
-                return Response(
-                    {"detail": "طول عمر نشست تمام شده است. دوباره وارد شوید."},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
+                return _unauth("طول عمر نشست تمام شده است. دوباره وارد شوید.")
 
             user_id = old_refresh.payload.get("user_id")
             if not user_id:
-                return Response(
-                    {"detail": "user_id در توکن یافت نشد."},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
-
+                return _unauth("user_id در توکن یافت نشد.")
             User = get_user_model()
             try:
                 user = User.objects.get(id=user_id)
             except User.DoesNotExist:
-                return Response(
-                    {"detail": "کاربر مربوط به توکن یافت نشد."},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
+                return _unauth("کاربر مربوط به توکن یافت نشد.")
 
-            old_refresh.blacklist()
+            issued_is_active = bool(
+                old_refresh.payload.get(
+                    "is_active_at_issue",
+                    old_refresh.payload.get(
+                        "is_active",
+                        old_refresh.payload.get("active", True)
+                    )
+                )
+            )
+            if issued_is_active and not user.is_active:
+                try:
+                    old_refresh.blacklist()
+                except Exception:
+                    pass
+                return _unauth("حساب کاربری غیرفعال است.")
+
+            try:
+                old_refresh.blacklist()
+            except Exception:
+                pass
 
             new_refresh = CustomRefreshToken.for_user(user)
             access = str(new_refresh.access_token)
 
         except TokenError:
-            return Response(
-                {"detail": "رفرش‌توکن نامعتبر یا منقضی است."},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return _unauth("رفرش‌توکن نامعتبر یا منقضی است.")
         except Exception:
             return Response(
                 {"detail": "خطا در پردازش توکن."},

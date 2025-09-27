@@ -24,7 +24,7 @@ from utils.recaptcha import ReCaptchaMixin
 
 
 @comment_viewset_schema
-class CommentViewSet(ReCaptchaMixin, viewsets.ModelViewSet):
+class CommentViewSet(viewsets.ModelViewSet):
     """
     ViewSet for comments with moderation support.
     - List supports filtering by article and reply_to.

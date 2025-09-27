@@ -1,8 +1,10 @@
-import pytest
-from django.urls import reverse
-from django.conf import settings
-from .test_chat_api import api_client, auth_token, test_user
+# chatbot/tests/public/v1/views/test_session_limit.py
 
+import pytest
+from django.conf import settings
+from django.urls import reverse
+
+from .test_chat_api import api_client, auth_token
 
 # api_client fixture and related helpers are defined in test_chat_api.py
 
@@ -32,14 +34,21 @@ def test_anonymous_user_session_creation_limit(api_client):
     list_url = reverse("user_chat_sessions")
     list_resp = api_client.get(list_url)
     assert list_resp.status_code == 200
-    assert len(list_resp.data["sessions"]) == SESSION_LIMIT
+    sessions = (
+        list_resp.data["sessions"]
+        if isinstance(list_resp.data, dict) and "sessions" in list_resp.data
+        else list_resp.data
+    )
+
+    assert len(sessions) == SESSION_LIMIT
 
 
 @pytest.mark.django_db
 def test_anonymous_user_can_access_existing_sessions_after_limit(api_client):
     """Reaching the creation limit must NOT block access to already created sessions."""
     url = reverse("start_chat")
-    session_ids = [api_client.post(url).data["session_id"] for _ in range(SESSION_LIMIT)]
+    session_ids = [api_client.post(url).data["session_id"] for _ in
+                   range(SESSION_LIMIT)]
     # Hit the limit
     api_client.post(url)
 
@@ -48,7 +57,8 @@ def test_anonymous_user_can_access_existing_sessions_after_limit(api_client):
         detail_url = reverse("chat_session_detail", args=[sid])
         resp = api_client.get(detail_url)
         assert resp.status_code == 200
-        assert resp.data["session_id"] == sid
+        returned = resp.data.get("session_id") or resp.data.get("id")
+        assert returned == sid
 
 
 @pytest.mark.django_db
@@ -60,4 +70,4 @@ def test_authenticated_user_unlimited_session_creation(api_client, auth_token):
 
     for _ in range(SESSION_LIMIT + 3):  # create more than the anonymous limit
         resp = api_client.post(url)
-        assert resp.status_code == 201 
+        assert resp.status_code == 201

@@ -1,7 +1,9 @@
 # wallets/tests/public/v1/views/test_wallet_list.py
 
 import pytest
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -11,6 +13,15 @@ from wallets.utils.choices import OwnerType, WalletKind
 
 @pytest.mark.django_db
 class TestWalletListView:
+    @pytest.fixture(autouse=True)
+    def _no_throttle(self):
+        cache.clear()
+
+        settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"][
+            "anon"] = "100000/hour"
+        settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"][
+            "user"] = "100000/hour"
+
     @pytest.fixture
     def client(self):
         return APIClient()
@@ -21,7 +32,6 @@ class TestWalletListView:
 
     @pytest.fixture
     def wallets(self, user):
-        # bulk_create باعث تکرار wallet_number می‌شود، پس جدا جدا بساز
         Wallet.objects.create(
             user=user, kind=WalletKind.CASH, owner_type=OwnerType.CUSTOMER,
             balance=100
@@ -36,7 +46,6 @@ class TestWalletListView:
         )
 
     def _payload(self, resp):
-        # در صورت paginate: dict با 'results'؛ در غیر این صورت: list
         return resp.data["results"] if isinstance(
             resp.data, dict
         ) and "results" in resp.data else resp.data
