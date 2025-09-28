@@ -1,5 +1,5 @@
 # store/api/public/v1/serializers/store.py
-
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from store.models import Store
@@ -19,7 +19,6 @@ class StoreSerializer(serializers.ModelSerializer):
             "longitude",
             "latitude",
             "website_url",
-            "status",
             "status_display",
             "logo",
             "rating",
@@ -35,6 +34,7 @@ class StoreSerializer(serializers.ModelSerializer):
             "verification_time",
         ]
 
+    @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_rating(self, obj):
         """Calculate average rating from store comments, default to 75% if no comments"""
         from django.db.models import Avg
@@ -104,6 +104,7 @@ class PublicStoreSerializer(serializers.ModelSerializer):
             "rating",
         ]
 
+    @extend_schema_field(serializers.FloatField(allow_null=True))
     def get_rating(self, obj):
         """Calculate average rating from store comments, default to 75% if no comments"""
         from django.db.models import Avg

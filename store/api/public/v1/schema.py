@@ -1,11 +1,17 @@
 # store/api/public/v1/schema.py
 
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiExample, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    extend_schema, OpenApiResponse,
+    OpenApiExample, OpenApiParameter,
+)
 from drf_spectacular.openapi import AutoSchema
 from rest_framework import status
 
-from .serializers import StoreSerializer, StoreCreateSerializer, PublicStoreSerializer
-
+from .serializers import (
+    StoreSerializer, StoreCreateSerializer,
+    PublicStoreSerializer,
+)
 
 # Store Management Schemas (Owner/Merchant)
 store_list_schema = extend_schema(
@@ -84,7 +90,9 @@ store_update_schema = extend_schema(
         400: OpenApiResponse(description="داده‌های ورودی نامعتبر"),
         404: OpenApiResponse(description="فروشگاه یافت نشد"),
         401: OpenApiResponse(description="احراز هویت نشده"),
-        403: OpenApiResponse(description="دسترسی مجاز نیست یا فروشگاه قابل ویرایش نیست"),
+        403: OpenApiResponse(
+            description="دسترسی مجاز نیست یا فروشگاه قابل ویرایش نیست"
+        ),
     },
     examples=[
         OpenApiExample(
@@ -116,7 +124,6 @@ store_delete_schema = extend_schema(
     },
     tags=["Store · Management"]
 )
-
 
 # Public Store Schemas
 public_store_list_schema = extend_schema(
@@ -187,4 +194,57 @@ public_store_retrieve_schema = extend_schema(
         404: OpenApiResponse(description="فروشگاه یافت نشد یا غیرفعال است"),
     },
     tags=["Store · Public"]
+)
+store_update_put_schema = extend_schema(
+    operation_id="store_update",
+    summary="ویرایش فروشگاه (PUT)",
+    description="ویرایش کامل اطلاعات فروشگاه؛ وضعیت به حالت انتظار می‌رود.",
+    request=StoreSerializer,
+    responses={
+        200: OpenApiResponse(
+            response=StoreSerializer, description="فروشگاه با موفقیت ویرایش شد"
+            ),
+        400: OpenApiResponse(description="داده‌های ورودی نامعتبر"),
+        404: OpenApiResponse(description="فروشگاه یافت نشد"),
+        401: OpenApiResponse(description="احراز هویت نشده"),
+        403: OpenApiResponse(
+            description="دسترسی مجاز نیست یا فروشگاه قابل ویرایش نیست"
+            ),
+    },
+    parameters=[
+        OpenApiParameter(
+            name="id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            description="شناسه فروشگاه",  # ← قبلاً اشتباهاً «تیکت» بود
+        ),
+    ],
+    tags=["Store · Management"],
+)
+
+store_partial_update_schema = extend_schema(
+    operation_id="store_partial_update",
+    summary="ویرایش جزیی فروشگاه (PATCH)",
+    description="ویرایش بخشی از اطلاعات فروشگاه؛ وضعیت به حالت انتظار می‌رود.",
+    request=StoreSerializer,
+    responses={
+        200: OpenApiResponse(
+            response=StoreSerializer, description="فروشگاه با موفقیت ویرایش شد"
+            ),
+        400: OpenApiResponse(description="داده‌های ورودی نامعتبر"),
+        404: OpenApiResponse(description="فروشگاه یافت نشد"),
+        401: OpenApiResponse(description="احراز هویت نشده"),
+        403: OpenApiResponse(
+            description="دسترسی مجاز نیست یا فروشگاه قابل ویرایش نیست"
+            ),
+    },
+    parameters=[
+        OpenApiParameter(
+            name="id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            description="شناسه فروشگاه",
+        ),
+    ],
+    tags=["Store · Management"],
 )

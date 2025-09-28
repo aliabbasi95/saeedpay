@@ -9,6 +9,7 @@ from rest_framework.generics import RetrieveAPIView
 
 from lib.cas_auth.views import PublicAPIView
 from merchants.permissions import IsMerchant
+from profiles.models import Profile
 from store.authentication import StoreApiKeyAuthentication
 from wallets.api.partner.v1.serializers import (
     PaymentRequestCreateSerializer,
@@ -38,8 +39,18 @@ class PaymentRequestCreateView(PublicAPIView):
 
     def perform_save(self, serializer):
         store = self.request.store
+        data = serializer.validated_data
+
+        try:
+            profile = Profile.objects.get(national_id=data["national_id"])
+            customer = profile.user.customer
+        except Exception:
+            self.response_data = {"detail": "مشتری با این کد ملی یافت نشد."}
+            self.response_status = status.HTTP_404_NOT_FOUND
+            return
         req = create_payment_request(
             store=store,
+            customer=customer,
             amount=serializer.validated_data["amount"],
             return_url=serializer.validated_data.get("return_url"),
             description=serializer.validated_data.get("description", ""),

@@ -17,6 +17,7 @@ class PaymentRequestCreateSerializer(serializers.Serializer):
     external_guid = serializers.CharField(
         required=False, allow_blank=False, max_length=64
     )
+    national_id = serializers.CharField(max_length=10)
 
 
 class PaymentRequestPartnerDetailSerializer(serializers.ModelSerializer):

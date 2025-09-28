@@ -4,6 +4,7 @@ from .payment import (
     PaymentRequestDetailSerializer,
     PaymentConfirmSerializer,
     PaymentConfirmResponseSerializer,
+    PaymentRequestDetailWithWalletsSerializer,
 )
 from .transfer import (
     WalletTransferCreateSerializer,

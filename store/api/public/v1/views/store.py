@@ -17,10 +17,11 @@ from store.api.public.v1.schema import (
     store_list_schema,
     store_create_schema,
     store_retrieve_schema,
-    store_update_schema,
     store_delete_schema,
     public_store_list_schema,
     public_store_retrieve_schema,
+    store_update_put_schema,
+    store_partial_update_schema,
 )
 from store.api.public.v1.serializers import (
     StoreSerializer,
@@ -34,8 +35,8 @@ from store.models import Store
     list=store_list_schema,
     create=store_create_schema,
     retrieve=store_retrieve_schema,
-    update=store_update_schema,
-    partial_update=store_update_schema,
+    update=store_update_put_schema,
+    partial_update=store_partial_update_schema,
     destroy=store_delete_schema,
 )
 class StoreViewSet(

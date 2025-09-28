@@ -5,6 +5,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from customers.models import Customer
 from lib.erp_base.models import BaseModel
 from store.models import Store
 from utils.reference import generate_reference_code
@@ -19,6 +20,11 @@ class PaymentRequest(BaseModel):
         on_delete=models.CASCADE,
         related_name="payment_requests",
         verbose_name=_("فروشگاه درخواست‌دهنده")
+    )
+    customer = models.ForeignKey(
+        Customer, on_delete=models.CASCADE,
+        related_name="payment_requests",
+        verbose_name=_("مشتری")
     )
     status = models.CharField(
         max_length=32,
@@ -124,11 +130,11 @@ class PaymentRequest(BaseModel):
             models.Index(fields=["expires_at"], name="pr_expires_idx"),
             models.Index(
                 fields=["store", "status"], name="pr_store_status_idx"
-                ),
+            ),
             models.Index(fields=["reference_code"], name="pr_ref_idx"),
             models.Index(
                 fields=["store", "external_guid"], name="pr_store_ext_idx"
-                ),
+            ),
         ]
         constraints = [
             models.UniqueConstraint(

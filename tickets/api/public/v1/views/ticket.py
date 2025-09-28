@@ -10,6 +10,7 @@ from rest_framework.mixins import (
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+from drf_spectacular.utils import extend_schema_view
 
 from lib.cas_auth.erp.pagination import CustomPagination
 from tickets.api.public.v1.schema import (
@@ -40,10 +41,12 @@ class TicketViewSet(
     ordering = ["-id"]
 
     def get_queryset(self):
-        request = self.request
-        return Ticket.objects.filter(user=request.user).select_related(
-            "category"
-        )
+        if getattr(self, "swagger_fake_view", False):
+            return Ticket.objects.none()
+        user = getattr(getattr(self, "request", None), "user", None)
+        if not user or not user.is_authenticated:
+            return Ticket.objects.none()
+        return Ticket.objects.filter(user=user).select_related("category")
 
     def get_serializer_class(self):
         if self.action == "create":

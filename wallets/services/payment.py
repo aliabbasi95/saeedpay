@@ -14,12 +14,13 @@ logger = logging.getLogger(__name__)
 
 
 def create_payment_request(
-        store, amount, return_url, description="", external_guid=None
+        store, amount, return_url, customer, description="", external_guid=None
 ):
     expires_at = timezone.now() + timedelta(minutes=10)
     req = PaymentRequest.objects.create(
         store=store,
         amount=amount,
+        customer=customer,
         expires_at=expires_at,
         status=PaymentRequestStatus.CREATED,
         description=description,

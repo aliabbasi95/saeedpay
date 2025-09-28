@@ -507,32 +507,6 @@ comment_viewset_schema = extend_schema_view(
             401: OpenApiResponse(description="احراز هویت مورد نیاز است"),
         },
     ),
-    store_comments=extend_schema(
-        summary="نظرات فروشگاه",
-        description="دریافت نظرات یک فروشگاه خاص با پاسخ‌ها",
-        tags=["Comments"],
-        parameters=[
-            OpenApiParameter(
-                name="store_id",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="شناسه فروشگاه",
-                required=True,
-                examples=[
-                    OpenApiExample(
-                        "نظرات فروشگاه با ID 1",
-                        value=1,
-                    ),
-                ],
-            ),
-        ],
-        responses={
-            200: OpenApiResponse(
-                description="نظرات فروشگاه با موفقیت دریافت شد"
-            ),
-            400: OpenApiResponse(description="شناسه فروشگاه مورد نیاز است"),
-        },
-    ),
     orphaned_comments=extend_schema(
         summary="نظرات بدون پیوند",
         description="دریافت نظراتی که به هیچ مقاله یا فروشگاهی مرتبط نیستند (هر دو فیلد null هستند)",
