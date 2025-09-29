@@ -71,22 +71,6 @@ class PaymentConfirmResponseSerializer(serializers.Serializer):
 class PaymentRequestDetailWithWalletsSerializer(
     PaymentRequestDetailSerializer
 ):
-    def _can_wallet_pay_full(self, wallet, amount: int) -> bool:
-        if wallet.kind == WalletKind.CREDIT:
-            try:
-                from credit.models.credit_limit import CreditLimit
-                cl = CreditLimit.objects.get_user_credit_limit(wallet.user)
-            except Exception:
-                return False
-            if not cl or not getattr(cl, "is_active", False):
-                return False
-            if getattr(
-                    cl, "expiry_date", None
-            ) and cl.expiry_date <= timezone.localdate():
-                return False
-            return int(getattr(cl, "available_limit", 0) or 0) >= int(amount)
-        return int(getattr(wallet, "available_balance", 0) or 0) >= int(amount)
-
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get("request")
@@ -95,12 +79,17 @@ class PaymentRequestDetailWithWalletsSerializer(
             wallets_qs = Wallet.objects.filter(
                 user=user, owner_type=OwnerType.CUSTOMER
             )
-            eligible = [w for w in wallets_qs if
-                        self._can_wallet_pay_full(w, instance.amount)]
             data["available_wallets"] = WalletSerializer(
-                eligible, many=True
+                wallets_qs, many=True
             ).data
         return data
 
     class Meta(PaymentRequestDetailSerializer.Meta):
         fields = PaymentRequestDetailSerializer.Meta.fields
+
+
+class PaymentRequestListItemSerializer(PaymentRequestDetailSerializer):
+    created_at = serializers.DateTimeField(read_only=True)
+
+    class Meta(PaymentRequestDetailSerializer.Meta):
+        fields = PaymentRequestDetailSerializer.Meta.fields + ["created_at"]

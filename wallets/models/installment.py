@@ -80,5 +80,11 @@ class Installment(BaseModel):
 
     class Meta:
         ordering = ["due_date"]
+        indexes = [
+            models.Index(
+                fields=["plan", "due_date"], name="inst_plan_due_idx"
+            ),
+            models.Index(fields=["status"], name="inst_status_idx"),
+        ]
         verbose_name = _("قسط")
         verbose_name_plural = _("اقساط")

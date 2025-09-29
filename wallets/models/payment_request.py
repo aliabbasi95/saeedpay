@@ -105,7 +105,7 @@ class PaymentRequest(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(minutes=15)
+            self.expires_at = timezone.now() + timezone.timedelta(minutes=60)
         if not self.reference_code:
             for _ in range(5):
                 code = generate_reference_code(prefix="PR", random_digits=6)
@@ -127,6 +127,9 @@ class PaymentRequest(BaseModel):
         verbose_name = _("درخواست پرداخت")
         verbose_name_plural = _("درخواست‌های پرداخت")
         indexes = [
+            models.Index(
+                fields=["customer", "-created_at"], name="pr_cust_created_idx"
+            ),
             models.Index(fields=["status"], name="pr_status_idx"),
             models.Index(fields=["expires_at"], name="pr_expires_idx"),
             models.Index(

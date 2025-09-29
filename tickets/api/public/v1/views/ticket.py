@@ -10,7 +10,6 @@ from rest_framework.mixins import (
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
-from drf_spectacular.utils import extend_schema_view
 
 from lib.cas_auth.erp.pagination import CustomPagination
 from tickets.api.public.v1.schema import (

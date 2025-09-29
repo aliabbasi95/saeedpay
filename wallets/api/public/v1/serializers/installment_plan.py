@@ -1,11 +1,18 @@
 # wallets/api/public/v1/serializers/installment_plan.py
 
 from rest_framework import serializers
+
 from wallets.models import InstallmentPlan
 
 
 class InstallmentPlanSerializer(serializers.ModelSerializer):
-    total_installments = serializers.IntegerField(source="installments.count", read_only=True)
+    """
+    Summary view for an installment plan.
+    total_installments is annotated via reverse relation count.
+    """
+    total_installments = serializers.IntegerField(
+        source="installments.count", read_only=True
+    )
 
     class Meta:
         model = InstallmentPlan
@@ -18,5 +25,5 @@ class InstallmentPlanSerializer(serializers.ModelSerializer):
             "interest_rate",
             "created_at",
             "closed_at",
-            "total_installments"
+            "total_installments",
         ]

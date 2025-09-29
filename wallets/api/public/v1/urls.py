@@ -1,78 +1,31 @@
 # wallets/api/public/v1/urls.py
 
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
 from wallets.api.public.v1.views import (
-    WalletListView,
-    PaymentRequestDetailView,
-    PaymentConfirmView,
-    WalletTransferConfirmView,
-    WalletTransferRejectView,
-    WalletTransferListCreateView,
-    InstallmentPlanListView,
-    InstallmentsByPlanView,
-    InstallmentListView,
-    InstallmentDetailView,
+    InstallmentViewSet,
+    InstallmentPlanViewSet,
+    PaymentRequestViewSet,
+    WalletTransferViewSet,
+    WalletViewSet,
 )
 
 app_name = "wallets_public_v1"
 
+router = DefaultRouter()
+router.register("wallets", WalletViewSet, basename="wallet")
+router.register(
+    "payment-requests", PaymentRequestViewSet, basename="payment-request"
+)
+router.register(
+    "wallet-transfers", WalletTransferViewSet, basename="wallet-transfer"
+)
+router.register(
+    "installment-plans", InstallmentPlanViewSet, basename="installment-plan"
+)
+router.register("installments", InstallmentViewSet, basename="installment")
+
 urlpatterns = [
-    path(
-        "wallets/",
-        WalletListView.as_view(),
-        name="wallet-list"
-    ),
-    # payment
-
-    path(
-        "payment-request/<str:reference_code>/",
-        PaymentRequestDetailView.as_view(),
-        name="payment-request-detail"
-    ),
-    path(
-        "payment-request/<str:reference_code>/confirm/",
-        PaymentConfirmView.as_view(),
-        name="payment-request-confirm"
-    ),
-
-    # transfer
-    path(
-        'wallet-transfer/', WalletTransferListCreateView.as_view(),
-        name='wallet-transfer-list-create'
-    ),
-    path(
-        'wallet-transfer/<int:pk>/confirm/',
-        WalletTransferConfirmView.as_view(),
-        name='wallet-transfer-confirm'
-    ),
-    path(
-        'wallet-transfer/<int:pk>/reject/',
-        WalletTransferRejectView.as_view(),
-        name='wallet-transfer-reject'
-    ),
-    # installment
-
-    # installment plans
-    path(
-        "installment-plans/",
-        InstallmentPlanListView.as_view(),
-        name="installment-plan-list"
-    ),
-    path(
-        "installment-plans/<int:plan_id>/installments/",
-        InstallmentsByPlanView.as_view(),
-        name="installments-by-plan"
-    ),
-    # installments
-    path(
-        "installments/",
-        InstallmentListView.as_view(),
-        name="installment-list"
-    ),
-    path(
-        "installments/<int:pk>/",
-        InstallmentDetailView.as_view(),
-        name="installment-detail"
-    ),
+    path("", include(router.urls)),
 ]

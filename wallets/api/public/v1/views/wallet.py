@@ -1,35 +1,48 @@
 # wallets/api/public/v1/views/wallet.py
+# Read-only ViewSet for user's wallets with optional owner_type filter.
 
-from drf_spectacular.utils import extend_schema
-from rest_framework.generics import ListAPIView
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from rest_framework import viewsets, mixins
 
-from wallets.api.public.v1.serializers import (
-    WalletSerializer,
-    WalletListQuerySerializer,
-)
+from wallets.api.public.v1.serializers import WalletSerializer
 from wallets.models import Wallet
 
 
 @extend_schema(
     tags=["Wallet · Wallets"],
-    summary="لیست کیف پول‌های کاربر",
-    description="بازگرداندن لیست کیف پول‌ها با امکان فیلتر براساس نوع مالک"
+    summary="List user's wallets",
+    description="Returns the authenticated user's wallets. Optional filter by owner_type.",
+    parameters=[
+        OpenApiParameter(
+            name="owner_type",
+            location=OpenApiParameter.QUERY,
+            required=False,
+            description="Filter by owner_type (e.g. customer, merchant)",
+            type=OpenApiTypes.STR,
+        )
+    ],
 )
-class WalletListView(ListAPIView):
+class WalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """
+    list: Paginated list of the current user's wallets.
+    Notes:
+    - Supports optional ?owner_type=<value>.
+    - Uses only(...) to minimize DB I/O; serializer computes spendable_amount.
+    """
     serializer_class = WalletSerializer
 
-    def allow_post(self, request):
-        return False
-
     def get_queryset(self):
-        query_serializer = WalletListQuerySerializer(
-            data=self.request.query_params
+        owner_type = self.request.query_params.get("owner_type") or None
+        qs = (
+            Wallet.objects
+            .only(
+                "id", "wallet_number", "kind", "owner_type",
+                "balance", "reserved_balance", "user_id",
+                "created_at", "updated_at",
+            )
+            .filter(user=self.request.user)
+            .order_by("kind", "id")
         )
-        query_serializer.is_valid(raise_exception=True)
-        owner_type = query_serializer.validated_data["owner_type"]
-
-        qs = Wallet.objects.filter(user=self.request.user).order_by("kind")
-
         if owner_type:
             qs = qs.filter(owner_type=owner_type)
         return qs

@@ -1,20 +1,18 @@
 # wallets/api/public/v1/serializers/wallet.py
+
 from django.utils import timezone
 from rest_framework import serializers
 
 from wallets.models import Wallet
-from wallets.utils.choices import OwnerType, WalletKind
-
-
-class WalletListQuerySerializer(serializers.Serializer):
-    owner_type = serializers.ChoiceField(
-        choices=OwnerType.choices,
-        required=True,
-        label="نوع مالک",
-    )
+from wallets.utils.choices import WalletKind
 
 
 class WalletSerializer(serializers.ModelSerializer):
+    """
+    Read-only wallet representation with computed spendable_amount:
+    - For CREDIT: use active CreditLimit.available_limit (if valid, non-expired).
+    - For CASH: use max(0, available_balance).
+    """
     kind_display = serializers.CharField(
         source="get_kind_display", read_only=True
     )
@@ -39,7 +37,7 @@ class WalletSerializer(serializers.ModelSerializer):
         read_only_fields = fields
         ref_name = "PublicWallet"
 
-    def _get_available_limit(self, obj):
+    def _get_available_limit(self, obj) -> int:
         if obj.kind != WalletKind.CREDIT:
             return 0
         try:
