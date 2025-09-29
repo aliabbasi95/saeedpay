@@ -1,32 +1,14 @@
 # chatbot/api/public/v1/urls.py
 
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from chatbot.api.public.v1.views import ChatSessionViewSet
 
-from .views import (
-    StartChatView,
-    ChatView,
-    UserChatSessionsView, ChatSessionDetailView,
-)
+app_name = "chatbot_public_v1"
+
+router = DefaultRouter()
+router.register("sessions", ChatSessionViewSet, basename="chat-session")
 
 urlpatterns = [
-    path(
-        "start/",
-        StartChatView.as_view(),
-        name="start_chat"
-    ),
-    path(
-        "chat/<int:session_id>/",
-        ChatView.as_view(),
-        name="chat"
-    ),
-    path(
-        "sessions/",
-        UserChatSessionsView.as_view(),
-        name="user_chat_sessions"
-    ),
-    path(
-        "sessions/<int:session_id>/",
-        ChatSessionDetailView.as_view(),
-        name="chat_session_detail",
-    ),
+    path("", include(router.urls)),
 ]
