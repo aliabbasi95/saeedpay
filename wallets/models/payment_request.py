@@ -23,6 +23,7 @@ class PaymentRequest(BaseModel):
     )
     customer = models.ForeignKey(
         Customer, on_delete=models.CASCADE,
+        null=True,
         related_name="payment_requests",
         verbose_name=_("مشتری")
     )
