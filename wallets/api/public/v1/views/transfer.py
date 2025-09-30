@@ -4,12 +4,15 @@
 from django.db import models
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import (
-    extend_schema, OpenApiParameter, OpenApiTypes, OpenApiResponse,
+    extend_schema, OpenApiParameter,
+    OpenApiTypes, OpenApiResponse,
 )
 from rest_framework import status, mixins, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from wallets.api.public.v1.serializers.transfer import (
     WalletTransferCreateSerializer,
     WalletTransferDetailSerializer,
@@ -27,23 +30,17 @@ from wallets.utils.choices import TransferStatus
 
 @extend_schema(
     tags=["Wallet · Transfers"],
-    description=(
-            "User-to-user wallet transfer requests: listing with filters, creation, "
-            "and confirming/rejecting a pending incoming transfer."
-    )
+    description="User-to-user wallet transfer requests: list with filters, create, confirm/reject incoming requests."
 )
 class WalletTransferViewSet(
+    ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet
 ):
     """
-    list:     List transfers related to the user (sender/receiver/phone).
-    create:   Create a new transfer request.
-    retrieve: Retrieve a transfer if the user is a party or intended receiver by phone.
-    confirm:  POST /wallet-transfers/{id}/confirm/ to accept an incoming transfer.
-    reject:   POST /wallet-transfers/{id}/reject/  to reject an incoming transfer.
+    Transfers the current user is involved in (sender/receiver/phone).
     """
     queryset = (
         WalletTransferRequest.objects
@@ -66,9 +63,17 @@ class WalletTransferViewSet(
     )
     serializer_class = WalletTransferDetailSerializer
     lookup_field = "pk"
+    throttle_scope_map = {
+        "default": "wallet-transfers-read",
+        "list": "wallet-transfers-read",
+        "retrieve": "wallet-transfers-read",
+        "create": "wallet-transfers-write",
+        "confirm": "wallet-transfers-write",
+        "reject": "wallet-transfers-write",
+    }
 
     @extend_schema(
-        summary="List or filter wallet transfer requests",
+        summary="List/filter wallet transfer requests",
         parameters=[
             OpenApiParameter(
                 "role", OpenApiParameter.QUERY, OpenApiTypes.STR,
@@ -76,18 +81,16 @@ class WalletTransferViewSet(
             ),
             OpenApiParameter(
                 "status", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description=f"e.g. {TransferStatus.PENDING_CONFIRMATION}, "
-                            f"{TransferStatus.SUCCESS}, {TransferStatus.REJECTED}"
+                description=f"e.g. {TransferStatus.PENDING_CONFIRMATION}, {TransferStatus.SUCCESS}, {TransferStatus.REJECTED}"
             ),
             OpenApiParameter(
                 "ordering", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description="One of: -created_at, created_at (default: -created_at)"
+                description="-created_at | created_at (default: -created_at)"
             ),
         ],
         responses={200: WalletTransferDetailSerializer(many=True)},
     )
     def list(self, request, *args, **kwargs):
-        """Returns transfers where the user is sender, receiver, or receiver by phone."""
         user = request.user
         phone = getattr(getattr(user, "profile", None), "phone_number", None)
         role = request.query_params.get("role", "all")
@@ -101,7 +104,7 @@ class WalletTransferViewSet(
                 models.Q(receiver_wallet__user=user) |
                 models.Q(receiver_phone_number=phone)
             )
-        else:  # all
+        else:
             qs = self.queryset.filter(
                 models.Q(sender_wallet__user=user) |
                 models.Q(receiver_wallet__user=user) |
@@ -126,14 +129,12 @@ class WalletTransferViewSet(
     @extend_schema(
         summary="Retrieve a transfer request",
         responses={
-            200: WalletTransferDetailSerializer,
-            404: OpenApiResponse(
+            200: WalletTransferDetailSerializer, 404: OpenApiResponse(
                 description="Transfer not found or not accessible."
-            ),
+            )
         },
     )
     def retrieve(self, request, *args, **kwargs):
-        """Retrieve only if user is sender/receiver or intended phone receiver."""
         transfer = self._get_accessible_transfer_or_404(
             request, kwargs.get("pk")
         )
@@ -146,12 +147,10 @@ class WalletTransferViewSet(
         responses={201: WalletTransferDetailSerializer},
     )
     def create(self, request, *args, **kwargs):
-        """Validate input via serializer and delegate to domain service for creation."""
         ser = WalletTransferCreateSerializer(
             data=request.data, context={"request": request}
         )
         ser.is_valid(raise_exception=True)
-
         req = create_wallet_transfer_request(
             sender_wallet=ser.validated_data["sender_wallet"],
             amount=ser.validated_data["amount"],
@@ -180,15 +179,9 @@ class WalletTransferViewSet(
     )
     @action(detail=True, methods=["post"], url_path="confirm")
     def confirm(self, request, *args, **kwargs):
-        """
-        - For phone-based transfers (no receiver_wallet set), the user must supply a wallet they own.
-        - For direct-to-wallet transfers, the receiver wallet must belong to the current user.
-        """
         transfer = self._get_accessible_transfer_or_404(
             request, kwargs.get("pk")
         )
-
-        # Expiry check & status validation
         check_and_expire_transfer_request(transfer)
         if transfer.status != TransferStatus.PENDING_CONFIRMATION:
             return Response(
@@ -196,7 +189,6 @@ class WalletTransferViewSet(
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Phone-based transfer: expect receiver wallet from payload
         if transfer.receiver_phone_number and not transfer.receiver_wallet_id:
             ser = WalletTransferConfirmSerializer(
                 data=request.data, context={"request": request}
@@ -216,7 +208,6 @@ class WalletTransferViewSet(
                 status=status.HTTP_200_OK
             )
 
-        # Direct-to-wallet transfer: ensure ownership
         if transfer.receiver_wallet and transfer.receiver_wallet.user_id == request.user.id:
             try:
                 transfer = confirm_wallet_transfer_request(
@@ -249,11 +240,9 @@ class WalletTransferViewSet(
     )
     @action(detail=True, methods=["post"], url_path="reject")
     def reject(self, request, *args, **kwargs):
-        """Reject only pending transfers where the user is the intended receiver."""
         transfer = self._get_accessible_transfer_or_404(
             request, kwargs.get("pk")
         )
-
         if transfer.status != TransferStatus.PENDING_CONFIRMATION:
             return Response(
                 {"detail": "Transfer is not rejectable."},
@@ -270,15 +259,12 @@ class WalletTransferViewSet(
             status=status.HTTP_200_OK
         )
 
-    # ---------- private ----------
+    # -- helpers --
 
     def _get_accessible_transfer_or_404(
             self, request, pk: int
     ) -> WalletTransferRequest:
-        """
-        Return a transfer only if the current user is a party (sender/receiver wallet)
-        or the intended receiver by phone. Otherwise 404 to avoid information disclosure.
-        """
+        """User must be a party (sender/receiver) or intended phone receiver."""
         user = request.user
         phone = getattr(getattr(user, "profile", None), "phone_number", None)
         return get_object_or_404(

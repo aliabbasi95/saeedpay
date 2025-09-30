@@ -5,7 +5,6 @@ from .category import (
 from .ticket import (
     TicketSerializer,
     TicketCreateSerializer,
-    TicketDetailSerializer,
     TicketMessageSerializer,
     TicketMessageCreateSerializer,
 )

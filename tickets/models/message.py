@@ -39,6 +39,9 @@ class TicketMessage(BaseModel):
         verbose_name = _("پیام تیکت")
         verbose_name_plural = _("پیام‌های تیکت")
         ordering = ["id"]
+        indexes = [
+            models.Index(fields=["ticket", "id"]),
+        ]
 
 
 class TicketMessageAttachment(BaseAttachment):

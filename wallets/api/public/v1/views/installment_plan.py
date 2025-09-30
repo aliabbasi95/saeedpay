@@ -1,24 +1,29 @@
 # wallets/api/public/v1/views/installment_plan.py
 # Read-only ViewSet for user's installment plans + nested installments action.
 
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from rest_framework import viewsets, mixins
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from wallets.api.public.v1.serializers import (
     InstallmentPlanSerializer,
     InstallmentSerializer,
 )
+from wallets.filters import InstallmentPlanFilter
 from wallets.models import InstallmentPlan, Installment
 
 
 @extend_schema(
     tags=["Wallet · Installment Plans"],
     summary="List/Retrieve user's installment plans",
-    description="Returns the authenticated user's installment plans. Supports ordering."
+    description="Returns the authenticated user's installment plans. Filters + ordering supported."
 )
 class InstallmentPlanViewSet(
+    ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet
@@ -31,10 +36,19 @@ class InstallmentPlanViewSet(
     serializer_class = InstallmentPlanSerializer
     lookup_field = "pk"
 
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = InstallmentPlanFilter
+    ordering_fields = ["created_at"]
+    ordering = ["-created_at"]
+
+    throttle_scope_map = {
+        "default": "installment-plans-read",
+        "list": "installment-plans-read",
+        "retrieve": "installment-plans-read",
+        "installments": "installments-read",
+    }
+
     def get_queryset(self):
-        ordering = self.request.query_params.get("ordering") or "-created_at"
-        if ordering not in {"-created_at", "created_at"}:
-            ordering = "-created_at"
         return (
             InstallmentPlan.objects
             .only(
@@ -43,7 +57,6 @@ class InstallmentPlanViewSet(
                 "created_at", "closed_at",
             )
             .filter(user=self.request.user)
-            .order_by(ordering)
         )
 
     @extend_schema(
@@ -51,14 +64,13 @@ class InstallmentPlanViewSet(
         parameters=[
             OpenApiParameter(
                 "ordering", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description="One of: due_date, -due_date (default: due_date)"
+                description="due_date | -due_date (default: due_date)"
             )
         ],
         responses={200: InstallmentSerializer(many=True)},
     )
     @action(detail=True, methods=["get"], url_path="installments")
     def installments(self, request, *args, **kwargs):
-        """Returns installments for the given plan (owned by current user)."""
         plan_id = kwargs.get("pk")
         ordering = request.query_params.get("ordering") or "due_date"
         if ordering not in {"due_date", "-due_date"}:
@@ -68,8 +80,15 @@ class InstallmentPlanViewSet(
             Installment.objects
             .select_related("plan", "transaction")
             .only(
-                "id", "plan_id", "due_date", "amount", "amount_paid",
-                "status", "paid_at", "penalty_amount", "transaction_id",
+                "id",
+                "plan_id",
+                "due_date",
+                "amount",
+                "amount_paid",
+                "status",
+                "paid_at",
+                "penalty_amount",
+                "transaction_id",
                 "note",
                 "plan__user_id",
             )

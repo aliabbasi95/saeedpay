@@ -21,7 +21,6 @@ ADMIN_REORDER = (
         "label": "فروشگاه‌ها",
         "models": (
             "store.Store",
-            "store.StoreContract",
             "store.StoreApiKey",
         ),
     },
@@ -68,6 +67,9 @@ ADMIN_REORDER = (
             "wallets.Wallet",
             "wallets.Transaction",
             "wallets.PaymentRequest",
+            "wallets.WalletTransferRequest",
+            "wallets.Installment",
+            "wallets.InstallmentPlan",
         ),
     },
     {

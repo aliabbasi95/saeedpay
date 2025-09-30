@@ -166,13 +166,9 @@ REST_FRAMEWORK = {
         "anon": "100/hour",
         "user": "1000/hour",
 
-        # fine-grained scopes
-        "otp-by-phone": "5/hour",
-        "auth-login": "20/hour",
-
-        # Blogs / Comments
+        # blogs/comments
         "comments": "300/hour",
-        "comment-create": "30/hour",
+        "comment-create": "60/hour",
         "comment-like": "60/minute",
 
         # Banking / Cards
@@ -182,6 +178,20 @@ REST_FRAMEWORK = {
         # Wallets / Payment Requests
         "payment-confirm": "10/minute",
 
+        # Wallets / Installments
+        "installments-read": "300/hour",
+        "installment-plans-read": "300/hour",
+        # Wallets / Installments
+        "wallets-read": "300/hour",
+
+        # Wallets / Wallet Transfers
+        "wallet-transfers-read": "300/hour",
+        "wallet-transfers-write": "60/minute",
+
+        # Partner (Store API Key)
+        "partner-payment-read": "600/hour",
+        "partner-payment-write": "60/minute",
+    
         # Chatbot
         "chat-sessions": "300/hour",
         "chat-start": "20/hour",
@@ -190,6 +200,20 @@ REST_FRAMEWORK = {
 
         # Contact
         "contact-create": "10/hour",
+
+        # store
+        "stores-read": "200/hour",
+        "stores-write": "30/hour",
+        "public-stores-read": "500/hour",
+        "store-contract-read": "100/hour",
+        "store-contract-write": "20/hour",
+        "store-apikey-regen": "5/hour",
+
+        # tickets
+        "tickets-read": "300/hour",
+        "tickets-write": "30/hour",
+        "ticket-message-add": "60/hour",
+        "ticket-categories-read": "500/hour",
     },
 }
 

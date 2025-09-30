@@ -4,6 +4,7 @@
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from rest_framework import viewsets, mixins
 
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from wallets.api.public.v1.serializers import WalletSerializer
 from wallets.models import Wallet
 
@@ -22,14 +23,20 @@ from wallets.models import Wallet
         )
     ],
 )
-class WalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+class WalletViewSet(
+    ScopedThrottleByActionMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet
+):
     """
     list: Paginated list of the current user's wallets.
-    Notes:
-    - Supports optional ?owner_type=<value>.
-    - Uses only(...) to minimize DB I/O; serializer computes spendable_amount.
     """
     serializer_class = WalletSerializer
+
+    throttle_scope_map = {
+        "default": "wallets-read",
+        "list": "wallets-read",
+    }
 
     def get_queryset(self):
         owner_type = self.request.query_params.get("owner_type") or None

@@ -196,7 +196,6 @@ class BankCardViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     """
     User-owned bank cards (soft-delete). Write ops are throttled separately.
     """
-    permission_classes = [IsAuthenticated]
     lookup_field = "id"
     pagination_class = None
     throttle_scope_map = {
@@ -207,7 +206,7 @@ class BankCardViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
         "destroy": "bank-cards-write",
         "set_default": "bank-cards-write",
     }
-    
+
     def get_queryset(self):
         # Only user's active cards; join bank for fewer queries in lists
         return (
