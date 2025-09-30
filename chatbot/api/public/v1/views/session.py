@@ -51,6 +51,7 @@ class ChatSessionViewSet(
     chat:     POST /sessions/{id}/chat/ → send a message to LLM, persists Q/A.
     """
     permission_classes = [AllowAny]
+    pagination_class = None
     lookup_field = "pk"
     throttle_scope_map = {
         "default": "chat-sessions",

@@ -73,7 +73,8 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
                     "id", "title", "slug", "excerpt", "featured_image",
                     "published_at",
                     "author__id", "author__username",
-                    "author__first_name", "author__last_name",
+                    "author__profile__first_name",
+                    "author__profile__last_name",
                 )
                 .prefetch_related("tags")
                 .distinct()
