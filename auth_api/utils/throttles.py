@@ -14,7 +14,7 @@ def normalize_phone(phone: str) -> str:
 
 
 class OTPPhoneRateThrottle(SimpleRateThrottle):
-    scope = "otp_by_phone"
+    scope = "otp-by-phone"
 
     def get_cache_key(self, request, view):
         phone = request.data.get("phone_number") or request.query_params.get(

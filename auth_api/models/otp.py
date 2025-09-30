@@ -13,6 +13,7 @@ class PhoneOTP(OTP):
     phone_number = models.CharField(
         max_length=15,
         verbose_name=_("شماره تلفن"),
+        unique=True
     )
 
     def send(self):
