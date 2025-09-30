@@ -10,6 +10,7 @@ from rest_framework.permissions import (
     IsAuthenticated, AllowAny,
 )
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from blogs.api.public.v1.permissions import IsOwnerOrStaff
 from blogs.api.public.v1.schema import comment_viewset_schema
@@ -20,7 +21,6 @@ from blogs.api.public.v1.serializers import (
     CommentUpdateSerializer,
 )
 from blogs.models import Comment
-from utils.recaptcha import ReCaptchaMixin
 
 
 @comment_viewset_schema
@@ -37,6 +37,19 @@ class CommentViewSet(viewsets.ModelViewSet):
     filterset_fields = {'article': ['exact'], 'store': ['exact']}
     ordering_fields = ['created_at', 'like_count']
     ordering = ['-created_at']
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "comments"
+
+    def get_throttles(self):
+        """
+        Use a stricter scope for like/dislike actions.
+        """
+        if getattr(self, "action", None) in {"like", "dislike"}:
+            # Temporarily switch scope for this request
+            self.throttle_scope = "comment-like"
+        else:
+            self.throttle_scope = "comments"
+        return super().get_throttles()
 
     def get_queryset(self):
         qs = (
@@ -140,7 +153,7 @@ class CommentViewSet(viewsets.ModelViewSet):
         )
         return Response(serializer.data)
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], throttle_scope="comment-like")
     def like(self, request, pk=None):
         """Atomically increment like_count for a comment."""
         comment = self.get_object()
@@ -155,7 +168,7 @@ class CommentViewSet(viewsets.ModelViewSet):
             }
         )
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], throttle_scope="comment-like")
     def dislike(self, request, pk=None):
         """Atomically increment dislike_count for a comment."""
         comment = self.get_object()

@@ -163,7 +163,9 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "otp_by_phone": "5/hour",
         "anon": "100/hour",
-        "user": "100/hour",
+        "user": "1000/hour",
+        "comments": "300/hour",
+        "comment-like": "60/minute",
     },
 }
 
