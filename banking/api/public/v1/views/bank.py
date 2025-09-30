@@ -5,7 +5,7 @@ from drf_spectacular.utils import (
     OpenApiParameter,
 )
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 
 from banking.api.public.v1.serializers import (
     BankSerializer,
@@ -57,11 +57,13 @@ from banking.models import Bank
     ),
 )
 class BankViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Bank.objects.all()
-    permission_classes = [IsAuthenticated]
+    """
+    Public read-only list & retrieve of banks.
+    """
+    queryset = Bank.objects.all().order_by("name")
+    permission_classes = [AllowAny]
     lookup_field = "id"
+    pagination_class = None  # small, static catalog
 
     def get_serializer_class(self):
-        if self.action == "retrieve":
-            return BankDetailSerializer
-        return BankSerializer
+        return BankDetailSerializer if self.action == "retrieve" else BankSerializer

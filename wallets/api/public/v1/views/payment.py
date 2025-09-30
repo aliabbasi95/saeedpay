@@ -10,6 +10,7 @@ from rest_framework import status, mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from wallets.api.public.v1.serializers import (
     PaymentRequestListItemSerializer,
     PaymentRequestDetailWithWalletsSerializer,
@@ -38,6 +39,7 @@ def _parse_dt_maybe(value):
 
 @extend_schema(tags=["Wallet · Payment Requests"])
 class PaymentRequestViewSet(
+    ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet
@@ -49,6 +51,12 @@ class PaymentRequestViewSet(
     """
     lookup_field = "reference_code"
     lookup_value_regex = r"[-A-Za-z0-9_]+"
+    throttle_scope_map = {
+        "default": "user",
+        "confirm": "payment-confirm",
+        "retrieve": "user",
+        "list": "user",
+    }
 
     def get_queryset(self):
         user = self.request.user

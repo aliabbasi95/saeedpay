@@ -156,16 +156,40 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "lib.erp_base.utils.pagination.StandardPagination",
     "PAGE_SIZE": 20,
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "otp_by_phone": "5/hour",
+        # coarse limits
         "anon": "100/hour",
         "user": "1000/hour",
+
+        # fine-grained scopes
+        "otp-by-phone": "5/hour",
+        "auth-login": "20/hour",
+
+        # Blogs / Comments
         "comments": "300/hour",
+        "comment-create": "30/hour",
         "comment-like": "60/minute",
+
+        # Banking / Cards
+        "bank-cards-read": "300/hour",
+        "bank-cards-write": "30/minute",
+
+        # Wallets / Payment Requests
+        "payment-confirm": "10/minute",
+
+        # Chatbot
+        "chat-sessions": "300/hour",
+        "chat-start": "20/hour",
+        "chat-talk": "60/minute",
+        "chat-messages": "300/hour",
+
+        # Contact
+        "contact-create": "10/hour",
     },
 }
 

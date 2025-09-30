@@ -27,6 +27,7 @@ from chatbot.api.public.v1.serializers import (
     ChatMessageSerializer,
 )
 from chatbot.models import ChatSession, ChatMessage
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ SESSION_LIMIT_ANONYMOUS = getattr(settings, "CHATBOT_SESSION_LIMIT", 2)
 
 @extend_schema(tags=["Chatbot"])
 class ChatSessionViewSet(
+    ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
@@ -50,6 +52,12 @@ class ChatSessionViewSet(
     """
     permission_classes = [AllowAny]
     lookup_field = "pk"
+    throttle_scope_map = {
+        "default": "chat-sessions",
+        "create": "chat-start",
+        "chat": "chat-talk",
+        "messages": "chat-messages",
+    }
 
     # ---------- queryset / serializer selection ----------
 
