@@ -162,13 +162,19 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
+        # auth
+        "auth-login": "20/hour",
+        "auth-logout": "60/hour",
+        "auth-refresh": "120/hour",
+        "auth-register": "10/hour",
+        "auth-change-password": "30/hour",
+        "auth-reset-password": "10/hour",
+        "auth-otp": "60/hour",
+        "otp-by-phone": "5/hour",
+
         # coarse limits
         "anon": "100/hour",
         "user": "1000/hour",
-
-        # fine-grained scopes
-        "otp-by-phone": "5/hour",
-        "auth-login": "20/hour",
 
         # blogs/comments
         "comments": "300/hour",
