@@ -76,9 +76,12 @@ class CreditLimit(BaseModel):
 
     @property
     def available_limit(self) -> int:
-        """approved_limit - sum(active debts)"""
+        """
+        approved_limit - (sum(active debts) + sum(active credit holds))
+        """
         debt = self._current_active_debt()
-        return max(0, int(self.approved_limit) - debt)
+        holds = self._active_credit_holds()
+        return max(0, int(self.approved_limit) - debt - holds)
 
     @property
     def grace_days(self) -> int:
@@ -101,6 +104,18 @@ class CreditLimit(BaseModel):
         )
         total_negative = agg["total"] or 0
         return abs(int(total_negative))
+
+    def _active_credit_holds(self) -> int:
+        # Local import to avoid circular dependencies
+        from credit.models.authorization import CreditAuthorization as Auth
+        agg = (
+            Auth.objects.filter(
+                user=self.user,
+                status=Auth.Status.ACTIVE,
+            )
+            .aggregate(total=models.Sum("amount"))
+        )
+        return int(agg["total"] or 0)
 
     def activate(self):
         with transaction.atomic():

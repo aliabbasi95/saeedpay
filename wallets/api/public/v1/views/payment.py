@@ -286,12 +286,39 @@ class PaymentRequestViewSet(
                 str(e), "business_rule", status.HTTP_400_BAD_REQUEST, pr
             )
 
+        txn_ref = getattr(txn, "reference_code", None)
+
+        if not txn_ref:
+            try:
+                last_txn = pr.transaction_set.order_by("-created_at").first()
+                if last_txn:
+                    txn_ref = last_txn.reference_code
+            except Exception:
+                pass
+
+        if not txn_ref:
+            try:
+                from credit.models.authorization import \
+                    CreditAuthorization as Auth
+                auth = Auth.objects.filter(
+                    payment_request=pr, status=Auth.Status.ACTIVE
+                ) \
+                    .order_by("-created_at").first()
+                if auth:
+                    txn_ref = auth.reference_code
+            except Exception:
+                pass
+
+        if not txn_ref:
+            txn_ref = ""
+
         payload = {
             "detail": "پرداخت با موفقیت انجام شد.",
             "payment_reference_code": pr.reference_code,
-            "transaction_reference_code": txn.reference_code,
+            "transaction_reference_code": txn_ref,
             "return_url": pr.return_url,
         }
+
         return Response(
             PaymentConfirmResponseSerializer(payload).data,
             status=status.HTTP_200_OK

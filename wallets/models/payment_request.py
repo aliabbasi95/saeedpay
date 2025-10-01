@@ -82,6 +82,17 @@ class PaymentRequest(BaseModel):
         blank=True,
         verbose_name=_("تاریخ انقضا")
     )
+    created_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="ددلاین فاز CREATED"
+    )
+    merchant_confirm_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="ددلاین تایید مرچنت"
+    )
+
     paid_at = models.DateTimeField(null=True, blank=True)
 
     def mark_awaiting_merchant(self):
@@ -108,7 +119,7 @@ class PaymentRequest(BaseModel):
         if not self.expires_at:
             self.expires_at = timezone.now() + timezone.timedelta(
                 minutes=PAYMENT_REQUEST_EXPIRY_MINUTES
-                )
+            )
         if not self.reference_code:
             for _ in range(5):
                 code = generate_reference_code(prefix="PR", random_digits=6)

@@ -1,4 +1,5 @@
 # wallets/utils/choices.py
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -45,14 +46,17 @@ class TransactionStatus(models.TextChoices):
     REVERSED = "reversed", "برگشت‌خورده"
 
 
+class TransactionPurpose(models.TextChoices):
+    ESCROW_DEBIT = "escrow_debit", _("انتقال به امانی (Escrow)")
+    SETTLEMENT = "settlement", _("تسویه با فروشنده")
+    REVERSAL = "reversal", _("بازگشت وجه")
+
+
 class TransferStatus(models.TextChoices):
     PENDING_CONFIRMATION = "pending_confirmation", "در انتظار تایید گیرنده"
     SUCCESS = "success", "انجام شده"
     REJECTED = "rejected", "رد شده"
     EXPIRED = "expired", "منقضی شده"
-
-
-
 
 
 class InstallmentPlanStatus(models.TextChoices):
@@ -64,8 +68,6 @@ class InstallmentPlanStatus(models.TextChoices):
 class InstallmentSourceType(models.TextChoices):
     BNPL = "bnpl", _("درخواست فروشگاه (BNPL)")
     PAYMENT_REQUEST = "payment_request", _("پرداخت با اعتبار داخلی")
-    # OFFLINE_PURCHASE = "offline", _("خرید حضوری")
-    # STORE_ORDER = "store_order", _("سفارش فروشگاه داخلی")
 
 
 class InstallmentStatus(models.TextChoices):

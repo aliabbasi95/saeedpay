@@ -80,7 +80,9 @@ class PaymentConfirmResponseSerializer(serializers.Serializer):
     """
     detail = serializers.CharField()
     payment_reference_code = serializers.CharField()
-    transaction_reference_code = serializers.CharField()
+    transaction_reference_code = serializers.CharField(
+        allow_blank=True, required=False
+        )
     return_url = serializers.URLField()
 
 
