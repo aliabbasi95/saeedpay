@@ -8,10 +8,11 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, mixins, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from wallets.api.public.v1.serializers import (
+from wallets.api.public.v1.serializers.payment import (
     PaymentRequestListItemSerializer,
     PaymentRequestDetailWithWalletsSerializer,
     PaymentConfirmSerializer,
@@ -27,14 +28,24 @@ _ALLOWED_ORDERING = {"created_at", "-created_at", "amount", "-amount"}
 
 
 def _parse_dt_maybe(value):
-    """Try parse ISO datetime, fallback to ISO date, else None."""
+    """Try to parse ISO datetime, fallback to ISO date, else None."""
     if not value:
         return None
     dt = parse_datetime(value)
     if dt:
         return dt
-    d = parse_date(value)
-    return d
+    return parse_date(value)
+
+
+def _error_response(detail, code, http_status, pr=None):
+    """
+    Build a uniform error payload. Optionally attach PR context.
+    """
+    payload = {"detail": detail, "code": code}
+    if pr is not None:
+        payload["reference_code"] = pr.reference_code
+        payload["return_url"] = pr.return_url
+    return Response(payload, status=http_status)
 
 
 @extend_schema(tags=["Wallet · Payment Requests"])
@@ -70,10 +81,18 @@ class PaymentRequestViewSet(
             PaymentRequest.objects
             .select_related("store")
             .only(
-                "reference_code", "amount", "description", "status",
-                "expires_at", "created_at", "store_id",
-                "store__id", "store__name",
-                "customer_id", "return_url",
+                "reference_code",
+                "amount",
+                "description",
+                "status",
+                "expires_at",
+                "created_at",
+                "store_id",
+                "store__id",
+                "store__name",
+                "customer_id",
+                "return_url",
+                "paid_at",
             )
             .filter(customer=customer)
         )
@@ -164,7 +183,10 @@ class PaymentRequestViewSet(
     # ---------- retrieve ----------
     @extend_schema(
         summary="Get payment request details",
-        description="Returns details by `reference_code`. Includes `available_wallets` when authenticated.",
+        description=(
+                "Returns details by `reference_code`. Includes `available_wallets` when authenticated. "
+                "Expired requests are returned with status=expired."
+        ),
         responses={
             200: OpenApiResponse(
                 response=PaymentRequestDetailWithWalletsSerializer,
@@ -175,13 +197,15 @@ class PaymentRequestViewSet(
                         "description": "Purchase",
                         "store_id": 42,
                         "store_name": "Demo Store",
-                        "status": "created",
+                        "status": "expired",
+                        "status_display": "منقضی‌شده",
                         "expires_at": "2025-09-27T12:34:56Z",
+                        "paid_at": None,
+                        "can_pay": False,
+                        "reason": "expired",
+                        "available_wallets": [],
                     }
                 )],
-            ),
-            400: OpenApiResponse(
-                description="Payment request expired or invalid."
             ),
             404: OpenApiResponse(description="Payment request not found."),
         },
@@ -189,17 +213,10 @@ class PaymentRequestViewSet(
     def retrieve(self, request, *args, **kwargs):
         self.serializer_class = PaymentRequestDetailWithWalletsSerializer
         pr = self.get_object()
-        # expire check
-        try:
-            check_and_expire_payment_request(pr)
-        except Exception as e:
-            return Response(
-                {
-                    "detail": str(e), "reference_code": pr.reference_code,
-                    "return_url": pr.return_url
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+
+        # Mark expiry if needed, but do NOT raise in retrieve
+        check_and_expire_payment_request(pr, raise_exception=False)
+
         serializer = self.get_serializer(pr, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -212,47 +229,61 @@ class PaymentRequestViewSet(
                 description="Validation error or business rule violation."
             ),
             404: OpenApiResponse(description="Payment request not found."),
+            410: OpenApiResponse(description="Payment request expired."),
         },
         summary="Confirm & pay",
-        description="Confirms and pays the payment request using the selected wallet.",
+        description="Confirms and pays the payment request using the selected wallet. Returns 410 if expired.",
     )
     @action(detail=True, methods=["post"], url_path="confirm")
     def confirm(self, request, *args, **kwargs):
         pr = self.get_object()
 
-        # expire check
+        # Expiry check → map to 410 on 'expired'
         try:
-            check_and_expire_payment_request(pr)
+            check_and_expire_payment_request(pr)  # raises with code='expired'
+        except ValidationError as e:
+            if getattr(e, "code", None) == "expired":
+                return _error_response(
+                    "درخواست پرداخت منقضی شده است.", "expired",
+                    status.HTTP_410_GONE, pr
+                )
+            return _error_response(
+                str(e), "validation_error", status.HTTP_400_BAD_REQUEST, pr
+            )
         except Exception as e:
-            return Response(
-                {
-                    "detail": str(e), "reference_code": pr.reference_code,
-                    "return_url": pr.return_url
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+            return _error_response(
+                str(e), "unknown_error", status.HTTP_400_BAD_REQUEST, pr
             )
 
+        # Validate input
         ser = PaymentConfirmSerializer(
             data=request.data, context={"request": request}
         )
         ser.is_valid(raise_exception=True)
 
+        # Ownership check
         wallet_id = ser.validated_data["wallet_id"]
         try:
             wallet = Wallet.objects.get(
                 id=wallet_id, user=request.user, owner_type=OwnerType.CUSTOMER
             )
         except Wallet.DoesNotExist:
-            return Response(
-                {"detail": "کیف پول پیدا نشد یا متعلق به شما نیست."},
-                status=status.HTTP_400_BAD_REQUEST
+            return _error_response(
+                "کیف پول پیدا نشد یا متعلق به شما نیست.", "wallet_not_owned",
+                status.HTTP_400_BAD_REQUEST, pr
             )
 
+        # Pay
         try:
             txn = pay_payment_request(pr, request.user, wallet)
+        except ValidationError as e:
+            code = getattr(e, "code", "validation_error")
+            return _error_response(
+                str(e), code, status.HTTP_400_BAD_REQUEST, pr
+            )
         except Exception as e:
-            return Response(
-                {"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            return _error_response(
+                str(e), "business_rule", status.HTTP_400_BAD_REQUEST, pr
             )
 
         payload = {

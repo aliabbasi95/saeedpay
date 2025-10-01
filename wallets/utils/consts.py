@@ -5,6 +5,8 @@ from wallets.utils.choices import OwnerType, WalletKind
 ESCROW_USER_NAME = "escrow_wallet_user"
 ESCROW_WALLET_KIND = "escrow"
 
+PAYMENT_REQUEST_EXPIRY_MINUTES = 15
+
 DEFAULT_WALLETS = {
     OwnerType.CUSTOMER: [
         WalletKind.MICRO_CREDIT,

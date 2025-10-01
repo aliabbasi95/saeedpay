@@ -1,4 +1,5 @@
 # wallets/services/payment.py
+
 import logging
 from datetime import timedelta
 
@@ -8,7 +9,10 @@ from rest_framework.exceptions import ValidationError
 
 from wallets.models import PaymentRequest, Wallet, Transaction
 from wallets.utils.choices import PaymentRequestStatus, TransactionStatus
-from wallets.utils.consts import ESCROW_WALLET_KIND, ESCROW_USER_NAME
+from wallets.utils.consts import (
+    ESCROW_WALLET_KIND, ESCROW_USER_NAME,
+    PAYMENT_REQUEST_EXPIRY_MINUTES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +20,13 @@ logger = logging.getLogger(__name__)
 def create_payment_request(
         store, amount, return_url, customer, description="", external_guid=None
 ):
-    expires_at = timezone.now() + timedelta(minutes=10)
-    req = PaymentRequest.objects.create(
+    """
+    Create a payment request with a short-lived expiry. Caller may override on model if needed.
+    """
+    expires_at = timezone.now() + timedelta(
+        minutes=PAYMENT_REQUEST_EXPIRY_MINUTES
+    )
+    return PaymentRequest.objects.create(
         store=store,
         amount=amount,
         customer=customer,
@@ -27,17 +36,31 @@ def create_payment_request(
         return_url=return_url,
         external_guid=external_guid,
     )
-    return req
 
 
-def pay_payment_request(request_obj, user, wallet: Wallet):
+def pay_payment_request(
+        request_obj: PaymentRequest, user, wallet: Wallet
+) -> Transaction:
+    """
+    Perform funds movement from customer wallet to escrow and mark PR as awaiting confirmation.
+    Raises ValidationError with meaningful `code`s on business failures.
+    """
+    # Defensive expiry (raises on expired)
     check_and_expire_payment_request(request_obj)
-    if request_obj.status not in [PaymentRequestStatus.CREATED]:
-        raise Exception("پرداخت در این وضعیت قابل انجام نیست.")
-    if wallet.user != user:
-        raise Exception("کیف پول برای کاربر نیست.")
+
+    if request_obj.status != PaymentRequestStatus.CREATED:
+        raise ValidationError(
+            "پرداخت در این وضعیت قابل انجام نیست.", code="invalid_state"
+        )
+
+    if wallet.user_id != user.id:
+        raise ValidationError(
+            "کیف پول برای کاربر نیست.", code="wallet_not_owned"
+        )
+
     if request_obj.expires_at and request_obj.expires_at < timezone.now():
-        raise Exception("این درخواست منقضی شده است.")
+        # Redundant guard; kept as defense-in-depth
+        raise ValidationError("این درخواست منقضی شده است.", code="expired")
 
     with transaction.atomic():
         wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
@@ -49,14 +72,21 @@ def pay_payment_request(request_obj, user, wallet: Wallet):
             from credit.models.credit_limit import CreditLimit
             cl = CreditLimit.objects.get_user_credit_limit(user)
             if not cl or not cl.is_active or cl.expiry_date <= timezone.localdate():
-                raise Exception("اعتبار فعال یافت نشد یا منقضی شده است.")
+                raise ValidationError(
+                    "اعتبار فعال یافت نشد یا منقضی شده است.",
+                    code="credit_unavailable"
+                )
             if int(cl.available_limit) < int(request_obj.amount):
-                raise Exception("اعتبار کافی نیست.")
+                raise ValidationError(
+                    "اعتبار کافی نیست.", code="insufficient_credit"
+                )
             wallet.balance -= request_obj.amount
             wallet.save(update_fields=["balance"])
         else:
             if wallet.available_balance < request_obj.amount:
-                raise Exception("موجودی کافی نیست.")
+                raise ValidationError(
+                    "موجودی کافی نیست.", code="insufficient_funds"
+                )
             wallet.balance -= request_obj.amount
             wallet.save(update_fields=["balance"])
 
@@ -69,7 +99,7 @@ def pay_payment_request(request_obj, user, wallet: Wallet):
             amount=request_obj.amount,
             payment_request=request_obj,
             status=TransactionStatus.PENDING,
-            description="انتقال به Escrow برای پرداخت"
+            description="انتقال به Escrow برای پرداخت",
         )
 
         request_obj.paid_by = user
@@ -83,20 +113,38 @@ def pay_payment_request(request_obj, user, wallet: Wallet):
     return txn
 
 
-def check_and_expire_payment_request(payment_request):
+def check_and_expire_payment_request(
+        payment_request: PaymentRequest, *, raise_exception: bool = True
+) -> bool:
+    """
+    If PR is expired, mark it EXPIRED (if not already).
+    Returns True if expired, otherwise False.
+    If raise_exception=True and expired, raises ValidationError with code='expired'.
+    """
+    is_expired = False
     if payment_request.expires_at and payment_request.expires_at < timezone.now():
         if payment_request.status not in [
-            PaymentRequestStatus.EXPIRED, PaymentRequestStatus.COMPLETED,
-            PaymentRequestStatus.CANCELLED
+            PaymentRequestStatus.EXPIRED,
+            PaymentRequestStatus.COMPLETED,
+            PaymentRequestStatus.CANCELLED,
         ]:
             payment_request.mark_expired()
-        raise ValidationError("درخواست پرداخت منقضی شده است.")
+        is_expired = True
+        if raise_exception:
+            raise ValidationError(
+                detail="درخواست پرداخت منقضی شده است.", code="expired"
+            )
+    return is_expired
 
 
-def verify_payment_request(payment_request):
+def verify_payment_request(payment_request: PaymentRequest) -> PaymentRequest:
+    """
+    Move funds from escrow to merchant, finalize transaction and mark PR as completed.
+    """
     if payment_request.status != PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION:
         raise ValidationError(
-            "پرداخت قابل نهایی‌سازی نیست یا قبلاً تایید شده است."
+            "پرداخت قابل نهایی‌سازی نیست یا قبلاً تایید شده است.",
+            code="invalid_state"
         )
 
     with transaction.atomic():
@@ -104,7 +152,10 @@ def verify_payment_request(payment_request):
             payment_request=payment_request, status=TransactionStatus.PENDING
         ).first()
         if not txn:
-            raise ValidationError("تراکنش مرتبط با این پرداخت یافت نشد.")
+            raise ValidationError(
+                "تراکنش مرتبط با این پرداخت یافت نشد.",
+                code="missing_transaction"
+            )
 
         escrow_wallet = Wallet.objects.select_for_update().get(
             pk=txn.to_wallet_id
@@ -113,23 +164,26 @@ def verify_payment_request(payment_request):
             merchant_wallet = Wallet.objects.select_for_update().get(
                 user=payment_request.store.merchant.user,
                 kind="merchant_gateway",
-                owner_type="merchant"
+                owner_type="merchant",
             )
         except Wallet.DoesNotExist:
             logger.error(
-                f"Merchant wallet not found for user {payment_request.store.merchant.user}"
+                "Merchant wallet not found for user %s",
+                payment_request.store.merchant.user
             )
             raise ValidationError(
-                "عملیات با خطا مواجه شد. لطفاً بعداً تلاش کنید."
+                "عملیات با خطا مواجه شد. لطفاً بعداً تلاش کنید.",
+                code="merchant_wallet_missing"
             )
 
         if escrow_wallet.balance < payment_request.amount:
             logger.error(
-                "ESCROW WALLET LOW BALANCE during verify: "
-                f"Need {payment_request.amount}, Available {escrow_wallet.balance}"
+                "ESCROW WALLET LOW BALANCE during verify: Need %s, Available %s",
+                payment_request.amount, escrow_wallet.balance
             )
             raise ValidationError(
-                "عملیات با خطا مواجه شد. لطفاً بعداً تلاش کنید."
+                "عملیات با خطا مواجه شد. لطفاً بعداً تلاش کنید.",
+                code="escrow_insufficient"
             )
 
         escrow_wallet.balance -= payment_request.amount
@@ -154,10 +208,13 @@ def verify_payment_request(payment_request):
     return payment_request
 
 
-def rollback_payment(payment_request):
+def rollback_payment(payment_request: PaymentRequest) -> None:
+    """
+    Return funds from escrow back to the customer's wallet if the PR hasn't been finalized.
+    Idempotent: if no PENDING transaction exists, it quietly returns.
+    """
     txn = Transaction.objects.filter(
-        payment_request=payment_request,
-        status=TransactionStatus.PENDING
+        payment_request=payment_request, status=TransactionStatus.PENDING
     ).first()
     if not txn:
         return
@@ -168,16 +225,19 @@ def rollback_payment(payment_request):
     with transaction.atomic():
         if escrow_wallet.balance < txn.amount:
             logger.error(
-                "ESCROW WALLET LOW BALANCE during rollback: "
-                f"Need {txn.amount}, Available {escrow_wallet.balance}"
+                "ESCROW WALLET LOW BALANCE during rollback: Need %s, Available %s",
+                txn.amount, escrow_wallet.balance
             )
-            raise ValidationError("عملیات بازگشت وجه با خطا مواجه شد.")
+            raise ValidationError(
+                "عملیات بازگشت وجه با خطا مواجه شد.",
+                code="escrow_insufficient"
+            )
 
         escrow_wallet.balance -= txn.amount
         customer_wallet.balance += txn.amount
-        escrow_wallet.save()
-        customer_wallet.save()
+        escrow_wallet.save(update_fields=["balance"])
+        customer_wallet.save(update_fields=["balance"])
 
         txn.status = TransactionStatus.REVERSED
         txn.description = "وجه به کیف پول مبدا باگشت داده شد."
-        txn.save()
+        txn.save(update_fields=["status", "description"])

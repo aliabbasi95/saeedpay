@@ -11,6 +11,7 @@ from store.models import Store
 from utils.reference import generate_reference_code
 from wallets.models.wallet import Wallet
 from wallets.utils.choices import PaymentRequestStatus
+from wallets.utils.consts import PAYMENT_REQUEST_EXPIRY_MINUTES
 
 
 class PaymentRequest(BaseModel):
@@ -105,7 +106,9 @@ class PaymentRequest(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(minutes=60)
+            self.expires_at = timezone.now() + timezone.timedelta(
+                minutes=PAYMENT_REQUEST_EXPIRY_MINUTES
+                )
         if not self.reference_code:
             for _ in range(5):
                 code = generate_reference_code(prefix="PR", random_digits=6)
