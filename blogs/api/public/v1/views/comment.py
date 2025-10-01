@@ -12,7 +12,13 @@ from rest_framework.permissions import (
 from rest_framework.response import Response
 
 from blogs.api.public.v1.permissions import IsOwnerOrStaff
-from blogs.api.public.v1.schema import comment_viewset_schema
+from blogs.api.public.v1.schema import (
+    comment_viewset_schema,
+    comment_like_schema,
+    comment_dislike_schema,
+    my_comments_schema,
+    orphaned_comments_schema,
+)
 from blogs.api.public.v1.serializers import (
     CommentListSerializer,
     CommentSerializer,
@@ -95,6 +101,7 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
             permission_classes = [IsAuthenticatedOrReadOnly]
         return [permission() for permission in permission_classes]
 
+    @my_comments_schema
     @action(detail=False, methods=["get"])
     def my_comments(self, request):
         """Return current user's comments (requires authentication)."""
@@ -119,6 +126,7 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
         )
         return Response(serializer.data)
 
+    @orphaned_comments_schema
     @action(detail=False, methods=["get"])
     def orphaned_comments(self, request):
         """
@@ -149,6 +157,7 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
         )
         return Response(serializer.data)
 
+    @comment_like_schema
     @action(detail=True, methods=["post"])
     def like(self, request, pk=None):
         """Atomically increment like_count for a comment."""
@@ -164,6 +173,7 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
             }
         )
 
+    @comment_dislike_schema
     @action(detail=True, methods=["post"])
     def dislike(self, request, pk=None):
         """Atomically increment dislike_count for a comment."""
