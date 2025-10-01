@@ -166,6 +166,10 @@ REST_FRAMEWORK = {
         "anon": "100/hour",
         "user": "1000/hour",
 
+        # fine-grained scopes
+        "otp-by-phone": "5/hour",
+        "auth-login": "20/hour",
+
         # blogs/comments
         "comments": "300/hour",
         "comment-create": "60/hour",
@@ -191,7 +195,7 @@ REST_FRAMEWORK = {
         # Partner (Store API Key)
         "partner-payment-read": "600/hour",
         "partner-payment-write": "60/minute",
-    
+
         # Chatbot
         "chat-sessions": "300/hour",
         "chat-start": "20/hour",
