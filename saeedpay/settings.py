@@ -162,7 +162,11 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        # auth
+        # ── Coarse limits ───────────────────────────────────────────────────────
+        "anon": "100/hour",
+        "user": "1000/hour",
+
+        # ── Auth ───────────────────────────────────────────────────────────────
         "auth-login": "20/hour",
         "auth-logout": "60/hour",
         "auth-refresh": "120/hour",
@@ -172,54 +176,59 @@ REST_FRAMEWORK = {
         "auth-otp": "60/hour",
         "otp-by-phone": "5/hour",
 
-        # coarse limits
-        "anon": "100/hour",
-        "user": "1000/hour",
-
-        # blogs/comments
+        # ── Blogs / Comments ───────────────────────────────────────────────────
         "comments": "300/hour",
         "comment-create": "60/hour",
         "comment-like": "60/minute",
 
-        # Banking / Cards
+        # ── Banking / Cards ────────────────────────────────────────────────────
         "bank-cards-read": "300/hour",
         "bank-cards-write": "30/minute",
 
-        # Wallets / Payment Requests
+        # ── Credit (Statements) ────────────────────────────────────────────────
+        "credit-statements-read": "300/hour",
+        "credit-statement-lines-read": "600/hour",
+
+        # ── Wallets / Payment Requests ─────────────────────────────────────────
+        # list/search/detail of payment requests (user-facing)
+        "payment-requests-read": "300/hour",
+        # create/cancel (if applicable) by user
+        "payment-requests-write": "30/minute",
+        # confirm action (stronger limit)
         "payment-confirm": "10/minute",
 
-        # Wallets / Installments
-        "installments-read": "300/hour",
-        "installment-plans-read": "300/hour",
-        # Wallets / Installments
-        "wallets-read": "300/hour",
+        # ── Wallets / Balances & History ───────────────────────────────────────
+        "wallets-read": "300/hour",  # balances, summary, etc.
 
-        # Wallets / Wallet Transfers
+        # ── Wallets / Installments ─────────────────────────────────────────────
+        "installments-read": "300/hour",  # user installment list/detail
+        "installment-plans-read": "300/hour",  # available plans
+        "installments-apply": "30/hour",  # create/apply for installment
+
+        # ── Wallets / Wallet Transfers ─────────────────────────────────────────
         "wallet-transfers-read": "300/hour",
         "wallet-transfers-write": "60/minute",
 
-        # Partner (Store API Key)
-        "partner-payment-read": "600/hour",
-        "partner-payment-write": "60/minute",
+        # ── Partner (Store API Key) ────────────────────────────────────────────
+        "partner-payment-read": "600/hour",  # check status, fetch request
+        "partner-payment-write": "60/minute",  # create/confirm/callback
+        "store-apikey-regen": "5/hour",
 
-        # Chatbot
-        "chat-sessions": "300/hour",
-        "chat-start": "20/hour",
-        "chat-talk": "60/minute",
-        "chat-messages": "300/hour",
-
-        # Contact
-        "contact-create": "10/hour",
-
-        # store
+        # ── Store (Backoffice) ─────────────────────────────────────────────────
         "stores-read": "200/hour",
         "stores-write": "30/hour",
         "public-stores-read": "500/hour",
         "store-contract-read": "100/hour",
         "store-contract-write": "20/hour",
-        "store-apikey-regen": "5/hour",
 
-        # tickets
+        # ── Chatbot ────────────────────────────────────────────────────────────
+        "chat-sessions": "300/hour",
+        "chat-start": "20/hour",
+        "chat-talk": "60/minute",
+        "chat-messages": "300/hour",
+
+        # ── Contact / Tickets ─────────────────────────────────────────────────
+        "contact-create": "10/hour",
         "tickets-read": "300/hour",
         "tickets-write": "30/hour",
         "ticket-message-add": "60/hour",
@@ -343,20 +352,20 @@ CELERY_BEAT_SCHEDULE = {
     },
     # credit
     # Credit: safe daily run; idempotent—only acts when month has rolled over
-    'credit-month-end-rollover-daily-0010': {
-        'task': 'credit.tasks.task_month_end_rollover',
-        'schedule': crontab(minute=10, hour=0),
+    "credit-month-end-rollover-daily-0010": {
+        "task": "credit.tasks.task_month_end_rollover",
+        "schedule": crontab(minute=10, hour=0),
     },
     # Credit: finalize due windows hourly
-    'credit-finalize-due-windows-hourly-0015': {
-        'task': 'credit.tasks.task_finalize_due_windows',
-        'schedule': crontab(minute=15, hour='*'),
+    "credit-finalize-due-windows-hourly-0015": {
+        "task": "credit.tasks.task_finalize_due_windows",
+        "schedule": crontab(minute=15, hour="*"),
     },
 }
 
 # reCAPTCHA Configuration
 RECAPTCHA_SECRET_KEY = os.getenv(
-    'RECAPTCHA_SECRET_KEY', '6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs'
+    "RECAPTCHA_SECRET_KEY", "6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs"
 )
 RECAPTCHA_V3 = False  # Set to False for reCAPTCHA v2
 RECAPTCHA_V3_THRESHOLD = 0.5  # Score threshold for v3 (ignored when v2)
