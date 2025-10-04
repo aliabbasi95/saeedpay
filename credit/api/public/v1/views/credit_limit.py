@@ -1,18 +1,20 @@
 # credit/api/public/v1/views/credit_limit.py
-# Read-only ViewSet for user's credit limits.
 
 from rest_framework import mixins, viewsets
-from drf_spectacular.utils import extend_schema
-from credit.models.credit_limit import CreditLimit
+
+from credit.api.public.v1.schema import credit_limit_viewset_schema
 from credit.api.public.v1.serializers.credit import CreditLimitSerializer
+from credit.models.credit_limit import CreditLimit
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 
-@extend_schema(tags=["Credit Limits"])
+@credit_limit_viewset_schema
 class CreditLimitViewSet(
+    ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
-    ):
+    viewsets.GenericViewSet,
+):
     """
     list:     Unpaginated list of user's credit limits (newest first).
     retrieve: Single credit limit owned by the user.
@@ -20,6 +22,12 @@ class CreditLimitViewSet(
     serializer_class = CreditLimitSerializer
     pagination_class = None
     lookup_field = "pk"
+
+    throttle_scope_map = {
+        "default": "credit-limits-read",
+        "list": "credit-limits-read",
+        "retrieve": "credit-limits-read",
+    }
 
     def get_queryset(self):
         return (
