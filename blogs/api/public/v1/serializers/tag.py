@@ -6,8 +6,8 @@ from blogs.models import Tag
 
 
 class TagSerializer(serializers.ModelSerializer):
-    article_count = serializers.ReadOnlyField()
-
+    article_count = serializers.IntegerField(read_only=True)
+    
     class Meta:
         model = Tag
         fields = [

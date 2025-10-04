@@ -38,6 +38,8 @@ class StatementViewSet(
     retrieve: Statement details with lines (prefetched).
     """
     lookup_field = "pk"
+    lookup_value_regex = r"\d+"
+
     throttle_scope_map = {
         "default": "credit-statements-read",
         "list": "credit-statements-read",
@@ -49,6 +51,8 @@ class StatementViewSet(
 
     # ---- queryset / serializers ----
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Statement.objects.none()
         qs = Statement.objects.filter(user=self.request.user).order_by(
             "-year", "-month", "-created_at"
         )

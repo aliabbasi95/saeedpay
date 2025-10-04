@@ -22,6 +22,7 @@ class CreditLimitViewSet(
     serializer_class = CreditLimitSerializer
     pagination_class = None
     lookup_field = "pk"
+    lookup_value_regex = r"\d+"
 
     throttle_scope_map = {
         "default": "credit-limits-read",
@@ -30,6 +31,8 @@ class CreditLimitViewSet(
     }
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return CreditLimit.objects.none()
         return (
             CreditLimit.objects
             .only(

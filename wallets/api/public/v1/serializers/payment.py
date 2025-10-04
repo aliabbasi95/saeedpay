@@ -3,6 +3,7 @@
 import re
 
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 from rest_framework import serializers
 
 from auth_api.models import PhoneOTP
@@ -82,7 +83,7 @@ class PaymentConfirmResponseSerializer(serializers.Serializer):
     payment_reference_code = serializers.CharField()
     transaction_reference_code = serializers.CharField(
         allow_blank=True, required=False
-        )
+    )
     return_url = serializers.URLField()
 
 
@@ -99,6 +100,9 @@ class PaymentRequestDetailWithWalletsSerializer(
     can_pay = serializers.SerializerMethodField()
     reason = serializers.SerializerMethodField()
 
+    @extend_schema_field(
+        serializers.ListField(child=serializers.DictField())
+    )
     def get_available_wallets(self, obj: PaymentRequest):
         request = self.context.get("request")
         user = getattr(request, "user", None)
@@ -109,6 +113,7 @@ class PaymentRequestDetailWithWalletsSerializer(
             return WalletSerializer(qs, many=True).data
         return []
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_can_pay(self, obj: PaymentRequest) -> bool:
         # Payment allowed only when PR is in CREATED and not yet expired.
         if obj.status != PaymentRequestStatus.CREATED:
@@ -117,6 +122,7 @@ class PaymentRequestDetailWithWalletsSerializer(
             return False
         return True
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_reason(self, obj: PaymentRequest):
         if obj.status == PaymentRequestStatus.EXPIRED:
             return "expired"

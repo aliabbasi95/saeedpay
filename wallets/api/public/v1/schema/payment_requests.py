@@ -3,8 +3,8 @@
 from drf_spectacular.utils import (
     extend_schema,
     OpenApiResponse,
-
-    OpenApiExample, OpenApiParameter,
+    OpenApiExample,
+    OpenApiParameter,
     OpenApiTypes,
 )
 
@@ -21,35 +21,42 @@ payment_list_schema = extend_schema(
     description="فهرست درخواست‌های پرداخت کاربر با فیلترها.",
     parameters=[
         OpenApiParameter(
-            "status", OpenApiParameter.QUERY, OpenApiTypes.STR,
+            name="status", type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
             description="created|completed|expired"
         ),
         OpenApiParameter(
-            "store_id", OpenApiParameter.QUERY, OpenApiTypes.INT,
+            name="store_id", type=OpenApiTypes.INT,
+            location=OpenApiParameter.QUERY,
             description="Store ID"
         ),
         OpenApiParameter(
-            "q", OpenApiParameter.QUERY, OpenApiTypes.STR,
+            name="q", type=OpenApiTypes.STR, location=OpenApiParameter.QUERY,
             description="reference_code icontains"
         ),
         OpenApiParameter(
-            "created_from", OpenApiParameter.QUERY, OpenApiTypes.STR,
+            name="created_from", type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
             description="ISO date/datetime"
         ),
         OpenApiParameter(
-            "created_to", OpenApiParameter.QUERY, OpenApiTypes.STR,
+            name="created_to", type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
             description="ISO date/datetime"
         ),
         OpenApiParameter(
-            "expires_from", OpenApiParameter.QUERY, OpenApiTypes.STR,
+            name="expires_from", type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
             description="ISO date/datetime"
         ),
         OpenApiParameter(
-            "expires_to", OpenApiParameter.QUERY, OpenApiTypes.STR,
+            name="expires_to", type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
             description="ISO date/datetime"
         ),
         OpenApiParameter(
-            "ordering", OpenApiParameter.QUERY, OpenApiTypes.STR,
+            name="ordering", type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
             description="-created_at|created_at|-amount|amount"
         ),
     ],

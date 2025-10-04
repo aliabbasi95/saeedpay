@@ -25,6 +25,7 @@ class InstallmentViewSet(
     """
     serializer_class = InstallmentSerializer
     lookup_field = "pk"
+    lookup_value_regex = r"\d+"
 
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = InstallmentFilter
@@ -38,6 +39,8 @@ class InstallmentViewSet(
     }
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Installment.objects.none()
         return (
             Installment.objects
             .select_related("plan", "transaction")

@@ -22,7 +22,9 @@ plan_installments_action_schema = extend_schema(
     summary="List installments of a plan",
     parameters=[
         OpenApiParameter(
-            "ordering", OpenApiParameter.QUERY, OpenApiTypes.STR,
+            name="ordering",
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
             description="due_date | -due_date"
         )
     ],

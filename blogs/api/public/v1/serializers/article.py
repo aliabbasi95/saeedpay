@@ -3,6 +3,7 @@
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 
 from blogs.models import Article, ArticleSection
 from .tag import TagListSerializer
@@ -17,6 +18,7 @@ class AuthorSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "username", "full_name"]
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_full_name(self, obj):
         """
         Safe access to optional profile.full_name.
@@ -91,7 +93,9 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
     rendered_content = serializers.SerializerMethodField()
     comments = serializers.SerializerMethodField()
     comment_count = serializers.SerializerMethodField()
-
+    jalali_creation_date_time = serializers.CharField(read_only=True)
+    jalali_update_date_time = serializers.CharField(read_only=True)
+    
     class Meta:
         model = Article
         fields = [
@@ -114,6 +118,9 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
             "comments",
         ]
 
+    @extend_schema_field(
+        serializers.ListField(child=serializers.DictField())
+    )
     def get_sections(self, obj):
         """
         Return sections ordered by 'order'.
@@ -122,10 +129,14 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
         sections = obj.sections.all().order_by("order")
         return ArticleSectionSerializer(sections, many=True).data
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_rendered_content(self, obj):
         """Return article HTML built from sections."""
         return obj.render_content()
 
+    @extend_schema_field(
+        serializers.ListField(child=serializers.DictField())
+    )
     def get_comments(self, obj):
         """
         Return approved root-level comments with limited nested replies.
@@ -141,6 +152,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
             approved_roots, many=True, context=self.context
         ).data
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_comment_count(self, obj):
         """
         Use annotated count if available; otherwise fall back to property.

@@ -19,16 +19,19 @@ transfers_list_schema = extend_schema(
     summary="List/filter wallet transfer requests",
     parameters=[
         OpenApiParameter(
-            "role", OpenApiParameter.QUERY, OpenApiTypes.STR,
-            description="sender|receiver|all"
+            name="role", type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description="all | sender | receiver"
         ),
         OpenApiParameter(
-            "status", OpenApiParameter.QUERY, OpenApiTypes.STR,
-            description="pending|success|rejected"
+            name="status", type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description="pending|done|failed|expired"
         ),
         OpenApiParameter(
-            "ordering", OpenApiParameter.QUERY, OpenApiTypes.STR,
-            description="-created_at|created_at"
+            name="ordering", type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description="-created_at | created_at"
         ),
     ],
     responses={200: WalletTransferDetailSerializer(many=True)},

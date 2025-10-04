@@ -16,19 +16,27 @@ installments_schema = extend_schema(
     description="اقساط کاربر با فیلتر وضعیت و بازه تاریخ سررسید.",
     parameters=[
         OpenApiParameter(
-            "status", OpenApiParameter.QUERY, OpenApiTypes.STR,
+            name="status",
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
             description="unpaid | paid"
         ),
         OpenApiParameter(
-            "due_from", OpenApiParameter.QUERY, OpenApiTypes.DATE,
+            name="due_from",
+            type=OpenApiTypes.DATE,
+            location=OpenApiParameter.QUERY,
             description="YYYY-MM-DD"
         ),
         OpenApiParameter(
-            "due_to", OpenApiParameter.QUERY, OpenApiTypes.DATE,
+            name="due_to",
+            type=OpenApiTypes.DATE,
+            location=OpenApiParameter.QUERY,
             description="YYYY-MM-DD"
         ),
         OpenApiParameter(
-            "ordering", OpenApiParameter.QUERY, OpenApiTypes.STR,
+            name="ordering",
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
             description="due_date | -due_date"
         ),
     ],

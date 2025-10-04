@@ -23,6 +23,7 @@ class StatementLineViewSet(
     permission_classes = [IsAuthenticated]
     serializer_class = StatementLineSerializer
     lookup_field = "pk"
+    lookup_value_regex = r"\d+"
 
     throttle_scope_map = {
         "default": "credit-statement-lines-read",
@@ -31,6 +32,8 @@ class StatementLineViewSet(
     }
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return StatementLine.objects.none()
         qs = (
             StatementLine.objects
             .select_related("statement", "transaction")

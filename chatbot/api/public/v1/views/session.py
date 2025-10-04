@@ -50,6 +50,7 @@ class ChatSessionViewSet(
     permission_classes = [AllowAny]
     pagination_class = None
     lookup_field = "pk"
+    lookup_value_regex = r"\d+"
 
     throttle_scope_map = {
         "default": "chat-sessions",
@@ -62,6 +63,8 @@ class ChatSessionViewSet(
 
     def get_queryset(self):
         """Scope sessions to the authenticated user or the current anonymous session."""
+        if getattr(self, "swagger_fake_view", False):
+            return ChatSession.objects.none()
         request = self.request
         if request.user.is_authenticated:
             base_qs = ChatSession.objects.filter(user=request.user)
