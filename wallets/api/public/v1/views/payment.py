@@ -2,16 +2,17 @@
 # ViewSet for Payment Requests: list, retrieve(by reference_code), and confirm action.
 
 from django.utils.dateparse import parse_date, parse_datetime
-from drf_spectacular.utils import (
-    extend_schema, OpenApiResponse, OpenApiExample,
-    OpenApiParameter, OpenApiTypes,
-)
 from rest_framework import status, mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
+from wallets.api.public.v1.schema import (
+    payment_confirm_schema,
+    payment_retrieve_schema,
+    payment_list_schema,
+)
 from wallets.api.public.v1.serializers.payment import (
     PaymentRequestListItemSerializer,
     PaymentRequestDetailWithWalletsSerializer,
@@ -48,7 +49,6 @@ def _error_response(detail, code, http_status, pr=None):
     return Response(payload, status=http_status)
 
 
-@extend_schema(tags=["Wallet · Payment Requests"])
 class PaymentRequestViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
@@ -132,84 +132,12 @@ class PaymentRequestViewSet(
             ordering = "-created_at"
         return qs.order_by(ordering)
 
-    # ---------- list ----------
-    @extend_schema(
-        summary="List user's payment requests",
-        description=(
-                "Returns a paginated list of the authenticated user's payment requests. "
-                "Filters: status, store_id, q (reference_code icontains), created/expires ranges. "
-                "Use retrieve endpoint to get `available_wallets`."
-        ),
-        parameters=[
-            OpenApiParameter(
-                "status", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description="e.g. created, completed, expired"
-            ),
-            OpenApiParameter(
-                "store_id", OpenApiParameter.QUERY, OpenApiTypes.INT,
-                description="Filter by store id"
-            ),
-            OpenApiParameter(
-                "q", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description="Search in reference_code (icontains)"
-            ),
-            OpenApiParameter(
-                "created_from", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description="ISO date/datetime (created_at >= value)"
-            ),
-            OpenApiParameter(
-                "created_to", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description="ISO date/datetime (created_at <= value)"
-            ),
-            OpenApiParameter(
-                "expires_from", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description="ISO date/datetime (expires_at >= value)"
-            ),
-            OpenApiParameter(
-                "expires_to", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description="ISO date/datetime (expires_at <= value)"
-            ),
-            OpenApiParameter(
-                "ordering", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description="One of: -created_at, created_at, -amount, amount (default: -created_at)"
-            ),
-        ],
-        responses={200: PaymentRequestListItemSerializer(many=True)},
-    )
+    @payment_list_schema
     def list(self, request, *args, **kwargs):
         self.serializer_class = PaymentRequestListItemSerializer
         return super().list(request, *args, **kwargs)
 
-    # ---------- retrieve ----------
-    @extend_schema(
-        summary="Get payment request details",
-        description=(
-                "Returns details by `reference_code`. Includes `available_wallets` when authenticated. "
-                "Expired requests are returned with status=expired."
-        ),
-        responses={
-            200: OpenApiResponse(
-                response=PaymentRequestDetailWithWalletsSerializer,
-                examples=[OpenApiExample(
-                    "Sample", value={
-                        "reference_code": "PR123456",
-                        "amount": 10000,
-                        "description": "Purchase",
-                        "store_id": 42,
-                        "store_name": "Demo Store",
-                        "status": "expired",
-                        "status_display": "منقضی‌شده",
-                        "expires_at": "2025-09-27T12:34:56Z",
-                        "paid_at": None,
-                        "can_pay": False,
-                        "reason": "expired",
-                        "available_wallets": [],
-                    }
-                )],
-            ),
-            404: OpenApiResponse(description="Payment request not found."),
-        },
-    )
+    @payment_retrieve_schema
     def retrieve(self, request, *args, **kwargs):
         self.serializer_class = PaymentRequestDetailWithWalletsSerializer
         pr = self.get_object()
@@ -220,20 +148,7 @@ class PaymentRequestViewSet(
         serializer = self.get_serializer(pr, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # ---------- confirm ----------
-    @extend_schema(
-        request=PaymentConfirmSerializer,
-        responses={
-            200: PaymentConfirmResponseSerializer,
-            400: OpenApiResponse(
-                description="Validation error or business rule violation."
-            ),
-            404: OpenApiResponse(description="Payment request not found."),
-            410: OpenApiResponse(description="Payment request expired."),
-        },
-        summary="Confirm & pay",
-        description="Confirms and pays the payment request using the selected wallet. Returns 410 if expired.",
-    )
+    @payment_confirm_schema
     @action(detail=True, methods=["post"], url_path="confirm")
     def confirm(self, request, *args, **kwargs):
         pr = self.get_object()

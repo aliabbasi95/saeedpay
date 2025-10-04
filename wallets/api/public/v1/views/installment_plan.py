@@ -2,13 +2,16 @@
 # Read-only ViewSet for user's installment plans + nested installments action.
 
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from rest_framework import viewsets, mixins
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
+from wallets.api.public.v1.schema import (
+    plan_installments_action_schema,
+    installment_plans_schema,
+)
 from wallets.api.public.v1.serializers import (
     InstallmentPlanSerializer,
     InstallmentSerializer,
@@ -17,11 +20,7 @@ from wallets.filters import InstallmentPlanFilter
 from wallets.models import InstallmentPlan, Installment
 
 
-@extend_schema(
-    tags=["Wallet · Installment Plans"],
-    summary="List/Retrieve user's installment plans",
-    description="Returns the authenticated user's installment plans. Filters + ordering supported."
-)
+@installment_plans_schema
 class InstallmentPlanViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
@@ -59,16 +58,7 @@ class InstallmentPlanViewSet(
             .filter(user=self.request.user)
         )
 
-    @extend_schema(
-        summary="List installments of a plan",
-        parameters=[
-            OpenApiParameter(
-                "ordering", OpenApiParameter.QUERY, OpenApiTypes.STR,
-                description="due_date | -due_date (default: due_date)"
-            )
-        ],
-        responses={200: InstallmentSerializer(many=True)},
-    )
+    @plan_installments_action_schema
     @action(detail=True, methods=["get"], url_path="installments")
     def installments(self, request, *args, **kwargs):
         plan_id = kwargs.get("pk")
