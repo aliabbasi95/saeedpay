@@ -11,7 +11,7 @@ from rest_framework.mixins import (
     UpdateModelMixin,
     DestroyModelMixin,
 )
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
@@ -118,7 +118,7 @@ class PublicStoreViewSet(
     RetrieveModelMixin,
     GenericViewSet
 ):
-    permission_classes = []
+    permission_classes = [AllowAny]
     serializer_class = PublicStoreSerializer
 
     throttle_scope_map = {
