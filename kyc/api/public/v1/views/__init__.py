@@ -1,0 +1,2 @@
+from .identity_verification import IdentityVerificationViewSet
+from .video_verification import VideoVerificationViewSet

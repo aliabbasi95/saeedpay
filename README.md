@@ -67,7 +67,6 @@ It supports customer and merchant wallet operations, real-time payment requests,
 
     Copy saeedpay/local_settings_template.py to saeedpay/local_settings.py and fill in your database, email, JWT secret, and other local credentials.
 
-
 4. **Install requirements**
 
     ```bash
@@ -140,34 +139,43 @@ It supports customer and merchant wallet operations, real-time payment requests,
 ## Design Notes: Why PaymentRequest uses Escrow but Wallet Transfers do not
 
 ### PaymentRequest = Escrow-based
+
 The `PaymentRequest` model is used for **merchant-customer purchases**, where funds are first transferred to an **escrow wallet** and only released after the **merchant confirms the transaction**.
 
 This protects both parties:
+
 - The **customer** won’t lose funds to a merchant who fails to deliver.
 - The **merchant** only receives funds when confirmed.
 - Escrow acts as a neutral, trusted holding area.
 
 ### WalletTransferRequest = Reservation-based
+
 Peer-to-peer wallet transfers (e.g., customer-to-customer via phone number) **do not use escrow**. Instead:
+
 - Funds remain in the sender’s wallet until the receiver explicitly confirms.
 - During that time, a **logical reservation** is applied to prevent double-spending.
 - If the receiver rejects or fails to confirm in time, the reservation is cleared.
 
 ### Why this separation?
+
 Escrow is best for **asymmetric trust** (merchant-customer), whereas reservation is enough for **symmetric trust** (user-user).
 Merging both flows into one model (e.g., `PaymentRequest`) would:
+
 - Overcomplicate logic with unrelated conditions.
 - Introduce unnecessary escrow logic in trusted user transfers.
 - Reduce clarity, flexibility, and security.
 
 ### ✅ Final Decision
+
 We use:
+
 - `PaymentRequest` for merchant-related purchases using escrow.
 - `WalletTransferRequest` (new model) for peer transfers using reservation logic.
 
 This clear separation improves security, maintainability, and matches common fintech best practices (e.g. Stripe, PayPal, Digikala, etc).
 
 ---
+
 ## License
 
 [MIT](LICENSE)

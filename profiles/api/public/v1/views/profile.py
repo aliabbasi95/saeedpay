@@ -1,8 +1,7 @@
 # profiles/api/public/v1/views/profile.py
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework import generics
 
 from profiles.api.public.v1.serializers import ProfileSerializer
 from profiles.models.profile import Profile
@@ -10,22 +9,12 @@ from profiles.models.profile import Profile
 
 @extend_schema(
     tags=["Profile"],
-    summary="دریافت اطلاعات پروفایل",
-    description="بررسی یا ایجاد و بازگردانی اطلاعات پروفایل کاربر لاگین‌شده"
+    summary="دریافت/ویرایش پروفایل",
+    description="دریافت پروفایل کاربر لاگین‌شده یا بروزرسانی فیلدهای مجاز. بروزرسانی شماره تلفن نیازمند OTP است.",
 )
-class ProfileView(APIView):
+class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = ProfileSerializer
 
-    def get(self, request):
-        profile, _ = Profile.objects.get_or_create(user=request.user)
-        data = self.serializer_class(profile).data
-        return Response(data)
-
-    def post(self, request):
-        profile, _ = Profile.objects.get_or_create(user=request.user)
-        serializer = self.serializer_class(
-            profile, data=request.data, partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+    def get_object(self):
+        profile, _ = Profile.objects.get_or_create(user=self.request.user)
+        return profile
