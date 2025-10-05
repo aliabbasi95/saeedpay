@@ -1,6 +1,7 @@
 # kyc/api/public/v1/serializers/identity_verification.py
 
 from rest_framework import serializers
+
 from kyc.utils import validate_national_id, validate_phone_number
 
 
@@ -28,23 +29,25 @@ class IdentityVerificationSerializer(serializers.Serializer):
         required=False,
         help_text="User's last name"
     )
-    
+
     def validate_national_id(self, value):
-        """Validate national ID format."""
-        if value and not validate_national_id(value):
-            raise serializers.ValidationError("Invalid national ID format")
-        return value
-    
+        v = (value or "").strip()
+        if v and not validate_national_id(v):
+            raise serializers.ValidationError("Invalid national ID format.")
+        return v
+
     def validate_phone(self, value):
-        """Validate phone number format."""
-        if value and not validate_phone_number(value):
-            raise serializers.ValidationError("Invalid phone number format")
-        return value
-    
-    def validate(self, data):
-        """Validate that at least one required field is provided."""
-        if not any(data.get(field) for field in ['national_id', 'phone']):
+        v = (value or "").strip()
+        if v and not validate_phone_number(v):
+            raise serializers.ValidationError("Invalid phone number format.")
+        return v
+
+    def validate(self, attrs):
+        if not any(
+                [(attrs.get("national_id") or "").strip(),
+                 (attrs.get("phone") or "").strip()]
+        ):
             raise serializers.ValidationError(
-                "At least one of national_id or phone must be provided"
+                "At least one of national_id or phone must be provided."
             )
-        return data
+        return attrs

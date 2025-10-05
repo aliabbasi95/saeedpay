@@ -2,48 +2,30 @@
 
 import os
 import tempfile
-from drf_spectacular.utils import extend_schema
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework import status
 
+from rest_framework import status, generics
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from profiles.api.public.v1.schema import VIDEO_KYC_SUBMIT_SCHEMA
 from profiles.api.public.v1.serializers import VideoKYCSerializer
 from profiles.tasks import submit_profile_video_kyc
 
 
-class VideoKYCSubmitView(APIView):
+class VideoKYCSubmitView(generics.GenericAPIView):
     """
     Submit video KYC verification for the authenticated user's profile.
-    All validation is handled in the serializer.
+    Validation is handled by the serializer.
     """
     serializer_class = VideoKYCSerializer
+    permission_classes = [IsAuthenticated]
 
-    @extend_schema(
-        tags=["Profile"],
-        summary="ارسال ویدیو برای احراز هویت",
-        description="ارسال ویدیو سلفی برای احراز هویت ویدیویی کاربر",
-        request=VideoKYCSerializer,
-        responses={
-            200: {
-                "type": "object",
-                "properties": {
-                    "success": {"type": "boolean"},
-                    "message": {"type": "string"},
-                    "task_id": {"type": "string"},
-                },
-            },
-            400: {
-                "type": "object",
-                "properties": {
-                    "success": {"type": "boolean"},
-                    "errors": {"type": "object"},
-                },
-            },
-        },
-    )
-    def post(self, request):
+    @VIDEO_KYC_SUBMIT_SCHEMA
+    def post(self, request, *args, **kwargs):
         # Validate request data and profile state
-        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer = self.get_serializer(
+            data=request.data, context={'request': request}
+        )
         serializer.is_valid(raise_exception=True)
 
         # Extract validated data
@@ -55,7 +37,7 @@ class VideoKYCSubmitView(APIView):
         tmp_file_path = self._save_temp_video(video_file)
 
         try:
-            # Submit video KYC task
+            # Submit video KYC task (async)
             task_result = submit_profile_video_kyc.delay(
                 profile_id=profile.id,
                 national_code=profile.national_id,
@@ -64,30 +46,37 @@ class VideoKYCSubmitView(APIView):
                 rand_action=rand_action,
             )
 
+            # 202 Accepted (async processing)
             return Response(
                 {
                     "success": True,
                     "message": "درخواست احراز هویت ویدیویی با موفقیت ثبت شد.",
                     "task_id": task_result.id,
                 },
-                status=status.HTTP_200_OK,
+                status=status.HTTP_202_ACCEPTED,
             )
 
         except Exception as e:
             # Clean up temporary file on error
             if os.path.exists(tmp_file_path):
-                os.unlink(tmp_file_path)
+                try:
+                    os.unlink(tmp_file_path)
+                except Exception:
+                    pass
 
             return Response(
-                {"success": False, "error": "submission_failed", "message": str(e)},
+                {
+                    "success": False, "error": "submission_failed",
+                    "message": str(e)
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def _save_temp_video(self, video_file) -> str:
-        """Save uploaded video to a temporary file and return its path."""
+        """Save uploaded video to a temporary file and return its absolute path."""
+        suffix = os.path.splitext(video_file.name)[1] or ".mp4"
         with tempfile.NamedTemporaryFile(
-            delete=False, suffix=os.path.splitext(video_file.name)[1]
+                delete=False, suffix=suffix
         ) as tmp_file:
             for chunk in video_file.chunks():
-                tmp_file.write(chunk)
-            return tmp_file.name
+                tmp_file._
