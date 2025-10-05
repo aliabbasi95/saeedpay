@@ -106,17 +106,36 @@ WSGI_APPLICATION = "saeedpay.wsgi.application"
 CARD_VALIDATOR_MOCK = True  # Set to False for production validation
 
 # KYC Configuration
-KYC_IDENTITY_BASE_URL = config("KYC_IDENTITY_BASE_URL", default="https://sandbox.vidaverify.ir:9091")
+KYC_IDENTITY_BASE_URL = config(
+    "KYC_IDENTITY_BASE_URL", default="https://sandbox.vidaverify.ir:9091"
+)
 KYC_IDENTITY_TIMEOUT = config("KYC_IDENTITY_TIMEOUT", default=30, cast=int)
-KYC_IDENTITY_TOKEN_SKEW_SECONDS = config("KYC_IDENTITY_TOKEN_SKEW_SECONDS", default=30, cast=int)
+KYC_IDENTITY_TOKEN_SKEW_SECONDS = config(
+    "KYC_IDENTITY_TOKEN_SKEW_SECONDS", default=30, cast=int
+)
 
 # KYC Retry Configuration
-KYC_VIDEO_SUBMIT_MAX_RETRIES = config("KYC_VIDEO_SUBMIT_MAX_RETRIES", default=3, cast=int)
-KYC_VIDEO_SUBMIT_RETRY_DELAY = config("KYC_VIDEO_SUBMIT_RETRY_DELAY", default=60, cast=int)
-KYC_VIDEO_CHECK_MAX_RETRIES = config("KYC_VIDEO_CHECK_MAX_RETRIES", default=6, cast=int)
-KYC_VIDEO_CHECK_RETRY_DELAY = config("KYC_VIDEO_CHECK_RETRY_DELAY", default=120, cast=int)
-KYC_SHAHKAR_MAX_RETRIES = config("KYC_SHAHKAR_MAX_RETRIES", default=3, cast=int)
-KYC_SHAHKAR_RETRY_DELAY = config("KYC_SHAHKAR_RETRY_DELAY", default=60, cast=int)
+KYC_VIDEO_SUBMIT_MAX_RETRIES = config(
+    "KYC_VIDEO_SUBMIT_MAX_RETRIES", default=3, cast=int
+)
+KYC_VIDEO_SUBMIT_RETRY_DELAY = config(
+    "KYC_VIDEO_SUBMIT_RETRY_DELAY", default=60, cast=int
+)
+KYC_VIDEO_CHECK_MAX_RETRIES = config(
+    "KYC_VIDEO_CHECK_MAX_RETRIES", default=6, cast=int
+)
+KYC_VIDEO_CHECK_RETRY_DELAY = config(
+    "KYC_VIDEO_CHECK_RETRY_DELAY", default=120, cast=int
+)
+KYC_SHAHKAR_MAX_RETRIES = config(
+    "KYC_SHAHKAR_MAX_RETRIES", default=3, cast=int
+)
+KYC_SHAHKAR_RETRY_DELAY = config(
+    "KYC_SHAHKAR_RETRY_DELAY", default=60, cast=int
+)
+CREDIT_DEFAULT_APPROVED_LIMIT = config(
+    "CREDIT_DEFAULT_APPROVED_LIMIT", default=5000000, cast=int
+)
 
 # KYC Identity Service Credentials
 KIAHOOSHAN_USERNAME = config("KIAHOOSHAN_USERNAME", default="")
@@ -222,6 +241,9 @@ REST_FRAMEWORK = {
 
         # ── Wallets / Balances & History ───────────────────────────────────────
         "wallets-read": "300/hour",  # balances, summary, etc.
+
+        # ── Wallets / Credit ───────────────────────────────────────────────────
+        "credit-limits-read": "300/hour",
 
         # ── Wallets / Installments ─────────────────────────────────────────────
         "installments-read": "300/hour",  # user installment list/detail
@@ -387,7 +409,9 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # reCAPTCHA Configuration
-RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY', default='6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs')
+RECAPTCHA_SECRET_KEY = config(
+    'RECAPTCHA_SECRET_KEY', default='6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs'
+)
 RECAPTCHA_V3 = False  # Set to False for reCAPTCHA v2
 RECAPTCHA_V3_THRESHOLD = 0.5  # Score threshold for v3 (ignored when v2)
 RECAPTCHA_ACTION = "submit"  # Default action name for v3 (ignored when v2)

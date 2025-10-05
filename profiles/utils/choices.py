@@ -16,3 +16,17 @@ class KYCStatus(models.TextChoices):
     # More granular statuses for better tracking
     PROCESSING = "processing", _("Processing")
     REJECTED = "rejected", _("Rejected")
+
+
+class AttemptType(models.TextChoices):
+    SHAHKAR = "SHAHKAR", _("Shahkar (phone/national match)")
+    VIDEO_SUBMIT = "VIDEO_SUBMIT", _("Video submit")
+    VIDEO_RESULT = "VIDEO_RESULT", _("Video result polling")
+
+
+class AttemptStatus(models.TextChoices):
+    PENDING = "PENDING", _("Pending")
+    PROCESSING = "PROCESSING", _("Processing")
+    SUCCESS = "SUCCESS", _("Success")
+    FAILED = "FAILED", _("Failed")
+    REJECTED = "REJECTED", _("Rejected")
