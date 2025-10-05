@@ -1,6 +1,8 @@
 # profiles/api/public/v1/views/profile.py
 
 from drf_spectacular.utils import extend_schema
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -22,10 +24,27 @@ class ProfileView(APIView):
         return Response(data)
 
     def post(self, request):
+        """
+        Update profile with either:
+        1. Basic profile fields (first_name, last_name, national_id, birth_date, email)
+        2. Phone number with OTP verification
+        
+        These two update types are mutually exclusive.
+        """
         profile, _ = Profile.objects.get_or_create(user=request.user)
         serializer = self.serializer_class(
             profile, data=request.data, partial=True
         )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        # Return validation errors in a structured format
+        return Response(
+            {
+                "success": False,
+                "errors": serializer.errors
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )

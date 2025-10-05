@@ -102,6 +102,26 @@ WSGI_APPLICATION = "saeedpay.wsgi.application"
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
+# Card Validator Configuration
+CARD_VALIDATOR_MOCK = True  # Set to False for production validation
+
+# KYC Configuration
+KYC_IDENTITY_BASE_URL = ""
+KYC_IDENTITY_TIMEOUT = 30
+KYC_IDENTITY_TOKEN_SKEW_SECONDS = 30
+
+# KYC Retry Configuration
+KYC_VIDEO_SUBMIT_MAX_RETRIES = int(os.getenv("KYC_VIDEO_SUBMIT_MAX_RETRIES", "3"))
+KYC_VIDEO_SUBMIT_RETRY_DELAY = int(os.getenv("KYC_VIDEO_SUBMIT_RETRY_DELAY", "60"))
+KYC_VIDEO_CHECK_MAX_RETRIES = int(os.getenv("KYC_VIDEO_CHECK_MAX_RETRIES", "6"))
+KYC_VIDEO_CHECK_RETRY_DELAY = int(os.getenv("KYC_VIDEO_CHECK_RETRY_DELAY", "120"))
+
+# KYC Identity Service Credentials
+KIAHOOSHAN_USERNAME = os.getenv("KIAHOOSHAN_USERNAME", "")
+KIAHOOSHAN_PASSWORD = os.getenv("KIAHOOSHAN_PASSWORD", "")
+KIAHOOSHAN_ORGNAME = os.getenv("KIAHOOSHAN_ORGNAME", "")
+KIAHOOSHAN_ORGNATIONALCODE = os.getenv("KIAHOOSHAN_ORGNATIONALCODE", "")
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "lib.erp_base.validators.UppercaseValidator",
