@@ -7,7 +7,7 @@ from profiles.models.profile import Profile
 from profiles.utils.choices import AuthenticationStage
 from auth_api.models import PhoneOTP
 from auth_api.api.public.v1.serializers.mixins import OTPValidationMixin
-from profiles.tasks import mock_identity_verification
+from profiles.tasks import verify_identity_phone_national_id
 import re
 
 
@@ -200,11 +200,11 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
         # Save first to ensure changes are persisted
         instance.save()
 
-        # If national_id was updated, trigger mock identity verification task AFTER save
+        # If national_id was updated, trigger Shahkar identity verification task AFTER save
         if national_id_updated:
             # Use transaction.on_commit to ensure task sees the saved data
             transaction.on_commit(
-                lambda: mock_identity_verification.delay(instance.id)
+                lambda: verify_identity_phone_national_id.delay(instance.id)
             )
 
         return instance

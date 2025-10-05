@@ -335,40 +335,75 @@ def reset_profile_video_kyc(self, profile_id: int, reason: str = "manual_reset")
 
 
 @shared_task(bind=True)
-def mock_identity_verification(self, profile_id: int) -> dict:
+def verify_identity_phone_national_id(self, profile_id: int) -> dict:
     """
-    Mock task for identity verification. This task simulates the identity verification process
-    and updates the phone_national_id_match_status field.
+    Verify phone number and national ID matching using Shahkar API.
+    Updates phone_national_id_match_status and auth_stage based on verification result.
+    """
+    # First, fetch profile data
+    try:
+        profile = Profile.objects.get(id=profile_id)
+    except Profile.DoesNotExist:
+        return {"success": False, "error": "profile_not_found"}
 
-    In a real implementation, this would call external services to verify the match between
-    phone number and national ID.
-    """
-    # Use transaction to ensure row locking works properly
+    # Validate required fields
+    if not profile.national_id or not profile.phone_number:
+        logger.warning(f"Profile {profile_id}: Missing national_id or phone_number")
+        return {
+            "success": False,
+            "error": "missing_required_fields",
+            "message": "National ID and phone number are required",
+        }
+
+    # Call Shahkar verification service
+    service: IdentityAuthService = get_identity_auth_service()
+    try:
+        result = service.verify_mobile_national_id(
+            national_code=profile.national_id,
+            mobile_number=profile.phone_number,
+        )
+    except Exception as e:
+        # Network or unexpected error → retry
+        max_retries = getattr(settings, "KYC_SHAHKAR_MAX_RETRIES", 3)
+        retry_delay = getattr(settings, "KYC_SHAHKAR_RETRY_DELAY", 60)
+        if self.request.retries < max_retries:
+            logger.warning(f"Profile {profile_id}: Shahkar API error, retrying: {e}")
+            raise self.retry(exc=e, countdown=retry_delay)
+        logger.error(f"Profile {profile_id}: Shahkar API error after max retries: {e}")
+        return {"success": False, "error": "service_unavailable", "message": str(e)}
+
+    # Check if service call was successful
+    if not result.get("success"):
+        error_msg = result.get("error", "Unknown service error")
+        logger.error(f"Profile {profile_id}: Shahkar verification service error - {error_msg}")
+        return {"success": False, "error": "service_error", "message": error_msg}
+
+    # Update profile based on verification result
+    is_matched = result.get("is_matched", False)
+    
     with transaction.atomic():
-        try:
-            profile = Profile.objects.select_for_update().get(id=profile_id)
-        except Profile.DoesNotExist:
-            return {"success": False, "error": "profile_not_found"}
-
-        # Simulate verification process
-        # In a real scenario, this would call external APIs
-        try:
-            # Mock verification logic - in reality this would check with external services
-            # For now, we'll assume the verification is successful
-
-            # Update phone_national_id_match_status to ACCEPTED to simulate successful verification
+        # Refresh profile to get latest state
+        profile = Profile.objects.select_for_update().get(id=profile_id)
+        
+        if is_matched:
             profile.phone_national_id_match_status = KYCStatus.ACCEPTED
-            # Update auth_stage to IDENTITY_VERIFIED since verification was successful
             profile.mark_identity_verified()
-
             logger.info(
-                f"Profile {profile_id}: Mock identity verification completed successfully"
+                f"Profile {profile_id}: Phone/National ID verification successful"
             )
             return {
                 "success": True,
+                "is_matched": True,
                 "message": "Identity verification completed successfully",
             }
-
-        except Exception as e:
-            logger.error(f"Profile {profile_id}: Mock identity verification failed - {e}")
-            return {"success": False, "error": "verification_failed", "message": str(e)}
+        else:
+            profile.phone_national_id_match_status = KYCStatus.REJECTED
+            profile.save(update_fields=["phone_national_id_match_status", "updated_at"])
+            logger.warning(
+                f"Profile {profile_id}: Phone/National ID verification failed - not matched"
+            )
+            return {
+                "success": True,
+                "is_matched": False,
+                "message": "Phone number and national ID do not match",
+            }

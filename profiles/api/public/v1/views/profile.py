@@ -40,7 +40,6 @@ class ProfileView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         
-        # Return validation errors in a structured format
         return Response(
             {
                 "success": False,

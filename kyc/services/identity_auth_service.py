@@ -181,7 +181,9 @@ class IdentityAuthService:
         }
         return self._request_token(auth_url, payload, headers, "Token request")
 
-    def _refresh_token(self, refresh_token: str, access_token: str = None) -> Tuple[Optional[str], Optional[str]]:
+    def _refresh_token(
+        self, refresh_token: str, access_token: str = None
+    ) -> Tuple[Optional[str], Optional[str]]:
         if not refresh_token or not self.base_url:
             return None, None
         refresh_url = urljoin(self.base_url.rstrip("/") + "/", "api/ums/token/refresh")
@@ -307,7 +309,9 @@ class IdentityAuthService:
                         "retrying verification."
                     )
                 )
-                new_access_token, new_refresh_token = self._refresh_token(refresh_token, access_token)
+                new_access_token, new_refresh_token = self._refresh_token(
+                    refresh_token, access_token
+                )
                 if new_access_token:
                     response = _make_verification_request(new_access_token)
 
@@ -387,7 +391,7 @@ class IdentityAuthService:
                 "error": "Authentication failed",
                 "error_code": "AUTH_FAILED",
             }
-        
+
         return self.video_verification.verify_idcard_video(
             national_code=national_code,
             birth_date=birth_date,
@@ -411,8 +415,91 @@ class IdentityAuthService:
                 "error": "Authentication failed",
                 "error_code": "AUTH_FAILED",
             }
-        
+
         return self.video_verification.get_verification_result(unique_id, access_token)
+
+    def verify_mobile_national_id(self, national_code: str, mobile_number: str) -> Dict:
+        """
+        Verify mobile number and national code matching using Shahkar API.
+
+        Args:
+            national_code: National ID number
+            mobile_number: Mobile number (e.g., "09123456789")
+
+        Returns:
+            Dict containing verification result with 'success' and 'is_matched' keys
+        """
+        access_token, _ = self.get_valid_tokens()
+        if not access_token:
+            logger.error("Failed to obtain access token for Shahkar verification")
+            return {
+                "success": False,
+                "error": "Authentication failed",
+                "error_code": "AUTH_FAILED",
+            }
+
+        verify_url = urljoin(self.base_url.rstrip("/") + "/", "api/inq/shahkar/verify")
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+            "User-Agent": "SaeedPay-KYC-Service/1.0",
+        }
+        payload = {
+            "nationalCode": national_code,
+            "mobileNumber": mobile_number,
+        }
+
+        try:
+            response = requests.post(
+                verify_url, json=payload, headers=headers, timeout=self.timeout
+            )
+
+            if response.status_code == 200:
+                try:
+                    resp_json = response.json()
+                    data = resp_json.get("data", {})
+                    details = data.get("details", {})
+                    is_matched = details.get("isMatched", False)
+
+                    return {
+                        "success": True,
+                        "is_matched": is_matched,
+                        "unique_id": resp_json.get("uniqueId"),
+                        "message": data.get("message", ""),
+                        "raw": resp_json,
+                    }
+                except Exception as e:
+                    logger.error(f"Invalid JSON in Shahkar success response: {e}")
+                    return {
+                        "success": False,
+                        "error": "Invalid JSON in success response",
+                        "error_code": "INVALID_JSON",
+                    }
+            else:
+                error_body = response.text[:500] if response.text else ""
+                logger.error(
+                    f"Shahkar verification failed: HTTP {response.status_code} | Response: {error_body}"
+                )
+                return {
+                    "success": False,
+                    "error": error_body or "Verification failed",
+                    "error_code": "VERIFICATION_FAILED",
+                    "status": response.status_code,
+                }
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Shahkar verification request failed: {e}")
+            return {
+                "success": False,
+                "error": f"Verification request failed: {str(e)}",
+                "error_code": "VERIFICATION_FAILED",
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error during Shahkar verification: {e}")
+            return {
+                "success": False,
+                "error": "Unexpected error during verification",
+                "error_code": "UNEXPECTED_ERROR",
+            }
 
     def clear_tokens(self) -> None:
         """Clear cached tokens (useful for logout or service restart)."""
