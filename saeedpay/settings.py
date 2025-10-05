@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from datetime import timedelta
+from decouple import config
 
 from celery.schedules import crontab
 from corsheaders.defaults import default_headers
@@ -22,7 +23,6 @@ except ImportError:
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-
 # Application definition
 DEFAULT_APPS = [
     "django.contrib.admin",
@@ -106,21 +106,23 @@ WSGI_APPLICATION = "saeedpay.wsgi.application"
 CARD_VALIDATOR_MOCK = True  # Set to False for production validation
 
 # KYC Configuration
-KYC_IDENTITY_BASE_URL = ""
-KYC_IDENTITY_TIMEOUT = 30
-KYC_IDENTITY_TOKEN_SKEW_SECONDS = 30
+KYC_IDENTITY_BASE_URL = config("KYC_IDENTITY_BASE_URL", default="https://sandbox.vidaverify.ir:9091")
+KYC_IDENTITY_TIMEOUT = config("KYC_IDENTITY_TIMEOUT", default=30, cast=int)
+KYC_IDENTITY_TOKEN_SKEW_SECONDS = config("KYC_IDENTITY_TOKEN_SKEW_SECONDS", default=30, cast=int)
 
 # KYC Retry Configuration
-KYC_VIDEO_SUBMIT_MAX_RETRIES = int(os.getenv("KYC_VIDEO_SUBMIT_MAX_RETRIES", "3"))
-KYC_VIDEO_SUBMIT_RETRY_DELAY = int(os.getenv("KYC_VIDEO_SUBMIT_RETRY_DELAY", "60"))
-KYC_VIDEO_CHECK_MAX_RETRIES = int(os.getenv("KYC_VIDEO_CHECK_MAX_RETRIES", "6"))
-KYC_VIDEO_CHECK_RETRY_DELAY = int(os.getenv("KYC_VIDEO_CHECK_RETRY_DELAY", "120"))
+KYC_VIDEO_SUBMIT_MAX_RETRIES = config("KYC_VIDEO_SUBMIT_MAX_RETRIES", default=3, cast=int)
+KYC_VIDEO_SUBMIT_RETRY_DELAY = config("KYC_VIDEO_SUBMIT_RETRY_DELAY", default=60, cast=int)
+KYC_VIDEO_CHECK_MAX_RETRIES = config("KYC_VIDEO_CHECK_MAX_RETRIES", default=6, cast=int)
+KYC_VIDEO_CHECK_RETRY_DELAY = config("KYC_VIDEO_CHECK_RETRY_DELAY", default=120, cast=int)
+KYC_SHAHKAR_MAX_RETRIES = config("KYC_SHAHKAR_MAX_RETRIES", default=3, cast=int)
+KYC_SHAHKAR_RETRY_DELAY = config("KYC_SHAHKAR_RETRY_DELAY", default=60, cast=int)
 
 # KYC Identity Service Credentials
-KIAHOOSHAN_USERNAME = os.getenv("KIAHOOSHAN_USERNAME", "")
-KIAHOOSHAN_PASSWORD = os.getenv("KIAHOOSHAN_PASSWORD", "")
-KIAHOOSHAN_ORGNAME = os.getenv("KIAHOOSHAN_ORGNAME", "")
-KIAHOOSHAN_ORGNATIONALCODE = os.getenv("KIAHOOSHAN_ORGNATIONALCODE", "")
+KIAHOOSHAN_USERNAME = config("KIAHOOSHAN_USERNAME", default="")
+KIAHOOSHAN_PASSWORD = config("KIAHOOSHAN_PASSWORD", default="")
+KIAHOOSHAN_ORGNAME = config("KIAHOOSHAN_ORGNAME", default="")
+KIAHOOSHAN_ORGNATIONALCODE = config("KIAHOOSHAN_ORGNATIONALCODE", default="")
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -256,8 +258,8 @@ SPECTACULAR_SETTINGS = {
 REDIS_HOST = "localhost"
 REDIS_PORT = 6379
 
-REDIS_BROKER_DB = int(os.getenv("REDIS_BROKER_DB", "0"))
-REDIS_BACKEND_DB = int(os.getenv("REDIS_BACKEND_DB", "1"))
+REDIS_BROKER_DB = config("REDIS_BROKER_DB", default=0, cast=int)
+REDIS_BACKEND_DB = config("REDIS_BACKEND_DB", default=1, cast=int)
 
 
 def _redis_url(db: int) -> str:
@@ -316,9 +318,7 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # reCAPTCHA Configuration
-RECAPTCHA_SECRET_KEY = os.getenv(
-    'RECAPTCHA_SECRET_KEY', '6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs'
-)
+RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY', default='6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs')
 RECAPTCHA_V3 = False  # Set to False for reCAPTCHA v2
 RECAPTCHA_V3_THRESHOLD = 0.5  # Score threshold for v3 (ignored when v2)
 RECAPTCHA_ACTION = "submit"  # Default action name for v3 (ignored when v2)

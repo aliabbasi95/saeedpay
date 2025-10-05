@@ -35,3 +35,4 @@ freezegun
 # Utilities
 Faker
 Pillow
+python-decouple

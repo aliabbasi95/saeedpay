@@ -475,7 +475,36 @@ class IdentityAuthService:
                         "error": "Invalid JSON in success response",
                         "error_code": "INVALID_JSON",
                     }
+            elif response.status_code == 400:
+                # Handle validation errors (400)
+                try:
+                    resp_json = response.json()
+                    error_obj = resp_json.get("error", {})
+                    error_message = error_obj.get("message", "خطای اعتبارسنجی")
+                    error_code = error_obj.get("code")
+                    
+                    logger.warning(
+                        f"Shahkar validation error: {error_message} (code: {error_code})"
+                    )
+                    return {
+                        "success": False,
+                        "error": error_message,
+                        "error_code": f"VALIDATION_ERROR_{error_code}" if error_code else "VALIDATION_ERROR",
+                        "status": 400,
+                        "is_validation_error": True,  # Flag to indicate this is a validation error
+                        "raw": resp_json,
+                    }
+                except Exception as e:
+                    logger.error(f"Failed to parse 400 error response: {e}")
+                    return {
+                        "success": False,
+                        "error": response.text[:500] if response.text else "Validation failed",
+                        "error_code": "VALIDATION_ERROR",
+                        "status": 400,
+                        "is_validation_error": True,
+                    }
             else:
+                # Handle other HTTP errors
                 error_body = response.text[:500] if response.text else ""
                 logger.error(
                     f"Shahkar verification failed: HTTP {response.status_code} | Response: {error_body}"

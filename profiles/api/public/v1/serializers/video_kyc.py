@@ -2,6 +2,7 @@
 
 from rest_framework import serializers
 from profiles.models.profile import Profile
+from profiles.utils.choices import KYCStatus
 
 
 class VideoKYCSerializer(serializers.Serializer):
@@ -69,7 +70,7 @@ class VideoKYCSerializer(serializers.Serializer):
             )
 
         # Check if already accepted
-        if profile.kyc_status == Profile.KYCStatus.ACCEPTED:
+        if profile.kyc_status == KYCStatus.ACCEPTED:
             raise serializers.ValidationError(
                 {"non_field_errors": ["احراز هویت شما قبلاً تایید شده است."]}
             )

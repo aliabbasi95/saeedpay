@@ -375,8 +375,28 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
     # Check if service call was successful
     if not result.get("success"):
         error_msg = result.get("error", "Unknown service error")
-        logger.error(f"Profile {profile_id}: Shahkar verification service error - {error_msg}")
-        return {"success": False, "error": "service_error", "message": error_msg}
+        is_validation_error = result.get("is_validation_error", False)
+        
+        if is_validation_error:
+            # Validation error (e.g., invalid national code) - update profile status to FAILED
+            with transaction.atomic():
+                profile = Profile.objects.select_for_update().get(id=profile_id)
+                profile.phone_national_id_match_status = KYCStatus.FAILED
+                profile.save(update_fields=["phone_national_id_match_status", "updated_at"])
+            
+            logger.warning(
+                f"Profile {profile_id}: Shahkar validation error - {error_msg}"
+            )
+            return {
+                "success": False,
+                "error": "validation_error",
+                "message": error_msg,
+                "error_code": result.get("error_code"),
+            }
+        else:
+            # Service error - don't update status, return error for potential retry
+            logger.error(f"Profile {profile_id}: Shahkar service error - {error_msg}")
+            return {"success": False, "error": "service_error", "message": error_msg}
 
     # Update profile based on verification result
     is_matched = result.get("is_matched", False)
@@ -386,7 +406,6 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
         profile = Profile.objects.select_for_update().get(id=profile_id)
         
         if is_matched:
-            profile.phone_national_id_match_status = KYCStatus.ACCEPTED
             profile.mark_identity_verified()
             logger.info(
                 f"Profile {profile_id}: Phone/National ID verification successful"

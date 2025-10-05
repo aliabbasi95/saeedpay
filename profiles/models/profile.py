@@ -105,13 +105,13 @@ class Profile(BaseModel):
     # Flow helpers
     def can_submit_video_kyc(self) -> bool:
         """Check if profile can submit video KYC."""
-        return self.auth_stage == self.AuthenticationStage.IDENTITY_VERIFIED
+        return self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED
 
     def is_video_kyc_in_progress(self) -> bool:
         """Check if video KYC is currently in progress."""
         return (
-            self.auth_stage == self.AuthenticationStage.VIDEO_VERIFIED
-            and self.kyc_status == self.KYCStatus.PROCESSING
+            self.auth_stage == AuthenticationStage.VIDEO_VERIFIED
+            and self.kyc_status == KYCStatus.PROCESSING
         )
 
     def has_valid_video_task(self) -> bool:
@@ -120,10 +120,11 @@ class Profile(BaseModel):
 
     def mark_identity_verified(self):
         """Mark profile as having completed identity verification (phone/national ID match)."""
-        self.auth_stage = self.AuthenticationStage.IDENTITY_VERIFIED
+        self.auth_stage = AuthenticationStage.IDENTITY_VERIFIED
         self.kyc_status = None  # Clear any previous KYC status
+        self.phone_national_id_match_status = KYCStatus.ACCEPTED
         self.identity_verified_at = timezone.now()
-        self.save(update_fields=["auth_stage", "kyc_status", "identity_verified_at", "updated_at"])
+        self.save(update_fields=["auth_stage", "kyc_status", "phone_national_id_match_status", "identity_verified_at", "updated_at"])
 
     def mark_video_submitted(self, task_id: str | None = None, save: bool = True) -> None:
         """Mark profile as having video KYC submitted and set the tracking task_id."""
@@ -133,8 +134,8 @@ class Profile(BaseModel):
                 "Must be in IDENTITY_VERIFIED stage."
             )
 
-        self.auth_stage = self.AuthenticationStage.VIDEO_VERIFIED
-        self.kyc_status = self.KYCStatus.PROCESSING
+        self.auth_stage = AuthenticationStage.VIDEO_VERIFIED
+        self.kyc_status = KYCStatus.PROCESSING
         self.video_submitted_at = timezone.now()
         
         update_fields = ["auth_stage", "kyc_status", "video_submitted_at", "updated_at"]
@@ -165,7 +166,7 @@ class Profile(BaseModel):
 
     def reset_to_identity_verified(self) -> None:
         """Reset profile back to identity verified stage (for retry scenarios)."""
-        self.auth_stage = self.AuthenticationStage.IDENTITY_VERIFIED
+        self.auth_stage = AuthenticationStage.IDENTITY_VERIFIED
         self.kyc_status = None
         self.video_task_id = None
         self.video_submitted_at = None
@@ -177,8 +178,8 @@ class Profile(BaseModel):
     def can_retry_video_kyc(self) -> bool:
         """Check if profile can retry video KYC."""
         return (
-            self.auth_stage == self.AuthenticationStage.VIDEO_VERIFIED
-            and self.kyc_status in [self.KYCStatus.FAILED, self.KYCStatus.REJECTED]
+            self.auth_stage == AuthenticationStage.VIDEO_VERIFIED
+            and self.kyc_status in [KYCStatus.FAILED, KYCStatus.REJECTED]
         )
 
     def get_kyc_status_display_info(self) -> dict:
