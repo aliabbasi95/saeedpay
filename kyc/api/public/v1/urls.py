@@ -3,8 +3,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views.identity_verification import IdentityVerificationViewSet
-from .views.video_verification import VideoVerificationViewSet
+from .views import IdentityVerificationViewSet, VideoVerificationViewSet
 
 app_name = "kyc_public_v1"
 

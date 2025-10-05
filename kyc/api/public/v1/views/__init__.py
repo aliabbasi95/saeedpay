@@ -1,2 +1,2 @@
-from .identity_verification import IdentityVerificationView
-from .video_verification import VideoVerificationSubmitView, VideoVerificationPollView
+from .identity_verification import IdentityVerificationViewSet
+from .video_verification import VideoVerificationViewSet

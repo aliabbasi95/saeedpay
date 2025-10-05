@@ -12,7 +12,7 @@ redis
 django-celery-beat
 
 # Admin enhancements
-django-admin-listfilter-dropdown
+django-admin-list-filter-dropdown
 django-admin-searchable-dropdown
 django-import-export
 
