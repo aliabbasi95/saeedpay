@@ -1,20 +1,14 @@
 # Django and core dependencies
-Django>=4.2,<5.0
-djangorestframework
-djangorestframework-simplejwt
-django-cors-headers
 dj-database-url
 psycopg2-binary
 
 # Celery and Redis
 celery
-redis
 django-celery-beat
 
 # Admin enhancements
 django-admin-list-filter-dropdown
 django-admin-searchable-dropdown
-django-import-export
 
 # UI and content
 sweetify
