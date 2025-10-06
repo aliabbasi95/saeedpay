@@ -13,7 +13,6 @@ class AuthenticationStage(models.IntegerChoices):
 class KYCStatus(models.TextChoices):
     ACCEPTED = "accepted", _("Accepted")
     FAILED = "failed", _("Failed")
-    # More granular statuses for better tracking
     PROCESSING = "processing", _("Processing")
     REJECTED = "rejected", _("Rejected")
 

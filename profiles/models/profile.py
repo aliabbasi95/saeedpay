@@ -1,17 +1,14 @@
 # profiles/models/profile.py
 
-# profiles/models/profile.py
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
-from django.db import models, transaction  # <-- added transaction
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
 from lib.erp_base.validators import validate_national_id
-
-...
 from profiles.utils.choices import AuthenticationStage, KYCStatus
 
 
@@ -20,48 +17,50 @@ class Profile(BaseModel):
         get_user_model(),
         on_delete=models.CASCADE,
         related_name="profile",
-        verbose_name="کاربر",
+        verbose_name=_("کاربر"),
     )
     phone_number = models.CharField(
         max_length=11,
         unique=True,
         validators=[RegexValidator(
-            r"^09\d{9}$", "Phone must start with 09 and be 11 digits"
+            r"^09\d{9}$", _("باید با 09 شروع شده و 11 رقم باشد")
         )],
+        verbose_name=_("شماره موبایل"),
     )
-    email = models.EmailField(blank=True, verbose_name="ایمیل")
+    email = models.EmailField(blank=True, verbose_name=_("ایمیل"))
     national_id = models.CharField(
         max_length=10,
         blank=True,
         null=True,
-        verbose_name="کد ملی",
         validators=[validate_national_id],
+        verbose_name=_("کد ملی"),
     )
     first_name = models.CharField(
         blank=True,
         max_length=255,
-        verbose_name="نام"
+        verbose_name=_("نام"),
     )
     last_name = models.CharField(
         blank=True,
         max_length=255,
-        verbose_name="نام خانوادگی"
+        verbose_name=_("نام خانوادگی"),
     )
     birth_date = models.CharField(
         max_length=10,
         null=True,
         blank=False,
-        verbose_name="تاریخ تولد",
-        validators=[
-            RegexValidator(r"\d\d\d\d\/\d\d\/\d\d", "format : YYYY/MM/DD")],
-        help_text="format: YYYY/MM/DD",
+        validators=[RegexValidator(
+            r"\d\d\d\d\/\d\d\/\d\d", _("فرمت باید YYYY/MM/DD باشد")
+        )],
+        help_text=_("فرمت: YYYY/MM/DD"),
+        verbose_name=_("تاریخ تولد"),
     )
 
     # Explicit authentication stage and status
     auth_stage = models.PositiveSmallIntegerField(
         choices=AuthenticationStage.choices,
         default=AuthenticationStage.SIGNUP,
-        verbose_name=_("Authentication Stage"),
+        verbose_name=_("مرحله احراز هویت"),
     )
     kyc_status = models.CharField(
         max_length=10,
@@ -69,16 +68,18 @@ class Profile(BaseModel):
         null=True,
         blank=True,
         default=None,
-        verbose_name=_("KYC Status"),
+        verbose_name=_("وضعیت KYC"),
     )
     video_task_id = models.CharField(
-        max_length=64, null=True, blank=True,
-        verbose_name=_("Video Verification Task ID")
+        max_length=64,
+        null=True,
+        blank=True,
+        verbose_name=_("شناسه تسک ویدئو"),
     )
     kyc_last_checked_at = models.DateTimeField(
-        null=True, blank=True, verbose_name=_(
-            "KYC Last Checked At"
-        )
+        null=True,
+        blank=True,
+        verbose_name=_("آخرین زمان بررسی KYC"),
     )
 
     # Phone/National match status (Shahkar)
@@ -88,24 +89,27 @@ class Profile(BaseModel):
         null=True,
         blank=True,
         default=None,
-        verbose_name=_("Phone & National ID Match Status"),
+        verbose_name=_("نتیجه شاهکار (تطابق موبایل/کدملی)"),
     )
 
     # Timestamps
     identity_verified_at = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("Identity Verified At"),
-        help_text=_("Timestamp when identity verification was completed"),
+        null=True,
+        blank=True,
+        help_text=_("زمانی که احراز هویت شاهکار با موفقیت انجام شد"),
+        verbose_name=_("زمان تایید هویت"),
     )
     video_submitted_at = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("Video Submitted At"),
-        help_text=_("Timestamp when video KYC was submitted for verification"),
+        null=True,
+        blank=True,
+        help_text=_("زمان ارسال ویدئو برای احراز ویدئویی"),
+        verbose_name=_("زمان ارسال ویدئو"),
     )
     video_verified_at = models.DateTimeField(
-        null=True, blank=True,
-        verbose_name=_("Video Verification Completed At"),
-        help_text=_(
-            "Timestamp when video verification result was received (accepted/rejected)"
-        ),
+        null=True,
+        blank=True,
+        help_text=_("زمان ثبت نتیجه نهایی بررسی ویدئویی (قبول/رد)"),
+        verbose_name=_("زمان اتمام بررسی ویدئو"),
     )
 
     # -----------------------
@@ -126,8 +130,11 @@ class Profile(BaseModel):
         return self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED
 
     def is_video_kyc_in_progress(self) -> bool:
-        """Video KYC is considered in-progress when stage is VIDEO_VERIFIED & status is PROCESSING."""
-        return self.auth_stage == AuthenticationStage.VIDEO_VERIFIED and self.kyc_status == KYCStatus.PROCESSING
+        """Video KYC is in progress if stage=VIDEO_VERIFIED and status=PROCESSING."""
+        return (
+                self.auth_stage == AuthenticationStage.VIDEO_VERIFIED
+                and self.kyc_status == KYCStatus.PROCESSING
+        )
 
     def has_valid_video_task(self) -> bool:
         return bool(self.video_task_id and self.video_task_id.strip())
@@ -158,10 +165,9 @@ class Profile(BaseModel):
         )
 
     def mark_identity_verified(self) -> None:
-        """Shahkar matched => identity verified stage."""
-        # Local import to avoid circular dependency between apps
+        """Shahkar matched => identity verified stage and grant default credit limit."""
         from credit.services.credit_limit_service import \
-            grant_default_credit_limit
+            grant_default_credit_limit  # local import to avoid cycles
 
         self.auth_stage = AuthenticationStage.IDENTITY_VERIFIED
         self.kyc_status = None
@@ -169,12 +175,15 @@ class Profile(BaseModel):
         self.identity_verified_at = timezone.now()
         self.save(
             update_fields=[
-                "auth_stage", "kyc_status", "phone_national_id_match_status",
-                "identity_verified_at", "updated_at"
+                "auth_stage",
+                "kyc_status",
+                "phone_national_id_match_status",
+                "identity_verified_at",
+                "updated_at",
             ]
         )
 
-        # Create default credit limit after current transaction commits (idempotent)
+        # Make credit limit creation idempotent and post-commit safe
         transaction.on_commit(
             lambda: grant_default_credit_limit(user=self.user)
         )
@@ -186,7 +195,9 @@ class Profile(BaseModel):
         """Move to VIDEO_VERIFIED stage with PROCESSING status + set task id."""
         if not self.can_submit_video_kyc():
             raise ValidationError(
-                f"Cannot submit video KYC. Current stage: {self.auth_stage}. Must be in IDENTITY_VERIFIED stage."
+                _(
+                    "در این مرحله امکان ارسال ویدئو وجود ندارد؛ باید در مرحله «تایید هویت» باشید."
+                )
             )
         self.auth_stage = AuthenticationStage.VIDEO_VERIFIED
         self.kyc_status = KYCStatus.PROCESSING
@@ -197,7 +208,7 @@ class Profile(BaseModel):
         if task_id:
             if len(task_id.strip()) > 64:
                 raise ValidationError(
-                    "Task ID exceeds maximum length of 64 characters"
+                    _("طول شناسه تسک ویدئو نباید از ۶۴ کاراکتر بیشتر باشد")
                 )
             self.video_task_id = task_id
             update_fields.append("video_task_id")
@@ -234,14 +245,19 @@ class Profile(BaseModel):
         self.video_verified_at = None
         self.save(
             update_fields=[
-                "auth_stage", "kyc_status", "video_task_id",
-                "video_submitted_at", "video_verified_at", "updated_at"
+                "auth_stage",
+                "kyc_status",
+                "video_task_id",
+                "video_submitted_at",
+                "video_verified_at",
+                "updated_at",
             ]
         )
 
     def can_retry_video_kyc(self) -> bool:
         return self.auth_stage == AuthenticationStage.VIDEO_VERIFIED and self.kyc_status in [
-            KYCStatus.FAILED, KYCStatus.REJECTED
+            KYCStatus.FAILED,
+            KYCStatus.REJECTED,
         ]
 
     def get_kyc_status_display_info(self) -> dict:

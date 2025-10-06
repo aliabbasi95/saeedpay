@@ -1,78 +1,193 @@
 # profiles/admin/profile.py
 
-from django.contrib import admin
+from __future__ import annotations
 
-from profiles.models import Profile
+import json
+
+from django.contrib import admin, messages
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+
+from profiles.models.kyc_attempt import ProfileKYCAttempt
+from profiles.models.profile import Profile
+from profiles.tasks import (
+    verify_identity_phone_national_id,
+    check_profile_video_kyc_result,
+    reset_profile_video_kyc,
+)
+from profiles.utils.choices import (
+    KYCStatus,
+    AuthenticationStage,
+)
+
+
+def _badge(text: str, color: str) -> str:
+    """Render a small colored badge."""
+    return format_html(
+        '<span style="display:inline-block;padding:2px 8px;border-radius:10px;'
+        'font-size:12px;color:#fff;background:{};">{}</span>',
+        color, text
+    )
+
+
+def _kyc_result_badge(value: str | None) -> str:
+    colors = {
+        KYCStatus.ACCEPTED: "#16a34a",
+        KYCStatus.REJECTED: "#ef4444",
+        KYCStatus.FAILED: "#f59e0b",
+        KYCStatus.PROCESSING: "#3b82f6",
+        None: "#6b7280",
+    }
+    text = value or "None"
+    return _badge(text, colors.get(value, "#6b7280"))
+
+
+class ProfileKYCAttemptInline(admin.TabularInline):
+    model = ProfileKYCAttempt
+    extra = 0
+    fields = ("created_at", "attempt_type", "status", "external_id",
+              "retry_count")
+    readonly_fields = ("created_at", "attempt_type", "status", "external_id",
+                       "retry_count")
+    can_delete = False
+    ordering = ("-created_at",)
 
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = [
+    """Rich profile admin with KYC overview and inline attempts."""
+    list_display = (
         "id",
         "user",
+        "national_id",
+        "auth_stage_label",
+        "shahkar_badge",
+        "video_badge",
+        "jalali_creation_date_time",
+        "jalali_creation_time",
+    )
+    list_filter = (
+        "auth_stage",
+        "phone_national_id_match_status",
+        "kyc_status",
+        "updated_at",
+        "created_at",
+    )
+    search_fields = (
+        "id",
+        "user__username",
+        "user__email",
         "phone_number",
         "national_id",
-        "full_name",
-        "auth_stage",
-        "kyc_status",
-        "phone_national_id_match_status",
-        "video_task_id",
-        "kyc_last_checked_at",
-    ]
-    list_filter = ["auth_stage", "kyc_status", "phone_national_id_match_status"]
-    search_fields = ["user__username", "national_id", "phone_number"]
-    readonly_fields = [
-        "user",
-        "auth_stage",
-        "kyc_status",
-        "video_task_id",
-        "kyc_last_checked_at",
-        "phone_national_id_match_status",
+        "email",
+    )
+    date_hierarchy = "created_at"
+    ordering = ("-updated_at",)
+    inlines = (ProfileKYCAttemptInline,)
+    autocomplete_fields = ("user",)
+    readonly_fields = (
         "created_at",
         "updated_at",
-    ]
+        "identity_verified_at",
+        "video_submitted_at",
+        "video_verified_at",
+        "kyc_last_checked_at",
+        "kyc_status",
+        "phone_national_id_match_status",
+        "auth_stage",
+        "video_task_id",
+        "kyc_summary",
+    )
     fieldsets = (
-        ("اطلاعات کاربر", {
-            "fields": (
-                "user",
-                "phone_number",
-                "email",
-            )
+        ("Identity", {
+            "fields": (("user", "phone_number", "national_id"),
+                       ("first_name", "last_name"), "email", "birth_date")
         }),
-        ("اطلاعات هویتی", {
+        ("KYC status", {
             "fields": (
-                "national_id",
-                "first_name",
-                "last_name",
-                "birth_date",
-            )
-        }),
-        ("احراز هویت", {
-            "fields": (
-                "auth_stage",
-                "kyc_status",
-                "phone_national_id_match_status",
+                "auth_stage", "kyc_status", "phone_national_id_match_status",
+                ("identity_verified_at", "video_submitted_at",
+                 "video_verified_at", "kyc_last_checked_at"),
                 "video_task_id",
-                "kyc_last_checked_at",
-            )
-        }),
-        ("تاریخچه", {
-            "fields": (
-                "created_at",
-                "updated_at",
+                "kyc_summary",
             )
         }),
     )
+    actions = (
+        "action_requeue_shahkar_for_profiles",
+        "action_poll_video_result_for_profiles",
+        "action_reset_video_for_profiles"
+    )
 
-    @admin.display(description="نام کامل")
-    def full_name(self, obj):
-        return obj.full_name
+    # ---------- list_display helpers ----------
+    @admin.display(description="مرحله احراز", ordering="auth_stage")
+    def auth_stage_label(self, obj: Profile):
+        return AuthenticationStage(obj.auth_stage).label
 
-    def has_change_permission(self, request, obj=None):
-        return request.user.is_superuser
+    @admin.display(description="شاهکار")
+    def shahkar_badge(self, obj: Profile):
+        return _kyc_result_badge(obj.phone_national_id_match_status)
 
-    def has_delete_permission(self, request, obj=None):
-        return False
+    @admin.display(description="KYC ویدئویی")
+    def video_badge(self, obj: Profile):
+        return _kyc_result_badge(obj.kyc_status)
 
-    def has_add_permission(self, request, obj=None):
-        return False
+    # ---------- detail helper ----------
+    @admin.display(description="خلاصهٔ KYC")
+    def kyc_summary(self, obj: Profile):
+        info = obj.get_kyc_status_display_info()
+        pretty = json.dumps(info, ensure_ascii=False, indent=2, default=str)
+        return mark_safe(
+            f'<pre style="white-space:pre-wrap; direction:ltr">{pretty}</pre>'
+        )
+
+    # ---------- actions ----------
+    @admin.action(
+        description="ارسال دوباره استعلام شاهکار برای پروفایل‌های انتخاب‌شده"
+    )
+    def action_requeue_shahkar_for_profiles(self, request, queryset):
+        count = 0
+        for p in queryset:
+            # Only requeue if has both IDs and not terminal (accepted/rejected/failed)
+            if not (p.national_id and p.phone_number):
+                continue
+            if p.phone_national_id_match_status in (KYCStatus.ACCEPTED,
+                                                    KYCStatus.REJECTED,
+                                                    KYCStatus.FAILED):
+                continue
+            verify_identity_phone_national_id.delay(p.id)
+            count += 1
+        if count:
+            self.message_user(
+                request, f"استعلام شاهکار برای {count} پروفایل صف شد.",
+                level=messages.SUCCESS
+            )
+        else:
+            self.message_user(
+                request, "پروفایل واجد شرایطی برای صف‌گذاری وجود ندارد.",
+                level=messages.WARNING
+            )
+
+    @admin.action(
+        description="پول نتیجهٔ KYC ویدئویی برای پروفایل‌های انتخاب‌شده"
+    )
+    def action_poll_video_result_for_profiles(self, request, queryset):
+        count = 0
+        for p in queryset:
+            check_profile_video_kyc_result.delay(p.id)
+            count += 1
+        self.message_user(
+            request, f"پول نتیجه برای {count} پروفایل صف شد.",
+            level=messages.SUCCESS
+        )
+
+    @admin.action(description="ریست KYC ویدئویی برای پروفایل‌های انتخاب‌شده")
+    def action_reset_video_for_profiles(self, request, queryset):
+        count = 0
+        for p in queryset:
+            reset_profile_video_kyc.delay(p.id, reason="admin_action")
+            count += 1
+        self.message_user(
+            request, f"ریست ویدئویی برای {count} پروفایل زمان‌بندی شد.",
+            level=messages.SUCCESS
+        )

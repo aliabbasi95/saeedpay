@@ -2,19 +2,21 @@
 
 import logging
 import os
+from datetime import timedelta
 
 from celery import shared_task
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from kyc.services.identity_auth_service import (
     IdentityAuthService,
     get_identity_auth_service,
 )
 from profiles.models import Profile
-from profiles.models.kyc_attempt import ProfileKYCAttempt, AttemptType  # NEW
-from profiles.utils.choices import KYCStatus
+from profiles.models.kyc_attempt import ProfileKYCAttempt
+from profiles.utils.choices import KYCStatus, AttemptType, AttemptStatus
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +29,62 @@ def _cleanup_temp_file(file_path: str) -> None:
             logger.info(f"Cleaned up temporary file: {file_path}")
         except Exception as e:
             logger.warning(f"Failed to cleanup temp file {file_path}: {e}")
+
+
+# -----------------------------
+# Helper to (re)queue Shahkar
+# -----------------------------
+def _should_queue_shahkar(
+        profile: Profile, now: timezone.datetime, stale_after: timedelta
+) -> bool:
+    """
+    Decide if Shahkar verification should be (re)queued for this profile.
+    Rules:
+      - must have national_id & phone_number
+      - if status is ACCEPTED/REJECTED -> do not queue
+      - if status is FAILED -> do not auto queue (needs user fix), except you want otherwise
+      - if status is PROCESSING but stale (no update since 'stale_after') -> queue
+      - if status is None -> queue if last attempt is stale or missing
+    """
+    if not profile.national_id or not profile.phone_number:
+        return False
+
+    status = profile.phone_national_id_match_status
+
+    # Accepted or Rejected are terminal for Shahkar flow (no auto-retry)
+    if status in (KYCStatus.ACCEPTED, KYCStatus.REJECTED):
+        return False
+
+    # Validation FAILED usually requires user correction; do not auto-enqueue
+    if status == KYCStatus.FAILED:
+        return False
+
+    # For PROCESSING -> stale?
+    if status == KYCStatus.PROCESSING:
+        updated = profile.updated_at or profile.created_at
+        return (now - updated) > stale_after
+
+    # For None -> check attempt recency
+    last_attempt = (
+        ProfileKYCAttempt.objects
+        .filter(profile=profile, attempt_type=AttemptType.SHAHKAR)
+        .order_by("-created_at")
+        .first()
+    )
+    if not last_attempt:
+        return True
+
+    # If last attempt is SUCCESS and we are None => shouldn't happen; skip
+    if last_attempt.status == AttemptStatus.SUCCESS:
+        return False
+
+    # If last attempt FAILED/REJECTED recently, skip; else requeue
+    return (now - last_attempt.created_at) > stale_after
+
+
+def _enqueue_shahkar(profile_id: int) -> None:
+    """Enqueue Shahkar verification task."""
+    verify_identity_phone_national_id.apply_async((profile_id,), countdown=1)
 
 
 @shared_task(bind=True)
@@ -488,6 +546,7 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
                 f"Profile {profile_id}: Shahkar API error, retrying: {e}"
             )
             raise self.retry(exc=e, countdown=retry_delay)
+
         logger.error(
             f"Profile {profile_id}: Shahkar API error after max retries: {e}"
         )
@@ -586,3 +645,40 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
             "is_matched": False,
             "message": "Phone number and national ID do not match",
         }
+
+
+# ---------------------------------------------------
+# Periodic watchdog to requeue stuck/missed Shahkar checks
+# ---------------------------------------------------
+@shared_task(bind=True)
+def rehydrate_shahkar_checks(self) -> dict:
+    """
+    Periodic watchdog:
+      - re-enqueue Shahkar verification for profiles that are stale or never attempted
+      - ensures users don't get stuck due to transient/system failures
+    """
+    # Configurable staleness window (minutes)
+    stale_minutes = int(getattr(settings, "KYC_SHAHKAR_STALE_MINUTES", 15))
+    stale_after = timedelta(minutes=stale_minutes)
+    now = timezone.now()
+
+    qs = Profile.objects.filter(
+        national_id__isnull=False,
+        phone_number__isnull=False,
+    ).exclude(
+        phone_national_id_match_status=KYCStatus.ACCEPTED
+    ).exclude(
+        phone_national_id_match_status=KYCStatus.REJECTED
+    )
+
+    requeued = 0
+    for profile in qs.iterator(chunk_size=500):
+        try:
+            if _should_queue_shahkar(profile, now, stale_after):
+                _enqueue_shahkar(profile.id)
+                requeued += 1
+        except Exception as e:
+            logger.warning(f"Watchdog skip profile {profile.id}: {e}")
+
+    logger.info(f"Shahkar watchdog requeued={requeued}")
+    return {"success": True, "requeued": requeued}

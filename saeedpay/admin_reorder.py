@@ -7,6 +7,7 @@ ADMIN_REORDER = (
             "customers.Customer",
             "merchants.Merchant",
             "profiles.Profile",
+            "profiles.ProfileKYCAttempt",
         ),
     },
     {

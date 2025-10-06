@@ -14,12 +14,6 @@ from credit.models.credit_limit import CreditLimit
 logger = logging.getLogger(__name__)
 
 
-# Settings keys (override as needed in settings.py):
-# CREDIT_DEFAULT_APPROVED_LIMIT: int (e.g., 1_000_000)
-# CREDIT_DEFAULT_EXPIRY_DAYS: int (e.g., 365)
-# CREDIT_DEFAULT_GRACE_DAYS: Optional[int] (None = use system default)
-
-
 def _resolve_default_limit(approved_limit: Optional[int]) -> int:
     """Resolve approved limit from argument or settings."""
     if approved_limit is not None:

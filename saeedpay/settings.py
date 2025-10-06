@@ -406,6 +406,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "credit.tasks.task_finalize_due_windows",
         "schedule": crontab(minute=15, hour="*"),
     },
+    # profile
+    "rehydrate-shahkar-checks-every-15m": {
+        "task": "profiles.tasks.rehydrate_shahkar_checks",
+        "schedule": 15 * 60,  # seconds
+    },
 }
 
 # reCAPTCHA Configuration
