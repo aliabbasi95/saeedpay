@@ -102,7 +102,6 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
         return data
 
     def update(self, instance, validated_data):
-        # بلاک تغییرات هنگام پردازش‌ها
         if instance.kyc_status == "processing":
             raise serializers.ValidationError(
                 {"non_field_errors": ["در حال پردازش KYC هستید."]}

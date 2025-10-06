@@ -125,7 +125,10 @@ def submit_profile_video_kyc(
         attempt.bump_retry()
         if self.request.retries < max_retries:
             raise self.retry(exc=e, countdown=retry_delay)
-        attempt.mark_failed("service_unavailable", error_message=str(e))
+        attempt.mark_failed(
+            error_message=str(e),
+            error_code="service_unavailable",
+        )
         return {
             "success": False, "error": "service_unavailable", "message": str(e)
         }
@@ -176,7 +179,10 @@ def submit_profile_video_kyc(
                 f"Profile {profile_id}: Video KYC submitted. Task ID: {unique_id}"
             )
         except ValidationError as e:
-            attempt.mark_failed("validation_error", error_message=str(e))
+            attempt.mark_failed(
+                error_message=str(e),
+                error_code="validation_error",
+            )
             logger.error(
                 f"Profile {profile_id}: Validation error during submission: {e}"
             )
@@ -251,7 +257,10 @@ def check_profile_video_kyc_result(self, profile_id: int) -> dict:
                 )
             except Profile.DoesNotExist:
                 pass
-        attempt.mark_failed("network_error", error_message=str(e))
+        attempt.mark_failed(
+            error_message=str(e),
+            error_code="network_error",
+        )
         logger.error(f"Profile {profile_id}: Network error after max retries")
         return {"success": False, "error": "failed", "message": str(e)}
 
@@ -374,7 +383,7 @@ def reset_profile_video_kyc(
     attempt = ProfileKYCAttempt.objects.create(
         profile_id=profile_id,
         attempt_type=AttemptType.VIDEO_RESULT,
-        # reset را هم زیر همین گروه می‌آوریم
+        # reset is grouped here as well
     ).start(request_payload={"reason": reason})
 
     try:
@@ -400,7 +409,10 @@ def reset_profile_video_kyc(
         logger.warning(f"Profile {profile_id} not found for reset operation")
         return {"success": False, "error": "profile_not_found"}
     except ValidationError as e:
-        attempt.mark_failed("validation_error", error_message=str(e))
+        attempt.mark_failed(
+            error_message=str(e),
+            error_code="validation_error",
+        )
         logger.error(
             f"Validation error during reset for profile {profile_id}: {e}"
         )
@@ -408,7 +420,10 @@ def reset_profile_video_kyc(
             "success": False, "error": "validation_error", "message": str(e)
         }
     except Exception as e:
-        attempt.mark_failed("reset_failed", error_message=str(e))
+        attempt.mark_failed(
+            error_message=str(e),
+            error_code="reset_failed",
+        )
         logger.error(
             f"Unexpected error during reset for profile {profile_id}: {e}"
         )
@@ -486,7 +501,10 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
                 )
             except Profile.DoesNotExist:
                 pass
-        attempt.mark_failed("service_unavailable", error_message=str(e))
+        attempt.mark_failed(
+            error_message=str(e),
+            error_code="service_unavailable",
+        )
         return {
             "success": False, "error": "service_unavailable", "message": str(e)
         }
@@ -510,8 +528,8 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
                 pass
 
         attempt.mark_failed(
-            "validation_error" if is_validation_error else "service_error",
             error_message=error_msg,
+            error_code="validation_error" if is_validation_error else "service_error",
             response_payload=result,
         )
 
