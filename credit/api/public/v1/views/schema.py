@@ -14,6 +14,13 @@ from credit.api.public.v1.serializers.credit import (
     StatementDetailSerializer,
     StatementLineSerializer,
 )
+from credit.api.public.v1.serializers.loan_risk_serializers import (
+    LoanRiskOTPRequestSerializer,
+    LoanRiskOTPVerifySerializer,
+    LoanRiskReportSerializer,
+    LoanRiskReportDetailSerializer,
+    LoanRiskReportListSerializer,
+)
 
 # ---------- Credit Limits ----------
 
@@ -323,5 +330,77 @@ close_statement_schema = extend_schema(
         ),
         400: OpenApiResponse(description="No current statement"),
         401: OpenApiResponse(description="Authentication required"),
+    },
+)
+
+# ---------- Loan Risk Validation ----------
+
+loan_risk_otp_request_schema = extend_schema(
+    tags=["Loan Risk"],
+    summary="درخواست کد یکبار مصرف برای اعتبارسنجی وام",
+    description="ارسال کد یکبار مصرف به شماره موبایل کاربر برای شروع فرآیند اعتبارسنجی",
+    request=LoanRiskOTPRequestSerializer,
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "success": {"type": "boolean"},
+                "message": {"type": "string"},
+                "report_id": {"type": "integer"},
+            },
+        },
+    },
+)
+
+loan_risk_otp_verify_schema = extend_schema(
+    tags=["Loan Risk"],
+    summary="تایید کد و درخواست گزارش اعتبارسنجی",
+    description="تایید کد یکبار مصرف و درخواست تولید گزارش اعتباری",
+    request=LoanRiskOTPVerifySerializer,
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "success": {"type": "boolean"},
+                "message": {"type": "string"},
+                "report_id": {"type": "integer"},
+            },
+        },
+    },
+)
+
+loan_risk_report_check_schema = extend_schema(
+    tags=["Loan Risk"],
+    summary="بررسی وضعیت گزارش اعتبارسنجی",
+    description="بررسی وضعیت گزارش و دریافت نتیجه در صورت آماده بودن",
+    responses={
+        200: LoanRiskReportSerializer,
+    },
+)
+
+loan_risk_report_detail_schema = extend_schema(
+    tags=["Loan Risk"],
+    summary="مشاهده جزئیات کامل گزارش اعتبارسنجی",
+    description="دریافت اطلاعات کامل گزارش اعتبارسنجی شامل داده‌های JSON",
+)
+
+loan_risk_report_list_schema = extend_schema(
+    tags=["Loan Risk"],
+    summary="لیست گزارش‌های اعتبارسنجی",
+    description="مشاهده تمام گزارش‌های اعتبارسنجی کاربر",
+)
+
+loan_risk_report_latest_schema = extend_schema(
+    tags=["Loan Risk"],
+    summary="آخرین گزارش اعتبارسنجی",
+    description="دریافت آخرین گزارش اعتبارسنجی کاربر",
+    responses={
+        200: LoanRiskReportSerializer,
+        404: {
+            "type": "object",
+            "properties": {
+                "error": {"type": "string"},
+            },
+        },
     },
 )

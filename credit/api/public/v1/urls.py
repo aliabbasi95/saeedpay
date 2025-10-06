@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 
 from .views import (
     CreditLimitListView,
@@ -12,6 +12,10 @@ from .views import (
 )
 
 urlpatterns = [
+    # Loan risk validation endpoints
+    path("loan-risk/", include("credit.api.public.v1.urls_loan_risk")),
+    
+    # Existing credit endpoints
     path(
         "credit-limits/",
         CreditLimitListView.as_view(),

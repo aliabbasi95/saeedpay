@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core.cache import cache
 from urllib.parse import urljoin
 from .video_identity_verification_service import VideoIdentityVerificationService
+from .loan_validation_service import LoanValidationService
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +30,14 @@ class IdentityAuthService:
         self.password = getattr(settings, "KIAHOOSHAN_PASSWORD", "")
         self.org_name = getattr(settings, "KIAHOOSHAN_ORGNAME", "")
         self.org_national_code = getattr(settings, "KIAHOOSHAN_ORGNATIONALCODE", "")
-        self.timeout = getattr(settings, "KYC_IDENTITY_TIMEOUT", 30)
+        self.timeout = getattr(settings, "KYC_IDENTITY_TIMEOUT", 300)
         self.token_skew_seconds = getattr(settings, "KYC_IDENTITY_TOKEN_SKEW_SECONDS", 30)
         self.cache_key_prefix = "kyc_identity_"
         self.video_verification = VideoIdentityVerificationService()
+        self.loan_validation = LoanValidationService(
+            base_url=self.base_url,
+            timeout=self.timeout
+        )
         # Minimal config check; org fields are optional
         if not all([self.base_url, self.username, self.password]):
             logger.warning(
@@ -534,7 +539,75 @@ class IdentityAuthService:
         """Clear cached tokens (useful for logout or service restart)."""
         cache.delete(self._get_cache_key("access_token"))
         cache.delete(self._get_cache_key("refresh_token"))
-        logger.info("KYC Identity tokens cleared from cache")
+
+    # Loan Validation Service Methods (with automatic token management)
+
+    def loan_send_otp(self, national_code: str, mobile_number: str) -> Dict:
+        """
+        Send OTP for loan validation with automatic token management.
+        
+        Args:
+            national_code: User's national ID
+            mobile_number: User's mobile number
+            
+        Returns:
+            Dict with success status, unique_id, and message
+        """
+        access_token, _ = self.get_valid_tokens()
+        if not access_token:
+            logger.error("Failed to obtain access token for loan OTP send")
+            return {
+                "success": False,
+                "error": "Authentication failed",
+                "error_code": "AUTH_FAILED",
+            }
+        
+        return self.loan_validation.send_otp(national_code, mobile_number, access_token)
+
+    def loan_verify_otp_and_request_report(self, otp_code: str, unique_id: str) -> Dict:
+        """
+        Verify OTP and request credit report with automatic token management.
+        
+        Args:
+            otp_code: OTP code received by user
+            unique_id: Unique ID from send_otp step
+            
+        Returns:
+            Dict with success status, new unique_id for tracking, and status
+        """
+        access_token, _ = self.get_valid_tokens()
+        if not access_token:
+            logger.error("Failed to obtain access token for loan OTP verification")
+            return {
+                "success": False,
+                "error": "Authentication failed",
+                "error_code": "AUTH_FAILED",
+            }
+        
+        return self.loan_validation.verify_otp_and_request_report(
+            otp_code, unique_id, access_token
+        )
+
+    def loan_get_report_result(self, unique_id: str) -> Dict:
+        """
+        Get credit report result with automatic token management.
+        
+        Args:
+            unique_id: Unique ID from verify_otp_and_request_report step
+            
+        Returns:
+            Dict with report data, score, risk level, etc.
+        """
+        access_token, _ = self.get_valid_tokens()
+        if not access_token:
+            logger.error("Failed to obtain access token for loan report retrieval")
+            return {
+                "success": False,
+                "error": "Authentication failed",
+                "error_code": "AUTH_FAILED",
+            }
+        
+        return self.loan_validation.get_report_result(unique_id, access_token)
 
 
 # Convenience function for easy usage across the project
