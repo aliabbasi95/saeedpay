@@ -148,8 +148,8 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
         "external_id",
         "retry_count",
         "duration_sec",
-        "jalali_creation_date_time",
         "jalali_creation_time",
+        "jalali_update_time",
     )
     list_filter = (
         "attempt_type",

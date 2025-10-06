@@ -63,8 +63,8 @@ class ProfileAdmin(admin.ModelAdmin):
         "auth_stage_label",
         "shahkar_badge",
         "video_badge",
-        "jalali_creation_date_time",
         "jalali_creation_time",
+        "jalali_update_time",
     )
     list_filter = (
         "auth_stage",
