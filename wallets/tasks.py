@@ -1,11 +1,11 @@
 # wallets/tasks.py
 
 from celery import shared_task
-from django.db import transaction
 from django.utils import timezone
 
 from wallets.models import PaymentRequest
-from wallets.services import rollback_payment, expire_pending_transfer_requests
+from wallets.services import expire_pending_transfer_requests
+from wallets.services.payment import rollback_payment
 from wallets.utils.choices import PaymentRequestStatus
 
 
@@ -26,9 +26,10 @@ def cleanup_cancelled_and_expired_requests():
     for req in PaymentRequest.objects.filter(
             status__in=[
                 PaymentRequestStatus.EXPIRED,
-                PaymentRequestStatus.CANCELLED,
+                PaymentRequestStatus.CANCELLED
             ]
     ):
+        # Works for both CASH (reversal) and CREDIT (release authorization)
         rollback_payment(req)
 
 

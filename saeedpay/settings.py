@@ -106,17 +106,36 @@ WSGI_APPLICATION = "saeedpay.wsgi.application"
 CARD_VALIDATOR_MOCK = True  # Set to False for production validation
 
 # KYC Configuration
-KYC_IDENTITY_BASE_URL = config("KYC_IDENTITY_BASE_URL", default="https://sandbox.vidaverify.ir:9091")
+KYC_IDENTITY_BASE_URL = config(
+    "KYC_IDENTITY_BASE_URL", default="https://sandbox.vidaverify.ir:9091"
+)
 KYC_IDENTITY_TIMEOUT = config("KYC_IDENTITY_TIMEOUT", default=30, cast=int)
-KYC_IDENTITY_TOKEN_SKEW_SECONDS = config("KYC_IDENTITY_TOKEN_SKEW_SECONDS", default=30, cast=int)
+KYC_IDENTITY_TOKEN_SKEW_SECONDS = config(
+    "KYC_IDENTITY_TOKEN_SKEW_SECONDS", default=30, cast=int
+)
 
 # KYC Retry Configuration
-KYC_VIDEO_SUBMIT_MAX_RETRIES = config("KYC_VIDEO_SUBMIT_MAX_RETRIES", default=3, cast=int)
-KYC_VIDEO_SUBMIT_RETRY_DELAY = config("KYC_VIDEO_SUBMIT_RETRY_DELAY", default=60, cast=int)
-KYC_VIDEO_CHECK_MAX_RETRIES = config("KYC_VIDEO_CHECK_MAX_RETRIES", default=6, cast=int)
-KYC_VIDEO_CHECK_RETRY_DELAY = config("KYC_VIDEO_CHECK_RETRY_DELAY", default=120, cast=int)
-KYC_SHAHKAR_MAX_RETRIES = config("KYC_SHAHKAR_MAX_RETRIES", default=3, cast=int)
-KYC_SHAHKAR_RETRY_DELAY = config("KYC_SHAHKAR_RETRY_DELAY", default=60, cast=int)
+KYC_VIDEO_SUBMIT_MAX_RETRIES = config(
+    "KYC_VIDEO_SUBMIT_MAX_RETRIES", default=3, cast=int
+)
+KYC_VIDEO_SUBMIT_RETRY_DELAY = config(
+    "KYC_VIDEO_SUBMIT_RETRY_DELAY", default=60, cast=int
+)
+KYC_VIDEO_CHECK_MAX_RETRIES = config(
+    "KYC_VIDEO_CHECK_MAX_RETRIES", default=6, cast=int
+)
+KYC_VIDEO_CHECK_RETRY_DELAY = config(
+    "KYC_VIDEO_CHECK_RETRY_DELAY", default=120, cast=int
+)
+KYC_SHAHKAR_MAX_RETRIES = config(
+    "KYC_SHAHKAR_MAX_RETRIES", default=3, cast=int
+)
+KYC_SHAHKAR_RETRY_DELAY = config(
+    "KYC_SHAHKAR_RETRY_DELAY", default=60, cast=int
+)
+CREDIT_DEFAULT_APPROVED_LIMIT = config(
+    "CREDIT_DEFAULT_APPROVED_LIMIT", default=5000000, cast=int
+)
 
 # KYC Identity Service Credentials
 KIAHOOSHAN_USERNAME = config("KIAHOOSHAN_USERNAME", default="")
@@ -179,19 +198,91 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "lib.erp_base.utils.pagination.StandardPagination",
     "PAGE_SIZE": 20,
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "otp_by_phone": "5/hour",
+        # ── Coarse limits ───────────────────────────────────────────────────────
         "anon": "100/hour",
-        "user": "100/hour",
+        "user": "1000/hour",
+
+        # ── Auth ───────────────────────────────────────────────────────────────
+        "auth-login": "20/hour",
+        "auth-logout": "60/hour",
+        "auth-refresh": "120/hour",
+        "auth-register": "10/hour",
+        "auth-change-password": "30/hour",
+        "auth-reset-password": "10/hour",
+        "auth-otp": "60/hour",
+        "otp-by-phone": "5/hour",
+
+        # ── Blogs / Comments ───────────────────────────────────────────────────
+        "comments": "300/hour",
+        "comment-create": "60/hour",
+        "comment-like": "60/minute",
+
+        # ── Banking / Cards ────────────────────────────────────────────────────
+        "bank-cards-read": "300/hour",
+        "bank-cards-write": "30/minute",
+
+        # ── Credit (Statements) ────────────────────────────────────────────────
+        "credit-statements-read": "300/hour",
+        "credit-statement-lines-read": "600/hour",
+
+        # ── Wallets / Payment Requests ─────────────────────────────────────────
+        # list/search/detail of payment requests (user-facing)
+        "payment-requests-read": "300/hour",
+        # create/cancel (if applicable) by user
+        "payment-requests-write": "30/minute",
+        # confirm action (stronger limit)
+        "payment-confirm": "10/minute",
+
+        # ── Wallets / Balances & History ───────────────────────────────────────
+        "wallets-read": "300/hour",  # balances, summary, etc.
+
+        # ── Wallets / Credit ───────────────────────────────────────────────────
+        "credit-limits-read": "300/hour",
+
+        # ── Wallets / Installments ─────────────────────────────────────────────
+        "installments-read": "300/hour",  # user installment list/detail
+        "installment-plans-read": "300/hour",  # available plans
+        "installments-apply": "30/hour",  # create/apply for installment
+
+        # ── Wallets / Wallet Transfers ─────────────────────────────────────────
+        "wallet-transfers-read": "300/hour",
+        "wallet-transfers-write": "60/minute",
+
+        # ── Partner (Store API Key) ────────────────────────────────────────────
+        "partner-payment-read": "600/hour",  # check status, fetch request
+        "partner-payment-write": "60/minute",  # create/confirm/callback
+        "store-apikey-regen": "5/hour",
+
+        # ── Store (Backoffice) ─────────────────────────────────────────────────
+        "stores-read": "200/hour",
+        "stores-write": "30/hour",
+        "public-stores-read": "500/hour",
+        "store-contract-read": "100/hour",
+        "store-contract-write": "20/hour",
+
+        # ── Chatbot ────────────────────────────────────────────────────────────
+        "chat-sessions": "300/hour",
+        "chat-start": "20/hour",
+        "chat-talk": "60/minute",
+        "chat-messages": "300/hour",
+
+        # ── Contact / Tickets ─────────────────────────────────────────────────
+        "contact-create": "10/hour",
+        "tickets-read": "300/hour",
+        "tickets-write": "30/hour",
+        "ticket-message-add": "60/hour",
+        "ticket-categories-read": "500/hour",
     },
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(hours=24),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -306,19 +397,26 @@ CELERY_BEAT_SCHEDULE = {
     },
     # credit
     # Credit: safe daily run; idempotent—only acts when month has rolled over
-    'credit-month-end-rollover-daily-0010': {
-        'task': 'credit.tasks.task_month_end_rollover',
-        'schedule': crontab(minute=10, hour=0),
+    "credit-month-end-rollover-daily-0010": {
+        "task": "credit.tasks.task_month_end_rollover",
+        "schedule": crontab(minute=10, hour=0),
     },
     # Credit: finalize due windows hourly
-    'credit-finalize-due-windows-hourly-0015': {
-        'task': 'credit.tasks.task_finalize_due_windows',
-        'schedule': crontab(minute=15, hour='*'),
+    "credit-finalize-due-windows-hourly-0015": {
+        "task": "credit.tasks.task_finalize_due_windows",
+        "schedule": crontab(minute=15, hour="*"),
+    },
+    # profile
+    "rehydrate-shahkar-checks-every-15m": {
+        "task": "profiles.tasks.rehydrate_shahkar_checks",
+        "schedule": 15 * 60,  # seconds
     },
 }
 
 # reCAPTCHA Configuration
-RECAPTCHA_SECRET_KEY = config('RECAPTCHA_SECRET_KEY', default='6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs')
+RECAPTCHA_SECRET_KEY = config(
+    'RECAPTCHA_SECRET_KEY', default='6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs'
+)
 RECAPTCHA_V3 = False  # Set to False for reCAPTCHA v2
 RECAPTCHA_V3_THRESHOLD = 0.5  # Score threshold for v3 (ignored when v2)
 RECAPTCHA_ACTION = "submit"  # Default action name for v3 (ignored when v2)

@@ -6,6 +6,11 @@ from wallets.models import Installment
 
 
 class InstallmentSerializer(serializers.ModelSerializer):
+    """
+    Read-only representation of an installment with computed fields:
+    - current_penalty: calculated on the fly via model method.
+    - total_due: principal + current penalty.
+    """
     is_overdue = serializers.BooleanField(read_only=True)
     current_penalty = serializers.SerializerMethodField()
     total_due = serializers.SerializerMethodField()
@@ -30,5 +35,5 @@ class InstallmentSerializer(serializers.ModelSerializer):
             "current_penalty",
             "penalty_amount",
             "total_due",
-            "note"
+            "note",
         ]

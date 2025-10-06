@@ -35,12 +35,10 @@ class Ticket(BaseModel):
         related_name="tickets",
         verbose_name=_("دسته‌بندی")
     )
-
     title = models.CharField(
         max_length=200,
         verbose_name=_("عنوان")
     )
-
     status = models.CharField(
         max_length=20,
         choices=Status.choices,

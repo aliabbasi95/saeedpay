@@ -1,14 +1,31 @@
+# chatbot/tests/public/v1/views/test_chat_api.py
+
 import pytest
-from django.urls import reverse
 from django.conf import settings
-from rest_framework.test import APIClient
-from chatbot.models import ChatSession
 from django.contrib.auth import get_user_model
+from django.urls import reverse
+from rest_framework.test import APIClient
+
+from chatbot.models import ChatSession
+from unittest.mock import patch
 
 
 @pytest.fixture
 def api_client():
     return APIClient()
+
+
+@pytest.fixture(autouse=True)
+def mock_llm():
+    try:
+        path = "chatbot.services.chat_service.generate_reply"
+        with patch(path, return_value="pong"):
+            yield
+    except Exception:
+        with patch(
+                "chatbot.services.provider.generate_reply", return_value="pong"
+        ):
+            yield
 
 
 @pytest.fixture
@@ -46,8 +63,8 @@ def test_anonymous_user_message_limit(api_client):
     resp = api_client.post(chat_url, {"query": "msg 11"}, format="json")
     assert resp.status_code == 403
     assert (
-        f"limited to {settings.CHATBOT_HISTORY_LIMIT} messages"
-        in resp.data["detail"]
+            f"limited to {settings.CHATBOT_HISTORY_LIMIT} messages"
+            in resp.data["detail"]
     )
 
 
@@ -62,7 +79,7 @@ def test_anonymous_user_limit_exactly_limit(api_client):
         assert resp.status_code == 200
     resp = api_client.post(
         chat_url,
-        {"query": f"msg {settings.CHATBOT_HISTORY_LIMIT - 1 }"},
+        {"query": f"msg {settings.CHATBOT_HISTORY_LIMIT - 1}"},
         format="json",
     )
     assert resp.status_code == 200
@@ -166,7 +183,7 @@ def test_authenticated_user_session_list(api_client, auth_token):
     list_url = reverse("user_chat_sessions")
     resp = api_client.get(list_url)
     assert resp.status_code == 200
-    returned_ids = [s["session_id"] for s in resp.data["sessions"]]
+    returned_ids = [s.get("session_id", s.get("id")) for s in resp.data]
     for sid in session_ids:
         assert sid in returned_ids
 
@@ -181,7 +198,7 @@ def test_anonymous_user_session_list_isolated(api_client):
     list_url = reverse("user_chat_sessions")
     resp = api_client.get(list_url)
     assert resp.status_code == 200
-    session_ids = [s["session_id"] for s in resp.data["sessions"]]
+    session_ids = [s.get("session_id", s.get("id")) for s in resp.data]
     assert session_id1 in session_ids or session_id2 in session_ids
 
 

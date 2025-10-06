@@ -8,5 +8,8 @@ app_name = "profiles_public_v1"
 
 urlpatterns = [
     path("profile/", ProfileView.as_view(), name="profile-view"),
-    path("profile/video-kyc/", VideoKYCSubmitView.as_view(), name="video-kyc-submit"),
+    path(
+        "profile/video-kyc/", VideoKYCSubmitView.as_view(),
+        name="video-kyc-submit"
+    ),
 ]

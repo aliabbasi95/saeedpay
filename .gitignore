@@ -84,3 +84,6 @@ celerybeat-schedule.db
 public_data/*
 
 staticfiles/
+
+.env
+.env.prod

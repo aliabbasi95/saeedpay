@@ -215,3 +215,25 @@ class StatementUseCases:
             )
             .aggregate(total=Sum("amount"))["total"] or 0
         )
+
+    @staticmethod
+    @transaction.atomic
+    def record_successful_purchase_for_credit(
+            *,
+            user,
+            amount: int,
+            description: str = "Purchase (credit)",
+    ) -> Statement:
+        """
+        Append a PURCHASE line to the user's CURRENT statement with the given amount.
+        Use this when credit purchases are finalized without a wallets.Transaction movement.
+        amount must be positive; it will be normalized to negative inside StatementLine.save().
+        """
+        if int(amount) <= 0:
+            raise ValueError("Amount must be > 0 for a purchase.")
+
+        statement, _ = Statement.objects.get_or_create_current_statement(user)
+        statement.add_purchase(
+            transaction=None, description=description, amount=amount
+            )
+        return statement

@@ -1,228 +1,124 @@
 # tickets/api/public/v1/schema.py
-from drf_spectacular.utils import (
-    extend_schema,
-    extend_schema_view,
-    OpenApiParameter,
-    OpenApiExample,
-    OpenApiResponse,
-)
 from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    extend_schema, extend_schema_view,
+    OpenApiParameter, OpenApiExample, OpenApiResponse,
+)
 
+from tickets.api.public.v1.serializers import TicketMessageSerializer
 from tickets.utils.choices import TicketStatus, TicketPriority
 
-
-# Ticket ViewSet Schema
+# ---------- ViewSet (list/create/retrieve) ----------
 ticket_viewset_schema = extend_schema_view(
     list=extend_schema(
-        summary="لیست تیکت‌های کاربر",
-        description="دریافت لیست تمام تیکت‌های متعلق به کاربر جاری با امکان فیلتر و مرتب‌سازی",
         tags=["Tickets"],
+        summary="لیست تیکت‌های کاربر",
+        description="لیست تیکت‌های کاربر جاری با فیلتر/مرتب‌سازی.",
         parameters=[
             OpenApiParameter(
-                name="status",
-                type=OpenApiTypes.STR,
+                name="status", type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="فیلتر بر اساس وضعیت تیکت",
-                enum=[status.value for status in TicketStatus],
-                many=True,
-                examples=[
-                    OpenApiExample(
-                        "فیلتر وضعیت باز",
-                        value="open",
-                    ),
-                    OpenApiExample(
-                        "فیلتر چند وضعیت",
-                        value=["open", "in_progress"],
-                    ),
-                ],
+                description="فیلتر بر اساس وضعیت",
+                enum=[s.value for s in TicketStatus],
             ),
             OpenApiParameter(
-                name="priority",
-                type=OpenApiTypes.STR,
+                name="priority", type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="فیلتر بر اساس اولویت تیکت",
-                enum=[priority.value for priority in TicketPriority],
-                examples=[
-                    OpenApiExample(
-                        "فیلتر اولویت بالا",
-                        value="high",
-                    ),
-                ],
+                description="فیلتر بر اساس اولویت",
+                enum=[p.value for p in TicketPriority],
             ),
             OpenApiParameter(
-                name="category",
-                type=OpenApiTypes.INT,
+                name="category", type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="فیلتر بر اساس دسته‌بندی تیکت",
-                examples=[
-                    OpenApiExample(
-                        "فیلتر دسته‌بندی با ID 1",
-                        value=1,
-                    ),
-                    OpenApiExample(
-                        "بدون فیلتر دسته‌بندی",
-                        value=None,
-                        description="برای غیرفعال کردن فیلتر دسته‌بندی، این پارامتر را ارسال نکنید",
-                    ),
-                ],
+                description="شناسه دسته‌بندی",
             ),
             OpenApiParameter(
-                name="ordering",
-                type=OpenApiTypes.STR,
+                name="ordering", type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="مرتب‌سازی نتایج",
-                examples=[
-                    OpenApiExample(
-                        "مرتب‌سازی بر اساس زمان ایجاد (نزولی)",
-                        value="-created_at",
-                    ),
-                    OpenApiExample(
-                        "مرتب‌سازی بر اساس اولویت",
-                        value="priority",
-                    ),
-                ],
+                description="مثال: -created_at | priority",
             ),
         ],
-        responses={
-            200: OpenApiResponse(
-                description="لیست تیکت‌ها با موفقیت دریافت شد",
-                examples=[
-                    OpenApiExample(
-                        "مثال پاسخ موفق",
-                        value=[
-                            {
-                                "id": 1,
-                                "title": "مشکل در ورود به حساب",
-                                "description": "نمی‌توانم وارد حساب کاربری خود شوم",
-                                "status": "open",
-                                "priority": "high",
-                                "category": {
-                                    "id": 1,
-                                    "name": "پشتیبانی فنی",
-                                },
-                                "created_at": "2024-01-15T10:30:00Z",
-                                "updated_at": "2024-01-15T10:30:00Z",
-                            }
-                        ],
-                    )
-                ],
-            ),
-        },
+        responses={200: OpenApiResponse(description="OK")},
+        examples=[
+            OpenApiExample(
+                "نمونه پاسخ",
+                value=[{
+                    "id": 12, "title": "Login issue", "status": "open",
+                    "priority": "high",
+                    "category": {"id": 1, "name": "Technical"},
+                    "created_at": "2025-01-15T10:30:00Z",
+                    "updated_at": "2025-01-15T10:30:00Z",
+                }],
+                response_only=True,
+            )
+        ],
     ),
     create=extend_schema(
-        summary="ایجاد تیکت جدید",
-        description="ایجاد یک تیکت جدید برای کاربر جاری با رعایت محدودیت 15 تیکت باز",
         tags=["Tickets"],
-        request={
-            "application/json": {
-                "type": "object",
-                "properties": {
-                    "title": {"type": "string", "description": "عنوان تیکت"},
-                    "description": {"type": "string", "description": "توضیحات تیکت"},
-                    "priority": {
-                        "type": "string",
-                        "enum": [priority.value for priority in TicketPriority],
-                        "description": "اولویت تیکت",
-                    },
-                    "category_id": {"type": "integer", "description": "شناسه دسته‌بندی"},
-                },
-                "required": ["title", "description"],
-            }
-        },
+        summary="ایجاد تیکت جدید",
+        description="ایجاد تیکت؛ اگر فیلد `description` ارسال شود به عنوان اولین پیام ذخیره می‌گردد. محدودیت: حداکثر ۱۵ تیکت باز.",
         responses={
-            201: OpenApiResponse(
-                description="تیکت با موفقیت ایجاد شد",
-                examples=[
-                    OpenApiExample(
-                        "مثال پاسخ موفق",
-                        value={
-                            "id": 1,
-                            "title": "مشکل در ورود به حساب",
-                            "description": "رمز عبور را فراموش کرده‌ام و نمی‌توانم وارد حساب شوم",
-                            "priority": "normal",
-                            "category_id": 2,
-                            "status": "open",
-                            "created_at": "2024-01-15T10:30:00Z",
-                            "updated_at": "2024-01-15T10:30:00Z",
-                        },
-                    )
-                ],
-            ),
-            400: OpenApiResponse(description="خطا در داده‌های ورودی"),
-            429: OpenApiResponse(description="بیش از حد مجاز تیکت باز دارید"),
+            201: OpenApiResponse(description="Created"),
+            400: OpenApiResponse(description="Validation error"),
+            429: OpenApiResponse(description="Too many open tickets"),
         },
+        examples=[
+            OpenApiExample(
+                "نمونه درخواست",
+                value={
+                    "title": "مشکل پرداخت", "description": "پرداخت ناموفق شد",
+                    "priority": "normal", "category_id": 2
+                },
+                request_only=True,
+            )
+        ],
     ),
     retrieve=extend_schema(
-        summary="مشاهده جزئیات تیکت",
-        description="دریافت جزئیات یک تیکت خاص با پیام‌های مرتبط به صورت صفحه‌بندی شده",
         tags=["Tickets"],
+        summary="جزئیات تیکت",
+        description="جزئیات یک تیکت (فقط مالک).",
         responses={
-            200: OpenApiResponse(
-                description="اطلاعات تیکت با موفقیت دریافت شد",
-                examples=[
-                    OpenApiExample(
-                        "مثال پاسخ موفق",
-                        value={
-                            "ticket": {
-                                "id": 1,
-                                "title": "مشکل در ورود به حساب",
-                                "description": "نمی‌توانم وارد حساب کاربری خود شوم",
-                                "status": "open",
-                                "priority": "high",
-                                "category": {
-                                    "id": 1,
-                                    "name": "پشتیبانی فنی",
-                                },
-                                "created_at": "2024-01-15T10:30:00Z",
-                            },
-                            "messages": {
-                                "results": [
-                                    {
-                                        "id": 1,
-                                        "content": "لطفاً رمز عبور خود را بازنشانی کنید",
-                                        "sender": "staff",
-                                        "created_at": "2024-01-15T10:35:00Z",
-                                        "attachments": [],
-                                    }
-                                ],
-                                "pagination": {
-                                    "count": 1,
-                                    "page": 1,
-                                    "pages": 1,
-                                    "per_page": 10,
-                                },
-                            },
-                        },
-                    )
-                ],
-            ),
-            404: OpenApiResponse(description="تیکت یافت نشد"),
+            200: OpenApiResponse(description="OK"),
+            404: OpenApiResponse(description="Not found")
         },
     ),
 )
 
+# ---------- /messages (GET) ----------
+messages_list_schema = extend_schema(
+    tags=["Tickets · Messages"],
+    summary="لیست پیام‌های تیکت",
+    description="صفحه‌بندی پیام‌های یک تیکت.",
+    responses={
+        200: OpenApiResponse(
+            response=TicketMessageSerializer(many=True),
+            description="OK",
+            examples=[OpenApiExample(
+                "نمونه صفحه",
+                value={
+                    "count": 1, "results": [
+                        {"id": 1, "content": "سلام", "sender": "user"}]
+                },
+                response_only=True,
+            )],
+        )
+    },
+)
 
-# Add Message Action Schema
+# ---------- /messages (POST) ----------
 add_message_schema = extend_schema(
-    summary="افزودن پیام به تیکت",
-    description="افزودن یک پیام جدید به تیکت موجود با امکان ارسال فایل ضمیمه",
-    tags=["Tickets"],
+    tags=["Tickets · Messages"],
+    summary="افزودن پیام",
+    description="ارسال پیام جدید برای یک تیکت (حداکثر ۲ فایل پیوست).",
     request={
         "multipart/form-data": {
             "type": "object",
             "properties": {
-                "content": {
-                    "type": "string",
-                    "description": "متن پیام",
-                },
-                "reply_to": {
-                    "type": "integer",
-                    "description": "شناسه پیام پاسخ داده شده",
-                },
+                "content": {"type": "string"},
+                "reply_to": {"type": "integer"},
                 "files": {
                     "type": "array",
-                    "items": {"type": "string", "format": "binary"},
-                    "description": "فایل‌های پیوست (حداکثر 2 فایل)",
+                    "items": {"type": "string", "format": "binary"}
                 },
             },
             "required": ["content"],
@@ -230,64 +126,20 @@ add_message_schema = extend_schema(
     },
     responses={
         201: OpenApiResponse(
-            description="پیام با موفقیت افزوده شد",
-            examples=[
-                OpenApiExample(
-                    "مثال پاسخ موفق",
-                    value={
-                        "id": 2,
-                        "content": "مشکل همچنان پابرجاست",
-                        "sender": "user",
-                        "created_at": "2024-01-15T11:00:00Z",
-                        "attachments": [
-                            {
-                                "id": 1,
-                                "filename": "screenshot.png",
-                                "size": 102400,
-                                "url": "/media/tickets/attachments/screenshot.png",
-                            }
-                        ],
-                    },
-                )
-            ],
+            response=TicketMessageSerializer, description="Created"
         ),
-        400: OpenApiResponse(
-            description="خطا در داده‌های ورودی",
-            examples=[
-                OpenApiExample(
-                    "فایل بیش از حد مجاز",
-                    value={"files": ["حداکثر 2 فایل مجاز است"]},
-                ),
-                OpenApiExample(
-                    "فایل بیش از حجم مجاز",
-                    value={"files": ["حداکثر حجم فایل 5MB است"]},
-                ),
-                OpenApiExample(
-                    "نوع فایل نامعتبر",
-                    value={"files": ["نوع فایل مجاز نیست"]},
-                ),
-            ],
-        ),
-        404: OpenApiResponse(description="تیکت یافت نشد"),
+        400: OpenApiResponse(description="Validation error"),
+        404: OpenApiResponse(description="Ticket not found"),
     },
-)
-
-
-# Error Response Schema
-error_response_schema = extend_schema(
-    summary="خطای اعتبارسنجی",
-    description="در صورت بروز خطا در داده‌های ورودی",
-    responses={
-        400: OpenApiResponse(
-            description="خطا در داده‌های ورودی",
-            examples=[
-                OpenApiExample(
-                    "خطای اعتبارسنجی",
-                    value={
-                        "field_name": ["این فیلد الزامی است"],
-                    },
-                )
-            ],
+    examples=[
+        OpenApiExample(
+            "موفق", value={
+                "id": 2, "content": "مشکل پابرجاست", "sender": "user"
+            }, response_only=True
         ),
-    },
+        OpenApiExample(
+            "خطا - تعداد فایل", value={"files": ["حداکثر 2 فایل مجاز است"]},
+            response_only=True, status_codes=["400"]
+        ),
+    ],
 )

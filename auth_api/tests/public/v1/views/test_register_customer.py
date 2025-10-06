@@ -1,4 +1,5 @@
 # auth_api/tests/public/v1/serializers/test_register_customer.py
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -37,7 +38,7 @@ class TestRegisterCustomerView:
         response = self.client.post(REGISTER_URL, payload)
         assert response.status_code == status.HTTP_201_CREATED
         assert "access" in response.data
-        assert "refresh" in response.data
+        assert "sp_refresh" in response.cookies
         assert "user_id" in response.data
         assert response.data["phone_number"] == "09123456789"
         assert "customer" in response.data["roles"]

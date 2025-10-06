@@ -1,0 +1,13 @@
+# auth_api/api/public/v1/schema/__init__.py
+
+from .schema_auth import (
+    LOGIN_SCHEMA,
+    LOGOUT_SCHEMA,
+    REFRESH_SCHEMA,
+    SEND_OTP_SCHEMA,
+    SEND_USER_OTP_SCHEMA,
+    REGISTER_CUSTOMER_SCHEMA,
+    REGISTER_MERCHANT_SCHEMA,
+    CHANGE_PASSWORD_SCHEMA,
+    RESET_PASSWORD_SCHEMA,
+)

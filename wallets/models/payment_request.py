@@ -5,11 +5,13 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from customers.models import Customer
 from lib.erp_base.models import BaseModel
 from store.models import Store
+from utils.reference import generate_reference_code
 from wallets.models.wallet import Wallet
 from wallets.utils.choices import PaymentRequestStatus
-from utils.reference import generate_reference_code
+from wallets.utils.consts import PAYMENT_REQUEST_EXPIRY_MINUTES
 
 
 class PaymentRequest(BaseModel):
@@ -19,6 +21,12 @@ class PaymentRequest(BaseModel):
         on_delete=models.CASCADE,
         related_name="payment_requests",
         verbose_name=_("فروشگاه درخواست‌دهنده")
+    )
+    customer = models.ForeignKey(
+        Customer, on_delete=models.CASCADE,
+        null=True,
+        related_name="payment_requests",
+        verbose_name=_("مشتری")
     )
     status = models.CharField(
         max_length=32,
@@ -32,6 +40,13 @@ class PaymentRequest(BaseModel):
         null=True,
         blank=True,
         verbose_name="کد پیگیری"
+    )
+    external_guid = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        verbose_name=_("شناسه بیرونی (external_guid)"),
+        help_text=_("شناسهٔ یکتا از سمت فروشگاه/سیستم بیرونی")
     )
     amount = models.BigIntegerField(
         verbose_name=_("مبلغ")
@@ -67,6 +82,17 @@ class PaymentRequest(BaseModel):
         blank=True,
         verbose_name=_("تاریخ انقضا")
     )
+    created_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="ددلاین فاز CREATED"
+    )
+    merchant_confirm_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="ددلاین تایید مرچنت"
+    )
+
     paid_at = models.DateTimeField(null=True, blank=True)
 
     def mark_awaiting_merchant(self):
@@ -91,7 +117,9 @@ class PaymentRequest(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(minutes=15)
+            self.expires_at = timezone.now() + timezone.timedelta(
+                minutes=PAYMENT_REQUEST_EXPIRY_MINUTES
+            )
         if not self.reference_code:
             for _ in range(5):
                 code = generate_reference_code(prefix="PR", random_digits=6)
@@ -112,3 +140,24 @@ class PaymentRequest(BaseModel):
     class Meta:
         verbose_name = _("درخواست پرداخت")
         verbose_name_plural = _("درخواست‌های پرداخت")
+        indexes = [
+            models.Index(
+                fields=["customer", "-created_at"], name="pr_cust_created_idx"
+            ),
+            models.Index(fields=["status"], name="pr_status_idx"),
+            models.Index(fields=["expires_at"], name="pr_expires_idx"),
+            models.Index(
+                fields=["store", "status"], name="pr_store_status_idx"
+            ),
+            models.Index(fields=["reference_code"], name="pr_ref_idx"),
+            models.Index(
+                fields=["store", "external_guid"], name="pr_store_ext_idx"
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["store", "external_guid"],
+                name="uniq_store_external_guid",
+                condition=models.Q(external_guid__isnull=False),
+            ),
+        ]

@@ -13,6 +13,19 @@ class AuthenticationStage(models.IntegerChoices):
 class KYCStatus(models.TextChoices):
     ACCEPTED = "accepted", _("Accepted")
     FAILED = "failed", _("Failed")
-    # More granular statuses for better tracking
     PROCESSING = "processing", _("Processing")
     REJECTED = "rejected", _("Rejected")
+
+
+class AttemptType(models.TextChoices):
+    SHAHKAR = "SHAHKAR", _("Shahkar (phone/national match)")
+    VIDEO_SUBMIT = "VIDEO_SUBMIT", _("Video submit")
+    VIDEO_RESULT = "VIDEO_RESULT", _("Video result polling")
+
+
+class AttemptStatus(models.TextChoices):
+    PENDING = "PENDING", _("Pending")
+    PROCESSING = "PROCESSING", _("Processing")
+    SUCCESS = "SUCCESS", _("Success")
+    FAILED = "FAILED", _("Failed")
+    REJECTED = "REJECTED", _("Rejected")

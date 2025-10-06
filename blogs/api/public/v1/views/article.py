@@ -14,7 +14,7 @@ from blogs.api.public.v1.serializers import (
     ArticleDetailSerializer,
 )
 from blogs.filters import ArticleFilter
-from blogs.models import Article, Comment
+from blogs.models import Article, Comment, ArticleSection
 
 
 @article_viewset_schema
@@ -56,47 +56,65 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         now = timezone.now()
+        qs = Article.objects.select_related("author", "author__profile")
 
-        # Base queryset
-        qs = Article.objects.select_related("author__profile")
-
-        # Visibility rules
         if self.action in ["list", "retrieve"]:
             if self.request.user.is_authenticated:
                 qs = qs.filter(
-                    Q(author=self.request.user) | Q(
-                        status="published", published_at__lte=now
-                    )
+                    Q(author=self.request.user) |
+                    Q(status="published", published_at__lte=now)
                 )
             else:
                 qs = qs.filter(status="published", published_at__lte=now)
 
-        # Prefetch tune per action
         if self.action == "list":
-            qs = qs.prefetch_related("tags").distinct()
-        else:  # retrieve
-            qs = qs.prefetch_related(
-                "tags",
-                Prefetch(
-                    "sections",
-                    queryset=Article.sections.rel.related_model.objects.order_by(
-                        "order"
-                    )
-                ),
-                Prefetch(
-                    "comments",
-                    queryset=Comment.objects.select_related("author").filter(
-                        is_approved=True
-                    ).order_by("created_at"),
-                ),
-            ).annotate(
-                approved_comment_count=Count(
-                    "comments", filter=Q(
-                        comments__is_approved=True
-                    ), distinct=True
+            qs = (
+                qs.only(
+                    "id", "title", "slug", "excerpt", "featured_image",
+                    "published_at",
+                    "author__id", "author__username",
+                    "author__profile__first_name",
+                    "author__profile__last_name",
                 )
-            ).distinct()
-
+                .prefetch_related("tags")
+                .distinct()
+            )
+        else:
+            qs = (
+                qs.prefetch_related(
+                    "tags",
+                    Prefetch(
+                        "sections",
+                        queryset=ArticleSection.objects.only(
+                            "id", "section_type", "content", "image",
+                            "image_alt", "order", "article_id"
+                        ).order_by("order"),
+                    ),
+                    Prefetch(
+                        "comments",
+                        queryset=Comment.objects.select_related(
+                            "author", "author__profile"
+                        )
+                        .only(
+                            "id", "content", "rating", "reply_to_id",
+                            "is_approved", "like_count", "dislike_count",
+                            "created_at", "article_id", "store_id",
+                            "author__id", "author__username",
+                            "author__first_name", "author__last_name",
+                        )
+                        .filter(is_approved=True)
+                        .order_by("created_at"),
+                    ),
+                )
+                .annotate(
+                    approved_comment_count=Count(
+                        "comments",
+                        filter=Q(comments__is_approved=True),
+                        distinct=True,
+                    )
+                )
+                .distinct()
+            )
         return qs
 
     def get_serializer_class(self):

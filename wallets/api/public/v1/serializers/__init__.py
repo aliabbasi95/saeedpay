@@ -1,9 +1,11 @@
-from .wallet import WalletSerializer, WalletListQuerySerializer
+from .wallet import WalletSerializer
 from .transaction import TransactionSerializer
 from .payment import (
     PaymentRequestDetailSerializer,
     PaymentConfirmSerializer,
     PaymentConfirmResponseSerializer,
+    PaymentRequestDetailWithWalletsSerializer,
+    PaymentRequestListItemSerializer,
 )
 from .transfer import (
     WalletTransferCreateSerializer,

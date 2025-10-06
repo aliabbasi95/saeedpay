@@ -34,3 +34,4 @@ class TicketCategory(BaseModel):
     class Meta:
         verbose_name = _("دسته‌بندی تیکت")
         verbose_name_plural = _("دسته‌بندی‌های تیکت")
+        ordering = ["id"]

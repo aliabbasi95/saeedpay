@@ -1,4 +1,5 @@
 # tickets/api/public/v1/serializers/ticket.py
+
 from typing import List
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -24,13 +25,7 @@ MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024  # 5 MB
 class TicketCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketCategory
-        fields = [
-            "id",
-            "name",
-            "description",
-            "icon",
-            "color",
-        ]
+        fields = ["id", "name", "description", "icon", "color"]
 
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -66,13 +61,7 @@ class TicketCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ticket
-        fields = [
-            "id",
-            "title",
-            "description",
-            "priority",
-            "category_id",
-        ]
+        fields = ["id", "title", "description", "priority", "category_id"]
 
     def validate(self, attrs):
         request = self.context.get("request")
@@ -100,16 +89,7 @@ class TicketCreateSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         description = validated_data.pop("description", None)
 
-        open_tickets_count = Ticket.objects.filter(
-            user=user, status=Ticket.Status.OPEN
-        ).count()
-
-        if open_tickets_count >= 15:
-            raise serializers.ValidationError(
-                "شما بیش از حد مجاز تیکت باز دارید. لطفاً ابتدا تیکت‌های باز خود را ببندید."
-            )
-
-        ticket = Ticket.objects.create(**validated_data)
+        ticket = Ticket.objects.create(user=user, **validated_data)
 
         if description:
             TicketMessage.objects.create(
@@ -185,47 +165,44 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         ticket = self.context.get("ticket")
         user = getattr(request, "user", None)
+
         if not ticket:
             raise serializers.ValidationError(
                 {"ticket": _("تیکت نامعتبر است.")}
             )
-        # reply_to must belong to same ticket
+
         reply_to = attrs.get("reply_to")
         if reply_to and reply_to.ticket_id != ticket.id:
             raise serializers.ValidationError(
-                {
-                    "reply_to": _("پیام ارجاع باید متعلق به همین تیکت باشد."),
-                }
+                {"reply_to": _("پیام ارجاع باید متعلق به همین تیکت باشد.")}
             )
-        # Sender derivation/permission: user can only send as user
+
         sender = attrs.get("sender")
         if not user or not user.is_authenticated:
             raise serializers.ValidationError(
                 {"non_field_errors": [_("کاربر احراز نشده است.")]}
             )
         if user == ticket.user:
-            validated_data = attrs
-            validated_data.setdefault("sender", TicketMessage.Sender.USER)
+            attrs.setdefault("sender", TicketMessage.Sender.USER)
             if sender and sender != TicketMessage.Sender.USER:
                 raise serializers.ValidationError(
                     {
                         "sender": _(
                             "ارسال پیام توسط کاربر تنها با مقدار 'user' مجاز است."
-                        ),
+                        )
                     }
                 )
         else:
-            # staff sending via admin later; public API restricts to owner only
             raise serializers.ValidationError(
                 {
                     "non_field_errors": [
                         _("فقط صاحب تیکت می‌تواند پیام ارسال کند.")]
                 }
             )
+
         return attrs
 
     def create(self, validated_data):
-        request = self.context.get("request")
         ticket = self.context.get("ticket")
         files = validated_data.pop("files", [])
         message = TicketMessage.objects.create(ticket=ticket, **validated_data)
@@ -235,10 +212,3 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
             except DjangoValidationError as e:
                 raise serializers.ValidationError({"files": e.messages})
         return message
-
-
-class TicketDetailSerializer(TicketSerializer):
-    messages = TicketMessageSerializer(many=True, read_only=True)
-
-    class Meta(TicketSerializer.Meta):
-        fields = TicketSerializer.Meta.fields + ["messages"]

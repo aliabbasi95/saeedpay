@@ -1,16 +1,5 @@
-from .wallet import WalletListView
-from .payment import (
-    PaymentRequestDetailView,
-    PaymentConfirmView,
-)
-from .transfer import (
-    WalletTransferListCreateView,
-    WalletTransferConfirmView,
-    WalletTransferRejectView
-)
-from .installment_plan import InstallmentPlanListView
-from .installment import (
-    InstallmentListView,
-    InstallmentsByPlanView,
-    InstallmentDetailView
-)
+from .installment import InstallmentViewSet
+from .installment_plan import InstallmentPlanViewSet
+from .payment import PaymentRequestViewSet
+from .transfer import WalletTransferViewSet
+from .wallet import WalletViewSet

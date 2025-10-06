@@ -1,21 +1,95 @@
 # wallets/api/public/v1/views/installment_plan.py
+# Read-only ViewSet for user's installment plans + nested installments action.
 
-from drf_spectacular.utils import extend_schema
-from rest_framework.generics import ListAPIView
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, mixins
+from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
+from rest_framework.response import Response
 
-from wallets.api.public.v1.serializers import InstallmentPlanSerializer
-from wallets.models import InstallmentPlan
-
-
-@extend_schema(
-    tags=["Wallet · Installment Plans"],
-    summary="لیست برنامه‌های اقساطی",
-    description="دریافت لیست تمام برنامه‌های اقساطی فعال یا بسته شده‌ی کاربر"
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
+from wallets.api.public.v1.schema import (
+    plan_installments_action_schema,
+    installment_plans_schema,
 )
-class InstallmentPlanListView(ListAPIView):
+from wallets.api.public.v1.serializers import (
+    InstallmentPlanSerializer,
+    InstallmentSerializer,
+)
+from wallets.filters import InstallmentPlanFilter
+from wallets.models import InstallmentPlan, Installment
+
+
+@installment_plans_schema
+class InstallmentPlanViewSet(
+    ScopedThrottleByActionMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
+    """
+    list:     Paginated list of user's installment plans.
+    retrieve: Details of a single installment plan.
+    installments: GET /installment-plans/{id}/installments/ -> installments in that plan.
+    """
     serializer_class = InstallmentPlanSerializer
+    lookup_field = "pk"
+    lookup_value_regex = r"\d+"
+
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = InstallmentPlanFilter
+    ordering_fields = ["created_at"]
+    ordering = ["-created_at"]
+
+    throttle_scope_map = {
+        "default": "installment-plans-read",
+        "list": "installment-plans-read",
+        "retrieve": "installment-plans-read",
+        "installments": "installments-read",
+    }
 
     def get_queryset(self):
-        return InstallmentPlan.objects.filter(user=self.request.user).order_by(
-            "-created_at"
+        if getattr(self, "swagger_fake_view", False):
+            return InstallmentPlan.objects.none()
+        return (
+            InstallmentPlan.objects
+            .only(
+                "id", "user_id", "total_amount", "status",
+                "duration_months", "period_months", "interest_rate",
+                "created_at", "closed_at",
+            )
+            .filter(user=self.request.user)
         )
+
+    @plan_installments_action_schema
+    @action(detail=True, methods=["get"], url_path="installments")
+    def installments(self, request, *args, **kwargs):
+        plan_id = kwargs.get("pk")
+        ordering = request.query_params.get("ordering") or "due_date"
+        if ordering not in {"due_date", "-due_date"}:
+            ordering = "due_date"
+
+        qs = (
+            Installment.objects
+            .select_related("plan", "transaction")
+            .only(
+                "id",
+                "plan_id",
+                "due_date",
+                "amount",
+                "amount_paid",
+                "status",
+                "paid_at",
+                "penalty_amount",
+                "transaction_id",
+                "note",
+                "plan__user_id",
+            )
+            .filter(plan__id=plan_id, plan__user=request.user)
+            .order_by(ordering)
+        )
+        page = self.paginate_queryset(qs)
+        ser = InstallmentSerializer(page or qs, many=True)
+        return self.get_paginated_response(
+            ser.data
+        ) if page is not None else Response(ser.data)

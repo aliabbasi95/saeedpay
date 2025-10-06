@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny
 from blogs.api.public.v1.schema import tag_viewset_schema
 from blogs.api.public.v1.serializers import TagSerializer, TagListSerializer
 from blogs.models import Tag
+from django.db.models import Count, Q
 
 
 @tag_viewset_schema
@@ -21,7 +22,18 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["name"]
 
     def get_queryset(self):
-        return Tag.objects.filter(is_active=True)
+        return (
+            Tag.objects
+            .filter(is_active=True)
+            .annotate(
+                article_count=Count(
+                    "articles",
+                    filter=Q(articles__status="published"),
+                    distinct=True,
+                )
+            )
+            .only("id", "name", "slug", "description", "color", "is_active")
+        )
 
     def get_serializer_class(self):
         if self.action == "list":

@@ -1,4 +1,1 @@
-from .payment import (
-    PaymentRequestCreateView,
-    PaymentRequestVerifyView,
-)
+from .payment import PartnerPaymentRequestViewSet

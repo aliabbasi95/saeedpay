@@ -122,7 +122,8 @@ class CommentListSerializer(serializers.ModelSerializer):
 
 class CommentCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating comments."""
-    recaptcha_token = ReCaptchaField(required=True)
+
+    # recaptcha_token = ReCaptchaField(required=True)
 
     class Meta:
         model = Comment
@@ -132,7 +133,7 @@ class CommentCreateSerializer(serializers.ModelSerializer):
             "reply_to",
             "content",
             "rating",
-            "recaptcha_token",
+            # "recaptcha_token",
         ]
 
     def validate_rating(self, value):

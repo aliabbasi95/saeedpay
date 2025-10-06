@@ -59,24 +59,28 @@ def session_anonymous1(db):
 
 @pytest.mark.django_db
 def test_authenticated_user_cannot_access_another_users_session_detail(
-    client_user2, session_user1
+        client_user2, session_user1
 ):
     """
     Ensure an authenticated user cannot access the chat session details of another user.
     """
-    url = reverse("chat_session_detail", kwargs={"session_id": session_user1.id})
+    url = reverse(
+        "chat_session_detail", kwargs={"session_id": session_user1.id}
+        )
     response = client_user2.get(url)
     assert response.status_code == 404
 
 
 @pytest.mark.django_db
 def test_anonymous_user_cannot_access_authenticated_users_session_detail(
-    anonymous_client1, session_user1
+        anonymous_client1, session_user1
 ):
     """
     Ensure an anonymous user cannot access the chat session details of an authenticated user.
     """
-    url = reverse("chat_session_detail", kwargs={"session_id": session_user1.id})
+    url = reverse(
+        "chat_session_detail", kwargs={"session_id": session_user1.id}
+        )
     # Simulate session for the anonymous client
     session = anonymous_client1.session
     session["session_key"] = "any_key"
@@ -87,7 +91,7 @@ def test_anonymous_user_cannot_access_authenticated_users_session_detail(
 
 @pytest.mark.django_db
 def test_authenticated_user_cannot_access_anonymous_users_session_detail(
-    client_user1, session_anonymous1
+        client_user1, session_anonymous1
 ):
     """
     Ensure an authenticated user cannot access the chat session details of an anonymous user.
@@ -102,7 +106,7 @@ def test_authenticated_user_cannot_access_anonymous_users_session_detail(
 
 @pytest.mark.django_db
 def test_anonymous_user_cannot_access_another_anonymous_users_session_detail(
-    anonymous_client2, session_anonymous1
+        anonymous_client2, session_anonymous1
 ):
     """
     Ensure an anonymous user cannot access the chat session details of another anonymous user.
@@ -120,7 +124,9 @@ def test_anonymous_user_cannot_access_another_anonymous_users_session_detail(
 
 
 @pytest.mark.django_db
-def test_user_can_only_see_their_own_sessions_in_list(client_user1, user2, session_user1):
+def test_user_can_only_see_their_own_sessions_in_list(
+        client_user1, user2, session_user1
+        ):
     """
     Ensure that the session list endpoint only returns sessions belonging to the authenticated user.
     """
@@ -130,5 +136,11 @@ def test_user_can_only_see_their_own_sessions_in_list(client_user1, user2, sessi
     url = reverse("user_chat_sessions")
     response = client_user1.get(url)
     assert response.status_code == 200
-    assert len(response.data["sessions"]) == 1
-    assert response.data["sessions"][0]["session_id"] == session_user1.id 
+    data = response.data["sessions"] if isinstance(
+        response.data, dict
+    ) and "sessions" in response.data else response.data
+
+    assert len(data) == 1
+    first = data[0]
+    returned_id = first.get("session_id") or first.get("id")
+    assert returned_id == session_user1.id

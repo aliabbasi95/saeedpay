@@ -78,9 +78,14 @@ class InstallmentPlan(BaseModel):
             return model_class.objects.filter(id=self.source_object_id).first()
         return None
 
-    class Meta:
-        verbose_name = _("برنامه اقساطی")
-        verbose_name_plural = _("برنامه‌های اقساطی")
-
     def __str__(self):
         return f"Plan #{self.id} for {self.user} - {self.total_amount} ریال"
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["user", "-created_at"], name="iplan_user_created_idx"
+            ),
+        ]
+        verbose_name = _("برنامه اقساطی")
+        verbose_name_plural = _("برنامه‌های اقساطی")

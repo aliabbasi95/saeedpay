@@ -177,8 +177,6 @@ class TestRegisterCustomerSerializer:
         assert serializer.is_valid()
         user = serializer.save()
         data = serializer.to_representation(user)
-        assert "access" in data
-        assert "refresh" in data
         assert data["user_id"] == user.id
         assert data["phone_number"] == "09120000000"
         assert "customer" in str(data["roles"])

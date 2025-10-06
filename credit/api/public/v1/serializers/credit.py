@@ -321,7 +321,6 @@ class StatementDetailSerializer(serializers.ModelSerializer):
             "year",
             "month",
             "reference_code",
-            "status",
             "opening_balance",
             "closing_balance",
             "total_debit",
@@ -341,6 +340,7 @@ class StatementDetailSerializer(serializers.ModelSerializer):
             "lines"
         ]
 
+    @extend_schema_field(StatementLineSerializer(many=True))
     def get_lines(self, obj):
         return StatementLineSerializer(obj.lines.all(), many=True).data
 

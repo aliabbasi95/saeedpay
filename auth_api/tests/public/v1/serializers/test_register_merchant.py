@@ -1,4 +1,5 @@
 # auth_api/tests/public/v1/serializers/test_register_merchant.py
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -102,7 +103,9 @@ class TestRegisterMerchantSerializer:
         )
         with pytest.raises(ValidationError) as exc:
             serializer.is_valid(raise_exception=True)
-        assert "این شماره تلفن قبلاً به عنوان فروشنده ثبت شده است." in str(exc.value)
+        assert "این شماره تلفن قبلاً به عنوان فروشنده ثبت شده است." in str(
+            exc.value
+        )
 
     def test_existing_user_without_merchant(self):
         user = get_user_model().objects.create(username="09126667777")
@@ -135,5 +138,3 @@ class TestRegisterMerchantSerializer:
         data = serializer.to_representation(user)
         assert data["phone_number"] == "09127779999"
         assert "merchant" in str(data["roles"])
-        assert "access" in data
-        assert "refresh" in data

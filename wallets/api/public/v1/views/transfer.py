@@ -1,12 +1,21 @@
 # wallets/api/public/v1/views/transfer.py
+# ViewSet for Wallet Transfers: list, create, retrieve, confirm, reject.
 
 from django.db import models
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from django.shortcuts import get_object_or_404
+from rest_framework import status, mixins, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
-from lib.cas_auth.views import PublicAPIView
-from wallets.api.public.v1.serializers import (
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
+from wallets.api.public.v1.schema import (
+    transfer_reject_schema,
+    transfer_confirm_schema,
+    transfer_create_schema,
+    transfer_retrieve_schema,
+    transfers_list_schema,
+)
+from wallets.api.public.v1.serializers.transfer import (
     WalletTransferCreateSerializer,
     WalletTransferDetailSerializer,
     WalletTransferConfirmSerializer,
@@ -21,177 +30,193 @@ from wallets.services.transfer import check_and_expire_transfer_request
 from wallets.utils.choices import TransferStatus
 
 
-@extend_schema(
-    tags=["Wallet · Transfers"],
-    summary="لیست یا ایجاد انتقال کیف پول",
-    description="درخواست ایجاد انتقال کیف پول یا مشاهده لیست انتقال‌های مرتبط با کاربر"
-)
-class WalletTransferListCreateView(PublicAPIView):
-    serializer_class = WalletTransferCreateSerializer
+@transfers_list_schema
+class WalletTransferViewSet(
+    ScopedThrottleByActionMixin,
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
+    """
+    Transfers the current user is involved in (sender/receiver/phone).
+    """
+    queryset = (
+        WalletTransferRequest.objects
+        .select_related(
+            "sender_wallet", "sender_wallet__user",
+            "receiver_wallet", "receiver_wallet__user",
+            "transaction",
+        )
+        .only(
+            "id", "amount", "description", "status",
+            "expires_at", "created_at", "reference_code",
+            "sender_wallet_id", "receiver_wallet_id",
+            "receiver_phone_number",
+            "sender_wallet__id", "sender_wallet__wallet_number",
+            "sender_wallet__user_id",
+            "receiver_wallet__id", "receiver_wallet__wallet_number",
+            "receiver_wallet__user_id",
+            "transaction_id",
+        )
+    )
+    serializer_class = WalletTransferDetailSerializer
+    lookup_field = "pk"
+    throttle_scope_map = {
+        "default": "wallet-transfers-read",
+        "list": "wallet-transfers-read",
+        "retrieve": "wallet-transfers-read",
+        "create": "wallet-transfers-write",
+        "confirm": "wallet-transfers-write",
+        "reject": "wallet-transfers-write",
+    }
 
-    def get(self, request):
+    def list(self, request, *args, **kwargs):
         user = request.user
-        phone = getattr(user.profile, "phone_number", None)
+        phone = getattr(getattr(user, "profile", None), "phone_number", None)
         role = request.query_params.get("role", "all")
         status_param = request.query_params.get("status")
+        ordering = request.query_params.get("ordering") or "-created_at"
 
         if role == "sender":
-            queryset = WalletTransferRequest.objects.filter(
-                sender_wallet__user=user
-            )
+            qs = self.queryset.filter(sender_wallet__user=user)
         elif role == "receiver":
-            queryset = WalletTransferRequest.objects.filter(
+            qs = self.queryset.filter(
                 models.Q(receiver_wallet__user=user) |
                 models.Q(receiver_phone_number=phone)
             )
-        else:  # all
-            queryset = WalletTransferRequest.objects.filter(
+        else:
+            qs = self.queryset.filter(
                 models.Q(sender_wallet__user=user) |
                 models.Q(receiver_wallet__user=user) |
                 models.Q(receiver_phone_number=phone)
             ).distinct()
 
         if status_param:
-            queryset = queryset.filter(status=status_param)
-        queryset = queryset.order_by("-created_at")
+            qs = qs.filter(status=status_param)
 
-        self.response_data = WalletTransferDetailSerializer(
-            queryset, many=True
-        ).data
-        self.response_status = 200
-        return self.response
+        if ordering not in {"-created_at", "created_at"}:
+            ordering = "-created_at"
+        qs = qs.order_by(ordering)
 
-    def perform_save(self, serializer):
-        req = create_wallet_transfer_request(
-            sender_wallet=serializer.validated_data["sender_wallet"],
-            amount=serializer.validated_data["amount"],
-            receiver_wallet=serializer.validated_data.get("receiver_wallet"),
-            receiver_phone=serializer.validated_data.get(
-                "receiver_phone_number"
-            ),
-            description=serializer.validated_data.get("description", ""),
-            creator=self.request.user
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            ser = WalletTransferDetailSerializer(page, many=True)
+            return self.get_paginated_response(ser.data)
+
+        ser = WalletTransferDetailSerializer(qs, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
+
+    @transfer_retrieve_schema
+    def retrieve(self, request, *args, **kwargs):
+        transfer = self._get_accessible_transfer_or_404(
+            request, kwargs.get("pk")
         )
-        self.response_data = WalletTransferDetailSerializer(req).data
-        self.response_status = status.HTTP_201_CREATED
+        ser = WalletTransferDetailSerializer(transfer)
+        return Response(ser.data, status=status.HTTP_200_OK)
 
+    @transfer_create_schema
+    def create(self, request, *args, **kwargs):
+        ser = WalletTransferCreateSerializer(
+            data=request.data, context={"request": request}
+        )
+        ser.is_valid(raise_exception=True)
+        req = create_wallet_transfer_request(
+            sender_wallet=ser.validated_data["sender_wallet"],
+            amount=ser.validated_data["amount"],
+            receiver_wallet=ser.validated_data.get("receiver_wallet"),
+            receiver_phone=ser.validated_data.get("receiver_phone_number"),
+            description=ser.validated_data.get("description", ""),
+            creator=request.user,
+        )
+        out = WalletTransferDetailSerializer(req).data
+        return Response(out, status=status.HTTP_201_CREATED)
 
-@extend_schema(
-    request=WalletTransferConfirmSerializer,
-    responses={200: WalletTransferDetailSerializer},
-    tags=["Wallet · Transfers"],
-    summary="تایید انتقال کیف پول",
-    description="تایید انتقال برای کیف پول دریافتی یا شماره موبایل ثبت‌شده"
-)
-class WalletTransferConfirmView(PublicAPIView):
-    serializer_class = WalletTransferConfirmSerializer
-
-    def post(self, request, pk):
-        transfer = WalletTransferRequest.objects.filter(pk=pk).first()
-        if not transfer:
-            self.response_data = {"detail": "درخواست انتقال پیدا نشد."}
-            self.response_status = status.HTTP_404_NOT_FOUND
-            return self.response
-
-        user = request.user
-        if transfer.receiver_phone_number:
-            if not hasattr(
-                    user, "profile"
-            ) or user.profile.phone_number != transfer.receiver_phone_number:
-                self.response_data = {
-                    "detail": "شما مجاز به تایید این انتقال نیستید."
-                }
-                self.response_status = status.HTTP_403_FORBIDDEN
-                return self.response
-        else:
-            if not transfer.receiver_wallet or transfer.receiver_wallet.user != user:
-                self.response_data = {
-                    "detail": "شما مجاز به تایید این انتقال نیستید."
-                }
-                self.response_status = status.HTTP_403_FORBIDDEN
-                return self.response
-
+    @transfer_confirm_schema
+    @action(detail=True, methods=["post"], url_path="confirm")
+    def confirm(self, request, *args, **kwargs):
+        transfer = self._get_accessible_transfer_or_404(
+            request, kwargs.get("pk")
+        )
         check_and_expire_transfer_request(transfer)
-        if not transfer:
-            self.response_data = {"detail": "درخواست انتقال پیدا نشد."}
-            self.response_status = status.HTTP_404_NOT_FOUND
-            return self.response
-        if transfer.receiver_phone_number and not transfer.receiver_wallet:
-            serializer = self.get_serializer(
-                data=request.data,
-                context={'request': self.request}
+        if transfer.status != TransferStatus.PENDING_CONFIRMATION:
+            return Response(
+                {"detail": "Transfer is not confirmable."},
+                status=status.HTTP_400_BAD_REQUEST
             )
-            serializer.is_valid(raise_exception=True)
+
+        if transfer.receiver_phone_number and not transfer.receiver_wallet_id:
+            ser = WalletTransferConfirmSerializer(
+                data=request.data, context={"request": request}
+            )
+            ser.is_valid(raise_exception=True)
             try:
                 transfer = confirm_wallet_transfer_request(
-                    transfer,
-                    serializer.validated_data["receiver_wallet"],
+                    transfer, ser.validated_data["receiver_wallet"],
                     request.user
                 )
-                self.response_data = WalletTransferDetailSerializer(
-                    transfer
-                ).data
-                self.response_status = status.HTTP_200_OK
-            except ValidationError as e:
-                message = e.detail[0] if isinstance(e.detail, list) else str(
-                    e.detail
-                )
-                self.response_data = {"detail": message}
-                self.response_status = status.HTTP_400_BAD_REQUEST
             except Exception as e:
-                self.response_data = {"detail": str(e)}
-                self.response_status = status.HTTP_400_BAD_REQUEST
-            return self.response
-        self.response_data = {"detail": "انتقال قابل تایید نیست."}
-        self.response_status = status.HTTP_400_BAD_REQUEST
-        return self.response
+                return Response(
+                    {"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(
+                WalletTransferDetailSerializer(transfer).data,
+                status=status.HTTP_200_OK
+            )
 
+        if transfer.receiver_wallet and transfer.receiver_wallet.user_id == request.user.id:
+            try:
+                transfer = confirm_wallet_transfer_request(
+                    transfer, transfer.receiver_wallet, request.user
+                )
+            except Exception as e:
+                return Response(
+                    {"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(
+                WalletTransferDetailSerializer(transfer).data,
+                status=status.HTTP_200_OK
+            )
 
-@extend_schema(
-    responses={200: WalletTransferDetailSerializer},
-    tags=["Wallet · Transfers"],
-    summary="رد انتقال کیف پول",
-    description="رد کردن درخواست انتقال دریافتی توسط کاربر"
-)
-class WalletTransferRejectView(PublicAPIView):
-    serializer_class = WalletTransferDetailSerializer
+        return Response(
+            {"detail": "You are not allowed to confirm this transfer."},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
-    def post(self, request, pk):
-        transfer = WalletTransferRequest.objects.filter(pk=pk).first()
-        if not transfer:
-            self.response_data = {"detail": "درخواست انتقال پیدا نشد."}
-            self.response_status = status.HTTP_404_NOT_FOUND
-            return self.response
-
-        user = request.user
-        if transfer.receiver_phone_number:
-            if not hasattr(
-                    user, "profile"
-            ) or user.profile.phone_number != transfer.receiver_phone_number:
-                self.response_data = {
-                    "detail": "شما مجاز به رد این انتقال نیستید."
-                }
-                self.response_status = status.HTTP_403_FORBIDDEN
-                return self.response
-        elif transfer.receiver_wallet and transfer.receiver_wallet.user != user:
-            self.response_data = {
-                "detail": "شما مجاز به رد این انتقال نیستید."
-            }
-            self.response_status = status.HTTP_403_FORBIDDEN
-            return self.response
-        if not transfer:
-            self.response_data = {"detail": "درخواست انتقال پیدا نشد."}
-            self.response_status = status.HTTP_404_NOT_FOUND
-            return self.response
+    @transfer_reject_schema
+    @action(detail=True, methods=["post"], url_path="reject")
+    def reject(self, request, *args, **kwargs):
+        transfer = self._get_accessible_transfer_or_404(
+            request, kwargs.get("pk")
+        )
         if transfer.status != TransferStatus.PENDING_CONFIRMATION:
-            self.response_data = {"detail": "درخواست قابل رد کردن نیست."}
-            self.response_status = status.HTTP_400_BAD_REQUEST
-            return self.response
+            return Response(
+                {"detail": "Transfer is not rejectable."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         try:
             transfer = reject_wallet_transfer_request(transfer)
-            self.response_data = self.serializer_class(transfer).data
-            self.response_status = status.HTTP_200_OK
         except Exception as e:
-            self.response_data = {"detail": str(e)}
-            self.response_status = status.HTTP_400_BAD_REQUEST
-        return self.response
+            return Response(
+                {"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(
+            WalletTransferDetailSerializer(transfer).data,
+            status=status.HTTP_200_OK
+        )
+
+    # -- helpers --
+
+    def _get_accessible_transfer_or_404(
+            self, request, pk: int
+    ) -> WalletTransferRequest:
+        """User must be a party (sender/receiver) or intended phone receiver."""
+        user = request.user
+        phone = getattr(getattr(user, "profile", None), "phone_number", None)
+        return get_object_or_404(
+            self.queryset,
+            models.Q(id=pk),
+            models.Q(sender_wallet__user=user) |
+            models.Q(receiver_wallet__user=user) |
+            models.Q(receiver_phone_number=phone),
+        )
