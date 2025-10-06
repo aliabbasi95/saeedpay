@@ -100,6 +100,7 @@ class LoanRiskReportCheckView(APIView):
     """
     
     permission_classes = [IsAuthenticated]
+    serializer_class = LoanRiskReportSerializer  
     
     @loan_risk_report_check_schema
     def post(self, request, report_id):
@@ -174,6 +175,7 @@ class LoanRiskReportLatestView(APIView):
     """
     
     permission_classes = [IsAuthenticated]
+    serializer_class = LoanRiskReportSerializer  
     
     @loan_risk_report_latest_schema
     def get(self, request):

@@ -226,6 +226,8 @@ class Profile(BaseModel):
 
         if accepted:
             self.kyc_status = KYCStatus.ACCEPTED
+            # When KYC is accepted, advance to VIDEO_VERIFIED stage (stage 3)
+            self.auth_stage = AuthenticationStage.VIDEO_VERIFIED
         elif error_details and "rejected" in error_details.lower():
             self.kyc_status = KYCStatus.REJECTED
         else:
