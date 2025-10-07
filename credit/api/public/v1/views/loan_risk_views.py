@@ -7,6 +7,7 @@ from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated
 
 from credit.models import LoanRiskReport
+from credit.utils.choices import LoanReportStatus
 from credit.api.public.v1.serializers.loan_risk_serializers import (
     LoanRiskOTPRequestSerializer,
     LoanRiskOTPVerifySerializer,
@@ -14,7 +15,7 @@ from credit.api.public.v1.serializers.loan_risk_serializers import (
     LoanRiskReportDetailSerializer,
     LoanRiskReportListSerializer,
 )
-from credit.api.public.v1.views.schema import (
+from credit.api.public.v1.schema import (
     loan_risk_otp_request_schema,
     loan_risk_otp_verify_schema,
     loan_risk_report_check_schema,
@@ -30,6 +31,7 @@ from credit.tasks_loan_validation import (
 from profiles.models.profile import Profile
 
 
+@loan_risk_otp_request_schema
 class LoanRiskOTPRequestView(APIView):
     """
     Request OTP for loan risk validation (Stage 1).
@@ -40,26 +42,33 @@ class LoanRiskOTPRequestView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = LoanRiskOTPRequestSerializer
     
-    @loan_risk_otp_request_schema
     def post(self, request):
         serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         
         profile = serializer.validated_data['_profile']
-        
-        # Trigger async task
-        task_result = send_loan_validation_otp.delay(profile.id)
-        
+
+        # Create a new report record and send OTP
+        report = LoanRiskReport.objects.create(
+            profile=profile,
+            national_code=profile.national_id,
+            mobile_number=profile.phone_number,
+        )
+
+        task_result = send_loan_validation_otp.delay(report.id)
+
         return Response(
             {
                 "success": True,
                 "message": "درخواست ارسال کد با موفقیت ثبت شد. کد به زودی به شماره موبایل شما ارسال خواهد شد.",
+                "report_id": report.id,
                 "task_id": task_result.id,
             },
             status=status.HTTP_200_OK,
         )
 
 
+@loan_risk_otp_verify_schema
 class LoanRiskOTPVerifyView(APIView):
     """
     Verify OTP and request loan risk report (Stage 2).
@@ -70,7 +79,6 @@ class LoanRiskOTPVerifyView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = LoanRiskOTPVerifySerializer
     
-    @loan_risk_otp_verify_schema
     def post(self, request):
         serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
@@ -92,6 +100,7 @@ class LoanRiskOTPVerifyView(APIView):
         )
 
 
+@loan_risk_report_check_schema
 class LoanRiskReportCheckView(APIView):
     """
     Manually check loan risk report status (Stage 3).
@@ -102,7 +111,6 @@ class LoanRiskReportCheckView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = LoanRiskReportSerializer  
     
-    @loan_risk_report_check_schema
     def post(self, request, report_id):
         try:
             profile = Profile.objects.get(user=request.user)
@@ -119,7 +127,7 @@ class LoanRiskReportCheckView(APIView):
             )
         
         # If already completed, return it
-        if report.status == LoanRiskReport.ReportStatus.COMPLETED:
+        if report.status == LoanReportStatus.COMPLETED:
             serializer = LoanRiskReportSerializer(report)
             return Response(serializer.data, status=status.HTTP_200_OK)
         
@@ -141,6 +149,7 @@ class LoanRiskReportCheckView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+@loan_risk_report_detail_schema
 class LoanRiskReportDetailView(generics.RetrieveAPIView):
     """
     Retrieve detailed loan risk report including full JSON data.
@@ -149,12 +158,12 @@ class LoanRiskReportDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = LoanRiskReportDetailSerializer
     
-    @loan_risk_report_detail_schema
     def get_queryset(self):
         profile = Profile.objects.get(user=self.request.user)
         return LoanRiskReport.objects.filter(profile=profile)
 
 
+@loan_risk_report_list_schema
 class LoanRiskReportListView(generics.ListAPIView):
     """
     List all loan risk reports for the authenticated user.
@@ -163,12 +172,12 @@ class LoanRiskReportListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = LoanRiskReportListSerializer
     
-    @loan_risk_report_list_schema
     def get_queryset(self):
         profile = Profile.objects.get(user=self.request.user)
         return LoanRiskReport.objects.filter(profile=profile).order_by('-created_at')
 
 
+@loan_risk_report_latest_schema
 class LoanRiskReportLatestView(APIView):
     """
     Get the latest loan risk report for the authenticated user.
@@ -177,7 +186,6 @@ class LoanRiskReportLatestView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = LoanRiskReportSerializer  
     
-    @loan_risk_report_latest_schema
     def get(self, request):
         try:
             profile = Profile.objects.get(user=request.user)

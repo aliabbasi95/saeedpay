@@ -16,109 +16,91 @@ logger = logging.getLogger(__name__)
 # Set cooldown period in seconds
 COOLDOWN_PERIOD = getattr(settings, 'LOAN_VALIDATION_COOLDOWN_PERIOD', 30 * 24 * 60 * 60)
 @shared_task(bind=True)
-def send_loan_validation_otp(self, profile_id: int) -> dict:
+def send_loan_validation_otp(self, report_id: int) -> dict:
     """
     Task to send OTP for loan validation (Stage 1).
     
     Creates a new LoanRiskReport record and sends OTP to user's mobile.
     
     Args:
-        profile_id: ID of the profile to validate
+        report_id: ID of the LoanRiskReport to update
         
     Returns:
         Dict with success status and report_id
     """
-    try:
-        profile = Profile.objects.get(id=profile_id)
-    except Profile.DoesNotExist:
-        logger.error(f"Profile {profile_id} not found")
-        return {"success": False, "error": "profile_not_found"}
-    
-    # Validate required fields
-    if not profile.national_id or not profile.phone_number:
-        logger.warning(f"Profile {profile_id}: Missing national_id or phone_number")
-        return {
-            "success": False,
-            "error": "missing_required_fields",
-            "message": "کد ملی و شماره موبایل الزامی است",
-        }
-    
-    # Check cooldown period (30 days between reports)
-    can_request, reason, last_report = LoanRiskReport.can_user_request_new_report(profile)
-    if not can_request:
-        logger.warning(f"Profile {profile_id}: Cooldown period not met. {reason}")
-        last_report_date = last_report.completed_at.strftime('%Y/%m/%d') if last_report else ''
-        return {
-            "success": False,
-            "error": "cooldown_period_active",
-            "message": f"شما قبلاً در تاریخ {last_report_date} گزارش دریافت کرده‌اید. {reason}.",
-            "last_report_date": last_report.completed_at.isoformat() if last_report else None,
-            "last_report_id": last_report.id if last_report else None,
-        }
-    
-    # Check for existing pending/in-progress reports
     with transaction.atomic():
-        # Look for recent reports (within last 10 minutes)
-        recent_time = timezone.now() - timezone.timedelta(minutes=10)
-        existing_report = LoanRiskReport.objects.filter(
+        try:
+            report = LoanRiskReport.objects.select_for_update().get(id=report_id)
+        except LoanRiskReport.DoesNotExist:
+            logger.error(f"LoanRiskReport {report_id} not found")
+            return {"success": False, "error": "report_not_found"}
+        profile = report.profile
+
+        # Validate required fields
+        if not profile.national_id or not profile.phone_number:
+            logger.warning(f"Report {report_id}: Missing national_id or phone_number")
+            report.mark_failed(error_message="کد ملی و شماره موبایل الزامی است", error_code="MISSING_REQUIRED_FIELDS")
+            return {
+                "success": False,
+                "error": "missing_required_fields",
+                "message": "کد ملی و شماره موبایل الزامی است",
+                "report_id": report.id,
+            }
+
+        # Check cooldown period (30 days between reports)
+        can_request, reason, last_report = LoanRiskReport.can_user_request_new_report(profile)
+        if not can_request:
+            last_report_date = last_report.completed_at.strftime('%Y/%m/%d') if last_report else ''
+            error_message = f"شما قبلاً در تاریخ {last_report_date} گزارش دریافت کرده‌اید. {reason}."
+            logger.warning(f"Report {report_id}: Cooldown period not met. {reason}")
+            report.mark_failed(error_message=error_message, error_code="COOLDOWN_ACTIVE")
+            return {
+                "success": False,
+                "error": "cooldown_period_active",
+                "message": error_message,
+                "last_report_date": last_report.completed_at.isoformat() if last_report else None,
+                "last_report_id": last_report.id if last_report else None,
+                "report_id": report.id,
+            }
+
+        # Check if any OTP was sent within the last 2 minutes for this profile
+        recent_otp_time = timezone.now() - timezone.timedelta(minutes=2)
+        recent_otp_report = LoanRiskReport.objects.filter(
             profile=profile,
-            status__in=[
-                LoanReportStatus.OTP_SENT,
-                LoanReportStatus.IN_PROCESSING
-            ],
-            created_at__gte=recent_time
-        ).first()
-        
-        if existing_report:
-            # Check if OTP is still valid
-            if existing_report.status == LoanReportStatus.OTP_SENT:
-                if existing_report.is_otp_valid():
-                    logger.info(
-                        f"Profile {profile_id}: Reusing existing report {existing_report.id} "
-                        f"with valid OTP"
-                    )
-                    return {
-                        "success": True,
-                        "report_id": existing_report.id,
-                        "unique_id": existing_report.otp_unique_id,
-                        "message": "کد قبلی هنوز معتبر است. از همان کد استفاده کنید.",
-                        "reused": True,
-                    }
-                else:
-                    # Mark old OTP as expired
-                    existing_report.status = LoanReportStatus.EXPIRED
-                    existing_report.save(update_fields=['status', 'updated_at'])
-            
-            # If in processing, don't allow new request
-            if existing_report.status == LoanReportStatus.IN_PROCESSING:
-                logger.warning(
-                    f"Profile {profile_id}: Report {existing_report.id} is already in processing"
-                )
-                return {
-                    "success": False,
-                    "error": "report_in_progress",
-                    "message": "گزارش قبلی شما هنوز در حال پردازش است. لطفا صبر کنید.",
-                    "report_id": existing_report.id,
-                }
-        
-        # Mark any old pending reports as expired
-        LoanRiskReport.objects.filter(
+            otp_sent_at__gte=recent_otp_time
+        ).exclude(id=report.id).first()
+
+        if recent_otp_report:
+            time_since_otp = timezone.now() - recent_otp_report.otp_sent_at
+            remaining_seconds = int((timezone.timedelta(minutes=2) - time_since_otp).total_seconds())
+            logger.warning(
+                f"Report {report_id}: OTP requested too frequently. "
+                f"Last OTP sent {time_since_otp.total_seconds():.0f} seconds ago. "
+                f"Must wait {remaining_seconds} more seconds."
+            )
+            return {
+                "success": False,
+                "error": "otp_request_too_frequent",
+                "message": f"برای درخواست مجدد کد باید {remaining_seconds} ثانیه صبر کنید.",
+                "wait_seconds": remaining_seconds,
+                "report_id": report.id,
+            }
+
+        # If another report is in processing, don't allow new request
+        existing_in_process = LoanRiskReport.objects.filter(
             profile=profile,
-            status__in=[
-                LoanReportStatus.PENDING,
-                LoanReportStatus.OTP_SENT
-            ]
-        ).exclude(
-            id=existing_report.id if existing_report else None
-        ).update(status=LoanReportStatus.EXPIRED)
-        
-        # Create new loan risk report
-        report = LoanRiskReport.objects.create(
-            profile=profile,
-            national_code=profile.national_id,
-            mobile_number=profile.phone_number,
-            status=LoanReportStatus.PENDING
-        )
+            status=LoanReportStatus.IN_PROCESSING
+        ).exclude(id=report.id).first()
+        if existing_in_process:
+            logger.warning(
+                f"Report {report_id}: Report {existing_in_process.id} is already in processing"
+            )
+            return {
+                "success": False,
+                "error": "report_in_progress",
+                "message": "گزارش قبلی شما هنوز در حال پردازش است. لطفا صبر کنید.",
+                "report_id": existing_in_process.id,
+            }
     
     # Send OTP through service
     service = get_identity_auth_service()
@@ -128,15 +110,15 @@ def send_loan_validation_otp(self, profile_id: int) -> dict:
             mobile_number=profile.phone_number
         )
     except Exception as e:
-        logger.error(f"Failed to send loan OTP for profile {profile_id}: {e}")
+        logger.error(f"Failed to send loan OTP for report {report_id}: {e}")
         report.mark_failed(error_message=str(e), error_code="SERVICE_ERROR")
-        return {"success": False, "error": "service_error", "message": str(e)}
+        return {"success": False, "error": "service_error", "message": str(e), "report_id": report.id}
     
     # Update report based on result
     if result.get("success"):
         unique_id = result.get("unique_id")
         report.mark_otp_sent(unique_id)
-        logger.info(f"Loan OTP sent successfully for profile {profile_id}, report {report.id}")
+        logger.info(f"Loan OTP sent successfully for report {report.id}")
         return {
             "success": True,
             "report_id": report.id,
@@ -147,7 +129,7 @@ def send_loan_validation_otp(self, profile_id: int) -> dict:
         error_msg = result.get("error", "Failed to send OTP")
         error_code = result.get("error_code")
         report.mark_failed(error_message=error_msg, error_code=error_code)
-        logger.warning(f"Failed to send loan OTP for profile {profile_id}: {error_msg}")
+        logger.warning(f"Failed to send loan OTP for report {report_id}: {error_msg}")
         return {
             "success": False,
             "report_id": report.id,

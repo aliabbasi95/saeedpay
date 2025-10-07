@@ -1,7 +1,10 @@
 # credit/api/public/v1/serializers/loan_risk_serializers.py
 
 from rest_framework import serializers
+from rest_framework.exceptions import Throttled
+from django.utils import timezone
 from credit.models import LoanRiskReport
+from credit.utils.choices import LoanReportStatus
 from profiles.models.profile import Profile
 from profiles.utils.choices import AuthenticationStage
 
@@ -51,6 +54,63 @@ class LoanRiskOTPRequestSerializer(serializers.Serializer):
                     f"شما قبلاً در تاریخ {last_report_date} گزارش اعتبارسنجی دریافت کرده‌اید. "
                     f"برای درخواست گزارش جدید {reason}."
                 ]}
+            )
+
+        # Throttle and in-progress checks (2-minute window)
+        now = timezone.now()
+        recent_window = now - timezone.timedelta(minutes=2)
+
+        # 1) If there is a report already in processing, block new request
+        in_process = LoanRiskReport.objects.filter(
+            profile=profile,
+            status=LoanReportStatus.IN_PROCESSING,
+        ).order_by('-created_at').first()
+        if in_process:
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [
+                        "گزارش قبلی شما هنوز در حال پردازش است. لطفا صبر کنید."
+                    ],
+                    "report_id": in_process.id,
+                    "error": "report_in_progress",
+                }
+            )
+
+        # 2) If an OTP was sent in last 2 minutes, throttle
+        recent_otp = LoanRiskReport.objects.filter(
+            profile=profile,
+            otp_sent_at__gte=recent_window,
+        ).order_by('-otp_sent_at').first()
+        if recent_otp and recent_otp.otp_sent_at:
+            time_since = now - recent_otp.otp_sent_at
+            remaining_seconds = max(0, int(120 - time_since.total_seconds()))
+            raise Throttled(
+                detail=(
+                    f"برای درخواست مجدد کد باید {remaining_seconds} ثانیه صبر کنید. "
+                    f"شناسه گزارش: {recent_otp.id}"
+                ),
+                wait=remaining_seconds,
+            )
+
+        # 3) If any report was created in last 2 minutes with relevant statuses, throttle
+        recent_created = LoanRiskReport.objects.filter(
+            profile=profile,
+            created_at__gte=recent_window,
+            status__in=[
+                LoanReportStatus.PENDING,
+                LoanReportStatus.OTP_SENT,
+                LoanReportStatus.IN_PROCESSING,
+            ],
+        ).order_by('-created_at').first()
+        if recent_created:
+            time_since = now - recent_created.created_at
+            remaining_seconds = max(0, int(120 - time_since.total_seconds()))
+            raise Throttled(
+                detail=(
+                    f"برای درخواست مجدد کد باید {remaining_seconds} ثانیه صبر کنید. "
+                    f"شناسه گزارش: {recent_created.id}"
+                ),
+                wait=remaining_seconds,
             )
         
         # Store profile and last report in validated data
