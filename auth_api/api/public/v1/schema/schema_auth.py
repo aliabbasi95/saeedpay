@@ -7,9 +7,19 @@ from drf_spectacular.utils import (
     OpenApiExample,
 )
 
+from auth_api.api.public.v1.serializers import (
+    ChangePasswordSerializer,
+    LoginSerializer,
+    RegisterCustomerSerializer,
+    RegisterMerchantSerializer,
+    ResetPasswordSerializer,
+    SendOTPSerializer,
+    SendUserOTPSerializer,
+)
+
 LOGIN_SCHEMA = extend_schema(
     tags=["Authentication"],
-    request=None,  # serializer is inferred from view.get_serializer_class()
+    request=LoginSerializer,
     responses={
         200: OpenApiResponse(
             description="Login success with JWT tokens.",
@@ -87,7 +97,7 @@ REFRESH_SCHEMA = extend_schema(
 
 SEND_OTP_SCHEMA = extend_schema(
     tags=["Authentication"],
-    request=None,
+    request=SendOTPSerializer,
     responses={
         200: OpenApiResponse(
             description="OTP sent.",
@@ -109,7 +119,7 @@ SEND_OTP_SCHEMA = extend_schema(
 
 SEND_USER_OTP_SCHEMA = extend_schema(
     tags=["Authentication"],
-    request=None,
+    request=SendUserOTPSerializer,
     responses={
         200: OpenApiResponse(
             description="OTP sent.",
@@ -131,7 +141,7 @@ SEND_USER_OTP_SCHEMA = extend_schema(
 
 REGISTER_CUSTOMER_SCHEMA = extend_schema(
     tags=["Authentication"],
-    request=None,
+    request=RegisterCustomerSerializer,
     responses={
         201: OpenApiResponse(
             description="User registered successfully.",
@@ -169,7 +179,7 @@ REGISTER_CUSTOMER_SCHEMA = extend_schema(
 
 REGISTER_MERCHANT_SCHEMA = extend_schema(
     tags=["Authentication"],
-    request=None,
+    request=RegisterMerchantSerializer,
     responses={
         201: OpenApiResponse(
             description="User registered successfully.",
@@ -207,7 +217,7 @@ REGISTER_MERCHANT_SCHEMA = extend_schema(
 
 CHANGE_PASSWORD_SCHEMA = extend_schema(
     tags=["Authentication"],
-    request=None,
+    request=ChangePasswordSerializer,
     responses={
         200: OpenApiResponse(
             description="Password changed successfully.",
@@ -236,7 +246,7 @@ CHANGE_PASSWORD_SCHEMA = extend_schema(
 
 RESET_PASSWORD_SCHEMA = extend_schema(
     tags=["Authentication"],
-    request=None,
+    request=ResetPasswordSerializer,
     responses={
         200: OpenApiResponse(
             description="Password reset successfully.",
