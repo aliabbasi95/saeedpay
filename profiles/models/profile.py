@@ -271,6 +271,10 @@ class Profile(BaseModel):
             "last_checked": self.kyc_last_checked_at.isoformat() if self.kyc_last_checked_at else None,
         }
 
+    def touch_kyc_check(self) -> None:
+        self.kyc_last_checked_at = timezone.localtime(timezone.now())
+        self.save(update_fields=["kyc_last_checked_at", "updated_at"])
+
     class Meta:
         verbose_name = _("پروفایل")
         verbose_name_plural = _("پروفایل‌ها")

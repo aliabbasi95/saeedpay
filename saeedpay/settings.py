@@ -411,6 +411,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "profiles.tasks.rehydrate_shahkar_checks",
         "schedule": 15 * 60,  # seconds
     },
+    "rehydrate-video-kyc-checks-every-15m": {
+        "task": "profiles.tasks.rehydrate_video_kyc_checks",
+        "schedule": 15 * 60,  # seconds
+    },
 }
 
 # reCAPTCHA Configuration

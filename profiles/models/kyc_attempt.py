@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
-import uuid
 from typing import Optional
 
-from django.db import models
+from django.db import models, IntegrityError
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
 from profiles.models.profile import Profile
 from profiles.utils.choices import AttemptType, AttemptStatus
+
+
+class AttemptAlreadyProcessing(Exception):
+    """Raised when a processing attempt of the same type already exists for the profile."""
 
 
 class ProfileKYCAttempt(BaseModel):
@@ -85,30 +89,32 @@ class ProfileKYCAttempt(BaseModel):
         verbose_name=_("زمان پایان"),
     )
 
-    class Meta:
-        verbose_name = _("تلاش KYC")
-        verbose_name_plural = _("تلاش‌های KYC")
-        indexes = [
-            models.Index(fields=["profile", "attempt_type", "created_at"]),
-            models.Index(fields=["status", "created_at"]),
-            models.Index(fields=["external_id"]),
-        ]
-
-    # ---------- Helper methods ----------
-    def start(
-            self, request_payload: dict | None = None
+    # ---------- Factory with DB-level uniqueness guard ----------
+    @classmethod
+    def start_new(
+            cls,
+            *,
+            profile_id: int,
+            attempt_type: str,
+            request_payload: dict | None = None,
     ) -> "ProfileKYCAttempt":
-        """Mark as PROCESSING and optionally store request payload."""
-        self.status = AttemptStatus.PROCESSING
-        if request_payload is not None:
-            self.request_payload = request_payload
-        self.started_at = timezone.now()
-        self.save(
-            update_fields=["status", "request_payload", "started_at",
-                           "updated_at"]
-        )
-        return self
+        """
+        Create a new attempt already in PROCESSING state.
+        If a PROCESSING attempt (unfinished) of same type exists, raise AttemptAlreadyProcessing.
+        """
+        try:
+            return cls.objects.create(
+                profile_id=profile_id,
+                attempt_type=attempt_type,
+                status=AttemptStatus.PROCESSING,
+                started_at=timezone.now(),
+                request_payload=request_payload or {},
+            )
+        except IntegrityError as e:
+            # Violates partial unique index (processing & unfinished)
+            raise AttemptAlreadyProcessing from e
 
+    # ---------- Mutators ----------
     def mark_success(
             self,
             response_payload: dict | None = None,
@@ -211,3 +217,21 @@ class ProfileKYCAttempt(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.profile_id} | {self.attempt_type} | {self.status}"
+
+    class Meta:
+        verbose_name = _("تلاش KYC")
+        verbose_name_plural = _("تلاش‌های KYC")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["profile", "attempt_type"],
+                condition=Q(
+                    status=AttemptStatus.PROCESSING, finished_at__isnull=True
+                ),
+                name="uniq_processing_attempt_per_type_per_profile",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["profile", "attempt_type", "created_at"]),
+            models.Index(fields=["status", "created_at"]),
+            models.Index(fields=["external_id"]),
+        ]
