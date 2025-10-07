@@ -322,7 +322,7 @@ class LoanValidationService:
                 "error_code": "MISSING_PARAMS",
             }
 
-        url = urljoin(self.base_url.rstrip("/") + "/", "api/inq/loan-validation/request-report")
+        url = urljoin(self.base_url.rstrip("/") + "/", "api/inq/loan-validation/report-json")
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",

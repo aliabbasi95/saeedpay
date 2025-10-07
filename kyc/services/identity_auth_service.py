@@ -11,6 +11,7 @@ import requests
 from django.conf import settings
 from django.core.cache import cache
 
+from .loan_validation_service import LoanValidationService
 from .video_identity_verification_service import \
     VideoIdentityVerificationService
 
@@ -37,6 +38,7 @@ class IdentityAuthService:
         )
         self.cache_key_prefix = "kyc_identity_"
         self.video_verification = VideoIdentityVerificationService()
+        self.loan_validation = LoanValidationService(self.base_url, self.timeout)
 
         # Reuse HTTP session for efficiency
         self._session = requests.Session()
