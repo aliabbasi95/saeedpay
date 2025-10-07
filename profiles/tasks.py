@@ -562,12 +562,12 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
                 p.save(
                     update_fields=["phone_national_id_match_status",
                                    "updated_at"]
-                    )
+                )
         except Profile.DoesNotExist:
             pass
         attempt.mark_failed(
             error_message=str(e), error_code="service_unavailable"
-            )
+        )
         return {"success": False, "error": "service_unavailable"}
 
     if not result.get("success"):
@@ -693,7 +693,7 @@ def rehydrate_video_kyc_checks(self) -> dict:
     now = timezone.now()
 
     qs = Profile.objects.filter(
-        auth_stage=AuthenticationStage.VIDEO_VERIFIED,
+        auth_stage=AuthenticationStage.IDENTITY_VERIFIED,
         kyc_status=KYCStatus.PROCESSING,
     ).exclude(video_task_id__isnull=True).exclude(video_task_id__exact="")
 

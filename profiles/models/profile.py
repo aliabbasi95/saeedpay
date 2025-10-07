@@ -130,9 +130,9 @@ class Profile(BaseModel):
         return self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED
 
     def is_video_kyc_in_progress(self) -> bool:
-        """Video KYC is in progress if stage=VIDEO_VERIFIED and status=PROCESSING."""
+        """Video KYC is in progress if stage=IDENTITY_VERIFIED and status=PROCESSING."""
         return (
-                self.auth_stage == AuthenticationStage.VIDEO_VERIFIED
+                self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED
                 and self.kyc_status == KYCStatus.PROCESSING
         )
 
@@ -199,7 +199,6 @@ class Profile(BaseModel):
                     "در این مرحله امکان ارسال ویدئو وجود ندارد؛ باید در مرحله «تایید هویت» باشید."
                 )
             )
-        self.auth_stage = AuthenticationStage.VIDEO_VERIFIED
         self.kyc_status = KYCStatus.PROCESSING
         self.video_submitted_at = timezone.now()
 
@@ -225,6 +224,7 @@ class Profile(BaseModel):
         self.video_verified_at = now
 
         if accepted:
+            self.auth_stage = AuthenticationStage.VIDEO_VERIFIED
             self.kyc_status = KYCStatus.ACCEPTED
         elif error_details and "rejected" in error_details.lower():
             self.kyc_status = KYCStatus.REJECTED
@@ -255,7 +255,7 @@ class Profile(BaseModel):
         )
 
     def can_retry_video_kyc(self) -> bool:
-        return self.auth_stage == AuthenticationStage.VIDEO_VERIFIED and self.kyc_status in [
+        return self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED and self.kyc_status in [
             KYCStatus.FAILED,
             KYCStatus.REJECTED,
         ]
