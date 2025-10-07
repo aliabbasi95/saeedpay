@@ -12,8 +12,8 @@ from profiles.models.kyc_attempt import ProfileKYCAttempt
 from profiles.models.profile import Profile
 from profiles.tasks import (
     verify_identity_phone_national_id,
-    check_profile_video_kyc_result,
-    reset_profile_video_kyc,
+    check_profile_video_auth_result,
+    reset_profile_video_auth,
 )
 from profiles.utils.choices import (
     KYCStatus,
@@ -69,7 +69,7 @@ class ProfileAdmin(admin.ModelAdmin):
     list_filter = (
         "auth_stage",
         "phone_national_id_match_status",
-        "kyc_status",
+        "video_auth_status",
         "updated_at",
         "created_at",
     )
@@ -91,12 +91,12 @@ class ProfileAdmin(admin.ModelAdmin):
         "identity_verified_at",
         "video_submitted_at",
         "video_verified_at",
-        "kyc_last_checked_at",
-        "kyc_status",
+        "video_auth_last_checked_at",
+        "video_auth_status",
         "phone_national_id_match_status",
         "auth_stage",
         "video_task_id",
-        "kyc_summary",
+        "video_auth_summary",
     )
     fieldsets = (
         ("Identity", {
@@ -105,11 +105,11 @@ class ProfileAdmin(admin.ModelAdmin):
         }),
         ("KYC status", {
             "fields": (
-                "auth_stage", "kyc_status", "phone_national_id_match_status",
+                "auth_stage", "video_auth_status", "phone_national_id_match_status",
                 ("identity_verified_at", "video_submitted_at",
-                 "video_verified_at", "kyc_last_checked_at"),
+                 "video_verified_at", "video_auth_last_checked_at"),
                 "video_task_id",
-                "kyc_summary",
+                "video_auth_summary",
             )
         }),
     )
@@ -128,14 +128,14 @@ class ProfileAdmin(admin.ModelAdmin):
     def shahkar_badge(self, obj: Profile):
         return _kyc_result_badge(obj.phone_national_id_match_status)
 
-    @admin.display(description="KYC ویدئویی")
+    @admin.display(description="احراز هویت ویدئویی")
     def video_badge(self, obj: Profile):
-        return _kyc_result_badge(obj.kyc_status)
+        return _kyc_result_badge(obj.video_auth_status)
 
     # ---------- detail helper ----------
-    @admin.display(description="خلاصهٔ KYC")
-    def kyc_summary(self, obj: Profile):
-        info = obj.get_kyc_status_display_info()
+    @admin.display(description="خلاصهٔ احراز هویت ویدئویی")
+    def video_auth_summary(self, obj: Profile):
+        info = obj.get_video_auth_status_display_info()
         pretty = json.dumps(info, ensure_ascii=False, indent=2, default=str)
         return mark_safe(
             f'<pre style="white-space:pre-wrap; direction:ltr">{pretty}</pre>'
@@ -169,23 +169,23 @@ class ProfileAdmin(admin.ModelAdmin):
             )
 
     @admin.action(
-        description="پول نتیجهٔ KYC ویدئویی برای پروفایل‌های انتخاب‌شده"
+        description="پول نتیجهٔ احراز هویت ویدئویی برای پروفایل‌های انتخاب‌شده"
     )
     def action_poll_video_result_for_profiles(self, request, queryset):
         count = 0
         for p in queryset:
-            check_profile_video_kyc_result.delay(p.id)
+            check_profile_video_auth_result.delay(p.id)
             count += 1
         self.message_user(
             request, f"پول نتیجه برای {count} پروفایل صف شد.",
             level=messages.SUCCESS
         )
 
-    @admin.action(description="ریست KYC ویدئویی برای پروفایل‌های انتخاب‌شده")
+    @admin.action(description="ریست احراز هویت ویدئویی برای پروفایل‌های انتخاب‌شده")
     def action_reset_video_for_profiles(self, request, queryset):
         count = 0
         for p in queryset:
-            reset_profile_video_kyc.delay(p.id, reason="admin_action")
+            reset_profile_video_auth.delay(p.id, reason="admin_action")
             count += 1
         self.message_user(
             request, f"ریست ویدئویی برای {count} پروفایل زمان‌بندی شد.",

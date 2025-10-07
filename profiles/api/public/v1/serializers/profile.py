@@ -25,9 +25,9 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
 
     otp_code = serializers.CharField(write_only=True, required=False)
 
-    kyc_status = serializers.CharField(read_only=True, allow_null=True)
+    video_auth_status = serializers.CharField(read_only=True, allow_null=True)
     auth_stage = serializers.IntegerField(read_only=True)
-    kyc_last_checked_at = serializers.DateTimeField(
+    video_auth_last_checked_at = serializers.DateTimeField(
         read_only=True, allow_null=True
     )
     phone_national_id_match_status = serializers.CharField(
@@ -45,8 +45,8 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
             "last_name",
             "birth_date",
             "auth_stage",
-            "kyc_status",
-            "kyc_last_checked_at",
+            "video_auth_status",
+            "video_auth_last_checked_at",
             "phone_national_id_match_status",
             "video_task_id",
             "otp_code",
@@ -102,9 +102,9 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
         return data
 
     def update(self, instance, validated_data):
-        if instance.kyc_status == "processing":
+        if instance.video_auth_status == "processing":
             raise serializers.ValidationError(
-                {"non_field_errors": ["در حال پردازش KYC هستید."]}
+                {"non_field_errors": ["در حال پردازش احراز هویت ویدئویی هستید."]}
             )
         if instance.phone_national_id_match_status == "processing":
             raise serializers.ValidationError(
@@ -145,9 +145,9 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
 
         if phone_updated or national_id_updated:
             instance.auth_stage = AuthenticationStage.SIGNUP
-            instance.kyc_status = None
+            instance.video_auth_status = None
             instance.video_task_id = None
-            instance.kyc_last_checked_at = None
+            instance.video_auth_last_checked_at = None
             instance.phone_national_id_match_status = None
             instance.identity_verified_at = None
             instance.video_submitted_at = None

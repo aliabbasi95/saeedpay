@@ -16,8 +16,8 @@ from django.utils.safestring import mark_safe
 from profiles.models.kyc_attempt import ProfileKYCAttempt
 from profiles.tasks import (
     verify_identity_phone_national_id,
-    check_profile_video_kyc_result,
-    reset_profile_video_kyc,
+    check_profile_video_auth_result,
+    reset_profile_video_auth,
 )
 from profiles.utils.choices import (
     AttemptStatus, KYCStatus,
@@ -250,7 +250,7 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
             f"<strong>کد ملی:</strong> {p.national_id or '-'} <br>"
             f"<strong>مرحله احراز:</strong> {AuthenticationStage(p.auth_stage).label} <br>"
             f"<strong>شاهکار:</strong> {_kyc_result_badge(p.phone_national_id_match_status)} <br>"
-            f"<strong>ویدئو KYC:</strong> {_kyc_result_badge(p.kyc_status)}"
+            f"<strong>احراز هویت ویدئویی:</strong> {_kyc_result_badge(p.video_auth_status)}"
             "</div>"
         )
 
@@ -286,7 +286,7 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
         for att in queryset:
             if att.attempt_type != AttemptType.VIDEO_RESULT:
                 continue
-            check_profile_video_kyc_result.delay(att.profile_id)
+            check_profile_video_auth_result.delay(att.profile_id)
             count += 1
         if count:
             self.message_user(
@@ -299,11 +299,11 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
                 level=messages.WARNING
             )
 
-    @admin.action(description="ریست KYC ویدئویی پروفایل‌های مرتبط")
+    @admin.action(description="ریست احراز هویت ویدئویی پروفایل‌های مرتبط")
     def action_reset_video(self, request, queryset):
         count = 0
         for att in queryset:
-            reset_profile_video_kyc.delay(
+            reset_profile_video_auth.delay(
                 att.profile_id, reason="admin_action"
             )
             count += 1

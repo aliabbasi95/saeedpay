@@ -9,12 +9,12 @@ from rest_framework.response import Response
 
 from profiles.api.public.v1.schema import VIDEO_KYC_SUBMIT_SCHEMA
 from profiles.api.public.v1.serializers import VideoKYCSerializer
-from profiles.tasks import submit_profile_video_kyc
+from profiles.tasks import submit_profile_video_auth
 
 
 class VideoKYCSubmitView(generics.GenericAPIView):
     """
-    Submit video KYC verification for the authenticated user's profile.
+    Submit video authentication verification for the authenticated user's profile.
     Validation is handled by the serializer.
     """
     serializer_class = VideoKYCSerializer
@@ -37,8 +37,8 @@ class VideoKYCSubmitView(generics.GenericAPIView):
         tmp_file_path = self._save_temp_video(video_file)
 
         try:
-            # Submit video KYC task (async)
-            task_result = submit_profile_video_kyc.delay(
+            # Submit video authentication task (async)
+            task_result = submit_profile_video_auth.delay(
                 profile_id=profile.id,
                 national_code=profile.national_id,
                 birth_date=profile.birth_date.replace("/", ""),

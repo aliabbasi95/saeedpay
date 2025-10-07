@@ -88,7 +88,7 @@ def _enqueue_shahkar(profile_id: int) -> None:
 
 
 @shared_task(bind=True)
-def submit_profile_video_kyc(
+def submit_profile_video_auth(
         self,
         profile_id: int,
         national_code: str,
@@ -99,8 +99,8 @@ def submit_profile_video_kyc(
         liveness_thr: int | None = None,
 ) -> dict:
     """
-    Submit video KYC for a profile and persist tracking fields.
-    Sets profile.auth_stage to VIDEO_VERIFIED and kyc_status to PROCESSING.
+    Submit video authentication for a profile and persist tracking fields.
+    Sets profile.auth_stage to VIDEO_VERIFIED and video_auth_status to PROCESSING.
     """
     attempt = ProfileKYCAttempt.objects.create(
         profile_id=profile_id,
@@ -124,11 +124,11 @@ def submit_profile_video_kyc(
             attempt.mark_failed("profile_not_found")
             return {"success": False, "error": "profile_not_found"}
 
-        if not profile.can_submit_video_kyc():
+        if not profile.can_submit_video_auth():
             _cleanup_temp_file(selfie_video_path)
             attempt.mark_failed("invalid_profile_state")
             logger.warning(
-                f"Profile {profile_id} cannot submit video KYC. "
+                f"Profile {profile_id} cannot submit video authentication. "
                 f"Current stage: {profile.auth_stage}, expected: IDENTITY_VERIFIED"
             )
             return {
@@ -136,32 +136,32 @@ def submit_profile_video_kyc(
                 "error": "invalid_profile_state",
                 "message": (
                     f"Profile is in {profile.auth_stage} stage. Must be in "
-                    "IDENTITY_VERIFIED stage to submit video KYC."
+                    "IDENTITY_VERIFIED stage to submit video authentication."
                 ),
             }
 
-        if profile.is_video_kyc_in_progress():
+        if profile.is_video_auth_in_progress():
             _cleanup_temp_file(selfie_video_path)
             attempt.mark_failed("kyc_in_progress")
             logger.warning(
-                f"Profile {profile_id} already has video KYC in progress (status: {profile.kyc_status})."
+                f"Profile {profile_id} already has video authentication in progress (status: {profile.video_auth_status})."
             )
             return {
                 "success": False,
                 "error": "kyc_in_progress",
-                "message": "Video KYC is already in progress for this profile.",
+                "message": "Video authentication is already in progress for this profile.",
             }
 
-        if profile.kyc_status == KYCStatus.ACCEPTED:
+        if profile.video_auth_status == KYCStatus.ACCEPTED:
             _cleanup_temp_file(selfie_video_path)
             attempt.mark_failed("already_accepted")
             logger.warning(
-                f"Profile {profile_id} already has accepted KYC status."
+                f"Profile {profile_id} already has accepted video authentication status."
             )
             return {
                 "success": False,
                 "error": "already_accepted",
-                "message": "Profile already has accepted KYC status.",
+                "message": "Profile already has accepted video authentication status.",
             }
 
     # Call KYC service outside the transaction
@@ -226,7 +226,7 @@ def submit_profile_video_kyc(
             profile = Profile.objects.select_for_update().get(id=profile_id)
             profile.mark_video_submitted(task_id=unique_id)
             transaction.on_commit(
-                lambda: check_profile_video_kyc_result.apply_async(
+                lambda: check_profile_video_auth_result.apply_async(
                     (profile_id,), countdown=30
                 )
             )
@@ -234,7 +234,7 @@ def submit_profile_video_kyc(
                 response_payload=result, external_id=unique_id
             )
             logger.info(
-                f"Profile {profile_id}: Video KYC submitted. Task ID: {unique_id}"
+                f"Profile {profile_id}: Video authentication submitted. Task ID: {unique_id}"
             )
         except ValidationError as e:
             attempt.mark_failed(
@@ -256,9 +256,9 @@ def submit_profile_video_kyc(
 
 
 @shared_task(bind=True)
-def check_profile_video_kyc_result(self, profile_id: int) -> dict:
+def check_profile_video_auth_result(self, profile_id: int) -> dict:
     """
-    Poll provider for video KYC result and update profile.
+    Poll provider for video authentication result and update profile.
     Reschedules itself if result is not ready yet.
     """
     attempt = ProfileKYCAttempt.objects.create(
@@ -274,16 +274,16 @@ def check_profile_video_kyc_result(self, profile_id: int) -> dict:
             attempt.mark_failed("profile_not_found")
             return {"success": False, "error": "profile_not_found"}
 
-        if not profile.is_video_kyc_in_progress():
+        if not profile.is_video_auth_in_progress():
             attempt.mark_failed("invalid_profile_state")
             logger.warning(
-                f"Profile {profile_id} invalid for result check: {profile.auth_stage}/{profile.kyc_status}"
+                f"Profile {profile_id} invalid for result check: {profile.auth_stage}/{profile.video_auth_status}"
             )
             return {
                 "success": False,
                 "error": "invalid_profile_state",
                 "message": (
-                    f"Profile is in {profile.auth_stage}/{profile.kyc_status} state. "
+                    f"Profile is in {profile.auth_stage}/{profile.video_auth_status} state. "
                     "Expected VIDEO_VERIFIED with PROCESSING."
                 ),
             }
@@ -310,7 +310,7 @@ def check_profile_video_kyc_result(self, profile_id: int) -> dict:
                 profile = Profile.objects.select_for_update().get(
                     id=profile_id
                 )
-                profile.update_kyc_result(
+                profile.update_video_auth_result(
                     accepted=False, error_details="failed"
                 )
             except Profile.DoesNotExist:
@@ -331,7 +331,7 @@ def check_profile_video_kyc_result(self, profile_id: int) -> dict:
         attempt.bump_retry()
         if self.request.retries < max_retries:
             logger.info(
-                f"Profile {profile_id}: KYC result not ready; retrying in {retry_delay}s"
+                f"Profile {profile_id}: Video authentication result not ready; retrying in {retry_delay}s"
             )
             raise self.retry(
                 exc=Exception("result_not_ready"), countdown=retry_delay
@@ -341,7 +341,7 @@ def check_profile_video_kyc_result(self, profile_id: int) -> dict:
                 profile = Profile.objects.select_for_update().get(
                     id=profile_id
                 )
-                profile.update_kyc_result(
+                profile.update_video_auth_result(
                     accepted=False, error_details="failed"
                 )
             except Profile.DoesNotExist:
@@ -349,7 +349,7 @@ def check_profile_video_kyc_result(self, profile_id: int) -> dict:
         attempt.mark_failed("max_retries_exceeded", response_payload=result)
         return {
             "success": False, "error": "failed",
-            "message": "KYC verification failed after maximum retries"
+            "message": "Video authentication verification failed after maximum retries"
         }
 
     # Other service errors
@@ -360,7 +360,7 @@ def check_profile_video_kyc_result(self, profile_id: int) -> dict:
                 profile = Profile.objects.select_for_update().get(
                     id=profile_id
                 )
-                profile.update_kyc_result(
+                profile.update_video_auth_result(
                     accepted=False, error_details=str(error_msg)
                 )
             except Profile.DoesNotExist:
@@ -409,7 +409,7 @@ def check_profile_video_kyc_result(self, profile_id: int) -> dict:
     with transaction.atomic():
         try:
             profile = Profile.objects.select_for_update().get(id=profile_id)
-            profile.update_kyc_result(accepted=accepted)
+            profile.update_video_auth_result(accepted=accepted)
         except Profile.DoesNotExist:
             pass
 
@@ -418,24 +418,24 @@ def check_profile_video_kyc_result(self, profile_id: int) -> dict:
     # Best-effort final status
     final_status = None
     try:
-        final_status = Profile.objects.get(id=profile_id).kyc_status
+        final_status = Profile.objects.get(id=profile_id).video_auth_status
     except Profile.DoesNotExist:
         pass
 
     if accepted:
-        logger.info(f"Profile {profile_id}: KYC verification successful")
+        logger.info(f"Profile {profile_id}: Video authentication verification successful")
     else:
-        logger.warning(f"Profile {profile_id}: KYC verification failed")
+        logger.warning(f"Profile {profile_id}: Video authentication verification failed")
 
     return {"success": True, "accepted": accepted, "status": final_status}
 
 
 @shared_task(bind=True)
-def reset_profile_video_kyc(
+def reset_profile_video_auth(
         self, profile_id: int, reason: str = "manual_reset"
 ) -> dict:
     """
-    Reset a profile's video KYC status back to identity verified stage.
+    Reset a profile's video authentication status back to identity verified stage.
     Useful for retry scenarios or manual intervention.
     """
     attempt = ProfileKYCAttempt.objects.create(
@@ -448,16 +448,16 @@ def reset_profile_video_kyc(
         with transaction.atomic():
             profile = Profile.objects.select_for_update().get(id=profile_id)
 
-            if not profile.can_retry_video_kyc() and not profile.is_video_kyc_in_progress():
+            if not profile.can_retry_video_auth() and not profile.is_video_auth_in_progress():
                 attempt.mark_failed("invalid_state_for_reset")
                 logger.warning(
-                    f"Profile {profile_id} cannot be reset. Current state: {profile.auth_stage}/{profile.kyc_status}"
+                    f"Profile {profile_id} cannot be reset. Current state: {profile.auth_stage}/{profile.video_auth_status}"
                 )
                 return {
                     "success": False,
                     "error": "invalid_state_for_reset",
                     "message": (
-                        f"Profile is in {profile.auth_stage}/{profile.kyc_status} state. Cannot reset."
+                        f"Profile is in {profile.auth_stage}/{profile.video_auth_status} state. Cannot reset."
                     ),
                 }
 
@@ -489,9 +489,9 @@ def reset_profile_video_kyc(
 
     attempt.mark_success()
     logger.info(
-        f"Profile {profile_id}: KYC reset to IDENTITY_VERIFIED stage. Reason: {reason}"
+        f"Profile {profile_id}: Video authentication reset to IDENTITY_VERIFIED stage. Reason: {reason}"
     )
-    return {"success": True, "message": "Profile KYC reset successfully"}
+    return {"success": True, "message": "Profile video authentication reset successfully"}
 
 
 @shared_task(bind=True)

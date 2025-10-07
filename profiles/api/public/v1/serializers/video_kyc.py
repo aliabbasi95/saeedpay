@@ -58,19 +58,19 @@ class VideoKYCSerializer(serializers.Serializer):
             )
 
         # Validate auth stage
-        if not profile.can_submit_video_kyc():
+        if not profile.can_submit_video_auth():
             raise serializers.ValidationError(
                 {"non_field_errors": ["کاربر باید در مرحله احراز هویت شناسایی قرار داشته باشد."]}
             )
 
         # Check if already in progress
-        if profile.is_video_kyc_in_progress():
+        if profile.is_video_auth_in_progress():
             raise serializers.ValidationError(
                 {"non_field_errors": ["درخواست احراز هویت ویدیویی شما در حال پردازش است."]}
             )
 
         # Check if already accepted
-        if profile.kyc_status == KYCStatus.ACCEPTED:
+        if profile.video_auth_status == KYCStatus.ACCEPTED:
             raise serializers.ValidationError(
                 {"non_field_errors": ["احراز هویت شما قبلاً تایید شده است."]}
             )
