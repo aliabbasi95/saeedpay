@@ -127,7 +127,10 @@ class Profile(BaseModel):
     # -----------------------
     def can_submit_video_kyc(self) -> bool:
         """User can submit video only in IDENTITY_VERIFIED stage."""
-        return self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED
+        return (
+                self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED
+                and self.kyc_status != KYCStatus.PROCESSING
+        )
 
     def is_video_kyc_in_progress(self) -> bool:
         """Video KYC is in progress if stage=IDENTITY_VERIFIED and status=PROCESSING."""
