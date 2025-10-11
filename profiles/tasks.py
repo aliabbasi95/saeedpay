@@ -383,7 +383,16 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
             attempt_type=AttemptType.VIDEO_RESULT,
         )
     except AttemptAlreadyProcessing:
-        return {"success": False, "error": "poll_in_progress"}
+        attempt = (ProfileKYCAttempt.objects
+                   .filter(
+            profile_id=profile_id,
+            attempt_type=AttemptType.VIDEO_RESULT,
+            status=AttemptStatus.PROCESSING
+        )
+                   .order_by("-created_at")
+                   .first())
+        if not attempt:
+            return {"success": False, "error": "poll_in_progress"}
 
     # Lock and verify state
     with transaction.atomic():
@@ -403,7 +412,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
                 "error": "invalid_profile_state",
                 "message": (
                     f"Profile is in {profile.auth_stage}/{profile.video_auth_status} state. "
-                    "Expected VIDEO_VERIFIED with PROCESSING."
+                    "Expected IDENTITY_VERIFIED with PROCESSING."
                 ),
             }
 
