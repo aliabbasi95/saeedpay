@@ -8,6 +8,7 @@ ADMIN_REORDER = (
             "merchants.Merchant",
             "profiles.Profile",
             "profiles.ProfileKYCAttempt",
+            "profiles.KYCVideoAsset",
         ),
     },
     {

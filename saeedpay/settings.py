@@ -143,6 +143,18 @@ KIAHOOSHAN_PASSWORD = config("KIAHOOSHAN_PASSWORD", default="")
 KIAHOOSHAN_ORGNAME = config("KIAHOOSHAN_ORGNAME", default="")
 KIAHOOSHAN_ORGNATIONALCODE = config("KIAHOOSHAN_ORGNATIONALCODE", default="")
 
+KYC_VIDEO_RETENTION_MODE = os.getenv(
+    "KYC_VIDEO_RETENTION_MODE", "approved_only"
+)
+
+KYC_VIDEO_RETENTION_DAYS_APPROVED = os.getenv(
+    "KYC_VIDEO_RETENTION_DAYS_APPROVED", "permanent"
+)
+KYC_VIDEO_RETENTION_DAYS_REJECTED = os.getenv(
+    "KYC_VIDEO_RETENTION_DAYS_REJECTED", "7"
+)
+KYC_VIDEO_STORAGE_PREFIX = os.getenv("KYC_VIDEO_STORAGE_PREFIX", "kyc_videos/")
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "lib.erp_base.validators.UppercaseValidator",
@@ -424,6 +436,11 @@ CELERY_BEAT_SCHEDULE = {
     "rehydrate-video-kyc-checks-every-15m": {
         "task": "profiles.tasks.rehydrate_video_kyc_checks",
         "schedule": 15 * 60,  # seconds
+    },
+    # profiles / KYC videos GC
+    "purge-expired-kyc-videos-daily-0330": {
+        "task": "profiles.tasks.purge_expired_kyc_videos",
+        "schedule": crontab(minute=30, hour=3),
     },
 }
 

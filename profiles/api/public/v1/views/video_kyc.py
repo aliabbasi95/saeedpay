@@ -1,14 +1,19 @@
 # profiles/api/public/v1/views/video_kyc.py
 
+import hashlib
 import os
 import tempfile
 
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from profiles.api.public.v1.schema import VIDEO_KYC_SUBMIT_SCHEMA
 from profiles.api.public.v1.serializers import VideoKYCSerializer
+from profiles.models.kyc_video_asset import KYCVideoAsset
 from profiles.tasks import submit_profile_video_auth
 
 
@@ -33,7 +38,26 @@ class VideoKYCSubmitView(generics.GenericAPIView):
         video_file = serializer.validated_data['selfieVideo']
         rand_action = serializer.validated_data['randAction']
 
-        # Save video to temporary file
+        # Persist a durable copy only when policy requires (approved_only or short_all)
+        asset_id = None
+        if getattr(settings, "KYC_VIDEO_RETENTION_MODE", "approved_only") in (
+                "approved_only", "short_all"):
+            asset = KYCVideoAsset.create_from_upload(
+                profile=profile,
+                django_file=video_file,
+                storage_prefix=getattr(
+                    settings, "KYC_VIDEO_STORAGE_PREFIX", "kyc_videos/"
+                    ),
+                created_by_attempt=None,  # بعداً در task لینک می‌شود
+            )
+            asset_id = asset.id
+            # rewind file pointer for temp save
+            try:
+                video_file.seek(0)
+            except Exception:
+                pass
+
+        # Save a temp file for calling provider (always)
         tmp_file_path = self._save_temp_video(video_file)
 
         try:
@@ -44,9 +68,8 @@ class VideoKYCSubmitView(generics.GenericAPIView):
                 birth_date=profile.birth_date.replace("/", ""),
                 selfie_video_path=tmp_file_path,
                 rand_action=rand_action,
+                durable_asset_id=asset_id,
             )
-
-            # 202 Accepted (async processing)
             return Response(
                 {
                     "success": True,
@@ -55,7 +78,6 @@ class VideoKYCSubmitView(generics.GenericAPIView):
                 },
                 status=status.HTTP_202_ACCEPTED,
             )
-
         except Exception as e:
             # Clean up temporary file on error
             if os.path.exists(tmp_file_path):
@@ -66,7 +88,8 @@ class VideoKYCSubmitView(generics.GenericAPIView):
 
             return Response(
                 {
-                    "success": False, "error": "submission_failed",
+                    "success": False,
+                    "error": "submission_failed",
                     "message": str(e)
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,

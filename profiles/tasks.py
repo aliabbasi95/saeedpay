@@ -14,7 +14,7 @@ from kyc.services.identity_auth_service import (
     IdentityAuthService,
     get_identity_auth_service,
 )
-from profiles.models import Profile
+from profiles.models import Profile, KYCVideoAsset
 from profiles.models.kyc_attempt import (
     ProfileKYCAttempt,
     AttemptAlreadyProcessing,
@@ -25,6 +25,86 @@ from profiles.utils.choices import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+# ───────────────────────── Retention helpers ───────────────────────── #
+
+def _parse_retention_days(
+        value: str | int | None, default_days: int | None
+) -> int | None:
+    """
+    Parse env/config values to a retention window in days.
+    Accepts integers or strings ("inf", "infinite", "permanent", "-1", "0") -> None (infinite).
+    """
+    s = str(value if value is not None else default_days).strip().lower()
+    if s in {"inf", "infinite", "permanent", "-1", "0"}:
+        return None
+    try:
+        return int(s)
+    except Exception:
+        return int(default_days) if default_days is not None else None
+
+
+def _apply_retention_policy(
+        profile: Profile, accepted: bool, durable_asset_id: int | None = None
+) -> None:
+    """
+    Apply retention policy to durable video assets of a profile after final decision.
+    - If mode='none'           → delete all assets immediately.
+    - If mode='approved_only'  → keep just the latest (or the one passed), infinite or N days; delete others.
+    - If mode='short_all'      → keep all for short window on reject; keep approved as configured.
+    """
+    mode = getattr(settings, "KYC_VIDEO_RETENTION_MODE", "approved_only")
+    days_ok = _parse_retention_days(
+        getattr(settings, "KYC_VIDEO_RETENTION_DAYS_APPROVED", "90"), 90
+    )
+    days_bad = _parse_retention_days(
+        getattr(settings, "KYC_VIDEO_RETENTION_DAYS_REJECTED", "7"), 7
+    )
+
+    assets = profile.kyc_video_assets.order_by("-created_at")
+
+    if mode == "none":
+        for a in assets:
+            try:
+                a.file.delete(save=False)
+            except Exception:
+                pass
+            a.delete()
+        return
+
+    # Choose the primary asset to keep/mark (prefer explicit id; fallback to newest)
+    primary = None
+    if durable_asset_id:
+        primary = assets.filter(id=durable_asset_id).first()
+    if not primary:
+        primary = assets.first()
+
+    if accepted:
+        # Keep only the primary as approved; delete the rest
+        if primary:
+            primary.mark_retention(days_ok, approved=True)
+        for a in assets.exclude(id=getattr(primary, "id", None)):
+            try:
+                a.file.delete(save=False)
+            except Exception:
+                pass
+            a.delete()
+        return
+
+    # Rejected path
+    if mode == "short_all":
+        # Keep all for a short window
+        for a in assets:
+            a.mark_retention(days_bad, approved=False)
+    else:
+        # approved_only → delete everything on reject
+        for a in assets:
+            try:
+                a.file.delete(save=False)
+            except Exception:
+                pass
+            a.delete()
 
 
 def _cleanup_temp_file(file_path: str) -> None:
@@ -103,6 +183,7 @@ def submit_profile_video_auth(
         rand_action: str,
         matching_thr: int | None = None,
         liveness_thr: int | None = None,
+        durable_asset_id: int | None = None,
 ) -> dict:
     """
     Submit video authentication for a profile and persist tracking fields.
@@ -120,6 +201,14 @@ def submit_profile_video_auth(
                 "liveness_thr": liveness_thr,
             },
         )
+        if durable_asset_id:
+            try:
+                KYCVideoAsset.objects.filter(
+                    id=durable_asset_id, profile_id=profile_id
+                ) \
+                    .update(created_by_attempt=attempt)
+            except Exception:
+                logger.warning("Could not link KYCVideoAsset to attempt")
     except AttemptAlreadyProcessing:
         _cleanup_temp_file(selfie_video_path)
         logger.warning(
@@ -252,6 +341,17 @@ def submit_profile_video_auth(
             logger.info(
                 f"Profile {profile_id}: Video authentication submitted. Task ID: {unique_id}"
             )
+            if durable_asset_id:
+                try:
+                    attempt.request_payload = {
+                        **(attempt.request_payload or {}),
+                        "durable_asset_id": durable_asset_id
+                    }
+                    attempt.save(
+                        update_fields=["request_payload", "updated_at"]
+                    )
+                except Exception:
+                    pass
         except ValidationError as e:
             attempt.mark_failed(
                 error_message=str(e),
@@ -417,6 +517,26 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
             pass
 
     attempt.mark_success(response_payload=payload)
+    try:
+        profile = Profile.objects.get(id=profile_id)
+        # Try to locate durable_asset_id from the latest VIDEO_SUBMIT attempt (optional)
+        durable_asset_id = None
+        last_submit = (ProfileKYCAttempt.objects
+                       .filter(
+            profile_id=profile_id, attempt_type=AttemptType.VIDEO_SUBMIT
+        )
+                       .order_by("-created_at").first())
+        if last_submit and isinstance(last_submit.request_payload, dict):
+            durable_asset_id = last_submit.request_payload.get(
+                "durable_asset_id"
+            )
+        _apply_retention_policy(
+            profile, accepted=accepted, durable_asset_id=durable_asset_id
+        )
+    except Exception as e:
+        logger.warning(
+            f"Retention policy application failed for profile {profile_id}: {e}"
+        )
 
     # Best-effort final status
     try:
@@ -709,3 +829,23 @@ def rehydrate_video_auth_checks(self) -> dict:
 
     logger.info(f"Video watchdog requeued={requeued}")
     return {"success": True, "requeued": requeued}
+
+
+@shared_task
+def purge_expired_kyc_videos() -> dict:
+    """
+    Periodic GC for expired video assets. Infinite-retention assets have retention_until=None and are skipped.
+    """
+    now = timezone.now()
+    qs = KYCVideoAsset.objects.filter(
+        retention_until__isnull=False, retention_until__lte=now
+    )
+    deleted = 0
+    for a in qs.iterator():
+        try:
+            a.file.delete(save=False)
+        except Exception:
+            pass
+        a.delete()
+        deleted += 1
+    return {"deleted": deleted}
