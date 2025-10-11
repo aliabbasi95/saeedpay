@@ -1,6 +1,11 @@
 # credit/api/public/v1/schema/loan_risk.py
+# Swagger schema decorators for Loan Risk endpoints (clean, modular, with examples)
 
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    extend_schema, extend_schema_view,
+    OpenApiExample, OpenApiResponse, OpenApiParameter,
+)
 
 from credit.api.public.v1.serializers import (
     LoanRiskOTPRequestSerializer,
@@ -10,160 +15,114 @@ from credit.api.public.v1.serializers import (
     LoanRiskReportListSerializer,
 )
 
-loan_risk_otp_request_schema = extend_schema(
+# ----- OTP (collection actions on Auth ViewSet) -----
+
+otp_request_schema = extend_schema(
     tags=["Credit · Loan Risk"],
     summary="Request OTP for loan risk validation",
-    description="""
-    Initiates the loan risk validation process by sending an OTP to the user's registered mobile number.
-
-    **Requirements:**
-    - User must be authenticated
-    - User must have completed identity verification (auth_stage = 3)
-    - User must have national_id and phone_number in profile
-    - At least 30 days must have passed since last report (if any)
-
-    **Process:**
-    1. Validates user eligibility
-    2. Creates a new LoanRiskReport record
-    3. Sends OTP to user's mobile number
-    4. Returns task_id for tracking
-    """,
+    description=(
+        "Starts loan risk validation by sending an OTP to the user's registered phone.\n\n"
+        "**Requirements**\n"
+        "- Authenticated user\n"
+        "- Identity verification completed (auth_stage=3)\n"
+        "- Profile has national_id and phone_number\n"
+        "- At least 30 days since last completed report\n"
+    ),
     request=LoanRiskOTPRequestSerializer,
     responses={
-        200: {
-            "type": "object",
-            "properties": {
-                "success": {"type": "boolean", "example": True},
-                "message": {"type": "string"},
-                "task_id": {"type": "string"},
-            }
-        },
-        400: {
-            "type": "object",
-            "properties": {
-                "non_field_errors": {
-                    "type": "array",
-                    "items": {"type": "string"}
+        200: OpenApiResponse(
+            description="OTP request accepted",
+            examples=[OpenApiExample(
+                "OK",
+                value={
+                    "success": True,
+                    "message": "OTP will be sent shortly.",
+                    "report_id": 123,
+                    "task_id": "3c2a7e5f-..."
                 }
-            }
-        }
-    }
+            )],
+        ),
+        400: OpenApiResponse(description="Validation error or not eligible"),
+        429: OpenApiResponse(description="Too many requests (cooldown)"),
+    },
 )
 
-loan_risk_otp_verify_schema = extend_schema(
+otp_verify_schema = extend_schema(
     tags=["Credit · Loan Risk"],
     summary="Verify OTP and request loan risk report",
-    description="""
-    Verifies the OTP code and initiates the credit report generation process.
-
-    **Requirements:**
-    - User must be authenticated
-    - Valid report_id that belongs to the user
-    - Valid OTP code
-    - Report must be in OTP_SENT status
-
-    **Process:**
-    1. Validates OTP code with provider
-    2. If valid, requests credit report generation
-    3. Updates report status to REPORT_REQUESTED
-    4. Returns task_id for tracking report generation
-    """,
+    description=(
+        "Verifies OTP with the provider and triggers report generation.\n\n"
+        "**Requirements**\n"
+        "- Authenticated user\n"
+        "- Valid `report_id` belonging to the user\n"
+        "- Report status is `OTP_SENT`"
+    ),
     request=LoanRiskOTPVerifySerializer,
     responses={
-        200: {
-            "type": "object",
-            "properties": {
-                "success": {"type": "boolean", "example": True},
-                "message": {"type": "string"},
-                "report_id": {"type": "integer"},
-                "task_id": {"type": "string"},
-            }
-        },
-        400: {
-            "type": "object",
-            "properties": {
-                "report_id": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                },
-                "otp_code": {
-                    "type": "array",
-                    "items": {"type": "string"}
+        200: OpenApiResponse(
+            description="OTP verified, report requested",
+            examples=[OpenApiExample(
+                "OK",
+                value={
+                    "success": True,
+                    "message": "OTP verified. Report is being generated.",
+                    "report_id": 123,
+                    "task_id": "f0b6a1a9-..."
                 }
-            }
-        }
-    }
+            )],
+        ),
+        400: OpenApiResponse(description="Validation error"),
+        404: OpenApiResponse(description="Report not found"),
+    },
 )
 
-loan_risk_report_list_schema = extend_schema_view(
-    get=extend_schema(
+# ----- Reports (ViewSet: list/retrieve + actions) -----
+
+report_viewset_schema = extend_schema_view(
+    list=extend_schema(
         tags=["Credit · Loan Risk"],
         summary="List user's loan risk reports",
-        description="""
-        Returns a list of all loan risk reports belonging to the authenticated user,
-        ordered by creation date (newest first).
-        """,
+        description="Returns all reports for the authenticated user (newest first).",
         responses={200: LoanRiskReportListSerializer(many=True)},
-    )
-)
-
-loan_risk_report_detail_schema = extend_schema_view(
-    get=extend_schema(
+    ),
+    retrieve=extend_schema(
         tags=["Credit · Loan Risk"],
-        summary="Get detailed loan risk report",
-        description="""
-        Returns detailed information about a specific loan risk report,
-        including full report data JSON.
-
-        **Requirements:**
-        - Report must belong to the authenticated user
-        """,
+        summary="Retrieve a loan risk report",
+        description="Returns a single report (belongs to the current user).",
         responses={200: LoanRiskReportDetailSerializer},
-    )
+    ),
 )
 
-loan_risk_report_latest_schema = extend_schema(
+report_latest_schema = extend_schema(
     tags=["Credit · Loan Risk"],
-    summary="Get user's latest loan risk report",
-    description="""
-    Returns the most recently created loan risk report for the authenticated user.
-
-    **Returns:**
-    - Latest report if exists
-    - 404 if no reports found
-    """,
+    summary="Get latest loan risk report",
+    description="Returns the most recently created report; 404 if none exists.",
     responses={
         200: LoanRiskReportSerializer,
-        404: {
-            "type": "object",
-            "properties": {
-                "error": {"type": "string"}
-            }
-        }
-    }
+        404: OpenApiResponse(description="No report found"),
+    },
 )
 
-loan_risk_report_check_schema = extend_schema(
+report_check_schema = extend_schema(
     tags=["Credit · Loan Risk"],
-    summary="Check loan risk report status",
-    description="""
-    Checks the status of a loan risk report and retrieves results if available.
-
-    **Behavior:**
-    - If report is COMPLETED: Returns full report data
-    - If report can check result: Triggers background check and returns task_id
-    - Otherwise: Returns current report status
-
-    **Requirements:**
-    - Report must belong to the authenticated user
-    """,
+    summary="Check report status (and fetch if ready)",
+    description=(
+        "Checks the status of a report:\n"
+        "- If COMPLETED → returns full report\n"
+        "- If can check result → triggers background check and returns task_id\n"
+        "- Otherwise → returns current status\n\n"
+        "Report must belong to the current user."
+    ),
+    parameters=[
+        OpenApiParameter(
+            name="id",
+            location=OpenApiParameter.PATH,
+            type=OpenApiTypes.INT,
+            description="Report id",
+        ),
+    ],
     responses={
         200: LoanRiskReportSerializer,
-        404: {
-            "type": "object",
-            "properties": {
-                "error": {"type": "string"}
-            }
-        }
-    }
+        404: OpenApiResponse(description="Report not found"),
+    },
 )

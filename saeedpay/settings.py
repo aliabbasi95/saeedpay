@@ -11,10 +11,10 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from datetime import timedelta
-from decouple import config
 
 from celery.schedules import crontab
 from corsheaders.defaults import default_headers
+from decouple import config
 
 try:
     from .local_settings import *
@@ -189,6 +189,7 @@ MEDIA_URL = "/saeedpay/media/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
+    # ── Auth / Permissions / Schema ───────────────────────────────────────────
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "lib.cas_auth.authentication.PublicAuthentication",
     ],
@@ -196,19 +197,23 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+
+    # ── Pagination ────────────────────────────────────────────────────────────
     "DEFAULT_PAGINATION_CLASS": "lib.erp_base.utils.pagination.StandardPagination",
     "PAGE_SIZE": 20,
+
+    # ── Throttling ────────────────────────────────────────────────────────────
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
         "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        # ── Coarse limits ───────────────────────────────────────────────────────
+        # ── Coarse limits ─────────────────────────────────────────────────────
         "anon": "100/hour",
         "user": "1000/hour",
 
-        # ── Auth ───────────────────────────────────────────────────────────────
+        # ── Auth ─────────────────────────────────────────────────────────────
         "auth-login": "20/hour",
         "auth-logout": "60/hour",
         "auth-refresh": "120/hour",
@@ -218,66 +223,71 @@ REST_FRAMEWORK = {
         "auth-otp": "60/hour",
         "otp-by-phone": "5/hour",
 
-        # ── Blogs / Comments ───────────────────────────────────────────────────
+        # ── Blogs / Comments ─────────────────────────────────────────────────
         "comments": "300/hour",
         "comment-create": "60/hour",
         "comment-like": "60/minute",
 
-        # ── Banking / Cards ────────────────────────────────────────────────────
+        # ── Banking / Cards ──────────────────────────────────────────────────
         "bank-cards-read": "300/hour",
         "bank-cards-write": "30/minute",
 
-        # ── Credit (Statements) ────────────────────────────────────────────────
+        # ── Credit (Statements) ──────────────────────────────────────────────
         "credit-statements-read": "300/hour",
         "credit-statement-lines-read": "600/hour",
 
-        # ── Wallets / Payment Requests ─────────────────────────────────────────
-        # list/search/detail of payment requests (user-facing)
+        # ── Wallets / Payment Requests ───────────────────────────────────────
         "payment-requests-read": "300/hour",
-        # create/cancel (if applicable) by user
         "payment-requests-write": "30/minute",
-        # confirm action (stronger limit)
         "payment-confirm": "10/minute",
 
-        # ── Wallets / Balances & History ───────────────────────────────────────
-        "wallets-read": "300/hour",  # balances, summary, etc.
+        # ── Wallets / Balances & History ────────────────────────────────────
+        "wallets-read": "300/hour",
 
-        # ── Wallets / Credit ───────────────────────────────────────────────────
+        # ── Wallets / Credit Limits ─────────────────────────────────────────
         "credit-limits-read": "300/hour",
 
-        # ── Wallets / Installments ─────────────────────────────────────────────
-        "installments-read": "300/hour",  # user installment list/detail
-        "installment-plans-read": "300/hour",  # available plans
-        "installments-apply": "30/hour",  # create/apply for installment
+        # ── Wallets / Installments ──────────────────────────────────────────
+        "installments-read": "300/hour",
+        "installment-plans-read": "300/hour",
+        "installments-apply": "30/hour",
 
-        # ── Wallets / Wallet Transfers ─────────────────────────────────────────
+        # ── Wallets / Transfers ─────────────────────────────────────────────
         "wallet-transfers-read": "300/hour",
         "wallet-transfers-write": "60/minute",
 
-        # ── Partner (Store API Key) ────────────────────────────────────────────
-        "partner-payment-read": "600/hour",  # check status, fetch request
-        "partner-payment-write": "60/minute",  # create/confirm/callback
+        # ── Partner (Store API Key) ─────────────────────────────────────────
+        "partner-payment-read": "600/hour",
+        "partner-payment-write": "60/minute",
         "store-apikey-regen": "5/hour",
 
-        # ── Store (Backoffice) ─────────────────────────────────────────────────
+        # ── Store (Backoffice) ──────────────────────────────────────────────
         "stores-read": "200/hour",
         "stores-write": "30/hour",
         "public-stores-read": "500/hour",
         "store-contract-read": "100/hour",
         "store-contract-write": "20/hour",
 
-        # ── Chatbot ────────────────────────────────────────────────────────────
+        # ── Chatbot ─────────────────────────────────────────────────────────
         "chat-sessions": "300/hour",
         "chat-start": "20/hour",
         "chat-talk": "60/minute",
         "chat-messages": "300/hour",
 
-        # ── Contact / Tickets ─────────────────────────────────────────────────
+        # ── Contact / Tickets ───────────────────────────────────────────────
         "contact-create": "10/hour",
         "tickets-read": "300/hour",
         "tickets-write": "30/hour",
         "ticket-message-add": "60/hour",
         "ticket-categories-read": "500/hour",
+
+        # ── Credit · Loan Risk (NEW) ────────────────────────────────────────
+        # collection actions (OTP request/verify)
+        "loan-risk-otp": "30/hour",
+        # list/retrieve/latest/check
+        "loan-risk-reports": "300/hour",
+        # optional coarse grouping if needed elsewhere
+        "loan-risk": "300/hour",
     },
 }
 

@@ -1,17 +1,18 @@
 # credit/api/public/v1/views/loan_risk.py
+# Clean, modular ViewSets for Loan Risk flows (RESTful + actions)
 
-from rest_framework import status, generics
+from django.shortcuts import get_object_or_404
+from rest_framework import status, viewsets, mixins
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
-from credit.api.public.v1.schema import (
-    loan_risk_otp_request_schema,
-    loan_risk_otp_verify_schema,
-    loan_risk_report_check_schema,
-    loan_risk_report_detail_schema,
-    loan_risk_report_list_schema,
-    loan_risk_report_latest_schema,
+from credit.api.public.v1.schema.loan_risk import (
+    otp_request_schema,
+    otp_verify_schema,
+    report_viewset_schema,
+    report_latest_schema,
+    report_check_schema,
 )
 from credit.api.public.v1.serializers import (
     LoanRiskOTPRequestSerializer,
@@ -27,193 +28,168 @@ from credit.tasks_loan_validation import (
     check_loan_report_result,
 )
 from credit.utils.choices import LoanReportStatus
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from profiles.models.profile import Profile
 
 
-@loan_risk_otp_request_schema
-class LoanRiskOTPRequestView(APIView):
-    """
-    Request OTP for loan risk validation (Stage 1).
-    
-    Sends an OTP to user's registered mobile number to start the loan validation process.
-    """
+# ---------- Collection-level flows: OTP request/verify ----------
 
+class LoanRiskAuthViewSet(
+    ScopedThrottleByActionMixin,
+    viewsets.GenericViewSet
+):
+    """
+    Collection-level authentication actions for loan risk:
+    - POST /loan-risk/otp/request/
+    - POST /loan-risk/otp/verify/
+    """
     permission_classes = [IsAuthenticated]
-    serializer_class = LoanRiskOTPRequestSerializer
+    throttle_scope_map = {
+        "default": "loan-risk",
+        "otp_request": "loan-risk-otp",
+        "otp_verify": "loan-risk-otp",
+    }
 
-    def post(self, request):
-        serializer = self.serializer_class(
-            data=request.data, context={'request': request}
+    def _ok(self, payload, code=status.HTTP_200_OK):
+        return Response(payload, status=code)
+
+    @otp_request_schema
+    @action(detail=False, methods=["post"], url_path="otp/request")
+    def otp_request(self, request):
+        """Validate eligibility → create report → send OTP."""
+        ser = LoanRiskOTPRequestSerializer(
+            data=request.data, context={"request": request}
         )
-        serializer.is_valid(raise_exception=True)
+        ser.is_valid(raise_exception=True)
 
-        profile = serializer.validated_data['_profile']
+        profile = ser.validated_data["_profile"]
 
-        # Create a new report record and send OTP
         report = LoanRiskReport.objects.create(
             profile=profile,
             national_code=profile.national_id,
             mobile_number=profile.phone_number,
         )
+        task = send_loan_validation_otp.delay(report.id)
 
-        task_result = send_loan_validation_otp.delay(report.id)
-
-        return Response(
+        return self._ok(
             {
                 "success": True,
-                "message": "درخواست ارسال کد با موفقیت ثبت شد. کد به زودی به شماره موبایل شما ارسال خواهد شد.",
+                "message": "OTP will be sent shortly.",
                 "report_id": report.id,
-                "task_id": task_result.id,
-            },
-            status=status.HTTP_200_OK,
+                "task_id": task.id,
+            }
         )
 
-
-@loan_risk_otp_verify_schema
-class LoanRiskOTPVerifyView(APIView):
-    """
-    Verify OTP and request loan risk report (Stage 2).
-    
-    Verifies the OTP code and initiates the credit report generation.
-    """
-
-    permission_classes = [IsAuthenticated]
-    serializer_class = LoanRiskOTPVerifySerializer
-
-    def post(self, request):
-        serializer = self.serializer_class(
-            data=request.data, context={'request': request}
+    @otp_verify_schema
+    @action(detail=False, methods=["post"], url_path="otp/verify")
+    def otp_verify(self, request):
+        """Verify OTP with provider and request credit report."""
+        ser = LoanRiskOTPVerifySerializer(
+            data=request.data, context={"request": request}
         )
-        serializer.is_valid(raise_exception=True)
+        ser.is_valid(raise_exception=True)
 
-        report_id = serializer.validated_data['report_id']
-        otp_code = serializer.validated_data['otp_code']
+        report_id = ser.validated_data["report_id"]
+        otp_code = ser.validated_data["otp_code"]
 
-        # Trigger async task
-        task_result = verify_loan_otp_and_request_report.delay(
-            report_id, otp_code
-        )
+        task = verify_loan_otp_and_request_report.delay(report_id, otp_code)
 
-        return Response(
+        return self._ok(
             {
                 "success": True,
-                "message": "کد تایید شد. گزارش در حال تولید است...",
+                "message": "OTP verified. Report is being generated.",
                 "report_id": report_id,
-                "task_id": task_result.id,
-            },
-            status=status.HTTP_200_OK,
+                "task_id": task.id,
+            }
         )
 
 
-@loan_risk_report_check_schema
-class LoanRiskReportCheckView(APIView):
-    """
-    Manually check loan risk report status (Stage 3).
-    
-    Check if the credit report is ready and retrieve it if available.
-    """
+# ---------- Resource: Reports (list/retrieve + latest + check) ----------
 
+@report_viewset_schema
+class LoanRiskReportViewSet(
+    ScopedThrottleByActionMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
+    """
+    LoanRiskReport endpoints:
+    - GET    /loan-risk/reports/              (list)
+    - GET    /loan-risk/reports/{id}/         (retrieve)
+    - GET    /loan-risk/reports/latest/       (collection action)
+    - POST   /loan-risk/reports/{id}/check/   (detail action)
+    """
     permission_classes = [IsAuthenticated]
-    serializer_class = LoanRiskReportSerializer
+    lookup_field = "pk"
+    throttle_scope_map = {
+        "default": "loan-risk-reports",
+        "list": "loan-risk-reports",
+        "retrieve": "loan-risk-reports",
+        "latest": "loan-risk-reports",
+        "check": "loan-risk-reports",
+    }
 
-    def post(self, request, report_id):
-        try:
-            profile = Profile.objects.get(user=request.user)
-            report = LoanRiskReport.objects.get(id=report_id, profile=profile)
-        except Profile.DoesNotExist:
-            return Response(
-                {"success": False, "error": "پروفایل یافت نشد"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        except LoanRiskReport.DoesNotExist:
-            return Response(
-                {
-                    "success": False,
-                    "error": "گزارش یافت نشد یا متعلق به شما نیست"
-                },
-                status=status.HTTP_404_NOT_FOUND,
-            )
+    def get_queryset(self):
+        profile = get_object_or_404(Profile, user=self.request.user)
+        return LoanRiskReport.objects.filter(profile=profile).order_by(
+            "-created_at"
+        )
 
-        # If already completed, return it
+    def get_serializer_class(self):
+        if self.action == "list":
+            return LoanRiskReportListSerializer
+        if self.action in {"retrieve"}:
+            return LoanRiskReportDetailSerializer
+        # Fallback for actions that return a report shape
+        return LoanRiskReportSerializer
+
+    @report_latest_schema
+    @action(detail=False, methods=["get"], url_path="latest")
+    def latest(self, request):
+        """Return the latest report for the current user."""
+        profile = get_object_or_404(Profile, user=request.user)
+        report = (
+            LoanRiskReport.objects
+            .filter(profile=profile)
+            .order_by("-created_at")
+            .first()
+        )
+        if not report:
+            return Response(
+                {"error": "No report found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        return Response(
+            LoanRiskReportSerializer(report).data, status=status.HTTP_200_OK
+        )
+
+    @report_check_schema
+    @action(detail=True, methods=["post"], url_path="check")
+    def check(self, request, pk=None):
+        """
+        If COMPLETED → return the report.
+        If can_check_result() → trigger background task and return task_id.
+        Else → return current status payload.
+        """
+        report = self.get_object()
+
         if report.status == LoanReportStatus.COMPLETED:
-            serializer = LoanRiskReportSerializer(report)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                LoanRiskReportSerializer(report).data,
+                status=status.HTTP_200_OK
+            )
 
-        # If can check result, trigger task
         if report.can_check_result():
-            task_result = check_loan_report_result.delay(report_id)
+            task = check_loan_report_result.delay(report.id)
             return Response(
                 {
                     "success": True,
-                    "message": "درخواست بررسی گزارش ثبت شد",
-                    "task_id": task_result.id,
+                    "message": "Report check scheduled.",
+                    "task_id": task.id,
                     "status": report.get_status_display(),
-                },
-                status=status.HTTP_200_OK,
+                }, status=status.HTTP_200_OK
             )
 
-        # Otherwise return current status
-        serializer = LoanRiskReportSerializer(report)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-@loan_risk_report_detail_schema
-class LoanRiskReportDetailView(generics.RetrieveAPIView):
-    """
-    Retrieve detailed loan risk report including full JSON data.
-    """
-
-    permission_classes = [IsAuthenticated]
-    serializer_class = LoanRiskReportDetailSerializer
-
-    def get_queryset(self):
-        profile = Profile.objects.get(user=self.request.user)
-        return LoanRiskReport.objects.filter(profile=profile)
-
-
-@loan_risk_report_list_schema
-class LoanRiskReportListView(generics.ListAPIView):
-    """
-    List all loan risk reports for the authenticated user.
-    """
-
-    permission_classes = [IsAuthenticated]
-    serializer_class = LoanRiskReportListSerializer
-
-    def get_queryset(self):
-        profile = Profile.objects.get(user=self.request.user)
-        return LoanRiskReport.objects.filter(profile=profile).order_by(
-            '-created_at'
+        return Response(
+            LoanRiskReportSerializer(report).data, status=status.HTTP_200_OK
         )
-
-
-@loan_risk_report_latest_schema
-class LoanRiskReportLatestView(APIView):
-    """
-    Get the latest loan risk report for the authenticated user.
-    """
-
-    permission_classes = [IsAuthenticated]
-    serializer_class = LoanRiskReportSerializer
-
-    def get(self, request):
-        try:
-            profile = Profile.objects.get(user=request.user)
-            report = LoanRiskReport.objects.filter(profile=profile).order_by(
-                '-created_at'
-            ).first()
-
-            if not report:
-                return Response(
-                    {"error": "هیچ گزارشی یافت نشد"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-
-            serializer = LoanRiskReportSerializer(report)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        except Profile.DoesNotExist:
-            return Response(
-                {"error": "پروفایل یافت نشد"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
