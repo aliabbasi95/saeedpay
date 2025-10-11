@@ -15,8 +15,14 @@ from kyc.services.identity_auth_service import (
     get_identity_auth_service,
 )
 from profiles.models import Profile
-from profiles.models.kyc_attempt import ProfileKYCAttempt
-from profiles.utils.choices import KYCStatus, AttemptType, AttemptStatus
+from profiles.models.kyc_attempt import (
+    ProfileKYCAttempt,
+    AttemptAlreadyProcessing,
+)
+from profiles.utils.choices import (
+    KYCStatus, AttemptType, AttemptStatus,
+    AuthenticationStage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -102,18 +108,28 @@ def submit_profile_video_auth(
     Submit video authentication for a profile and persist tracking fields.
     Sets profile.auth_stage to VIDEO_VERIFIED and video_auth_status to PROCESSING.
     """
-    attempt = ProfileKYCAttempt.objects.create(
-        profile_id=profile_id,
-        attempt_type=AttemptType.VIDEO_SUBMIT,
-    ).start(
-        request_payload={
-            "national_code": national_code,
-            "birth_date": birth_date,
-            "rand_action": rand_action,
-            "matching_thr": matching_thr,
-            "liveness_thr": liveness_thr,
+    try:
+        attempt = ProfileKYCAttempt.start_new(
+            profile_id=profile_id,
+            attempt_type=AttemptType.VIDEO_SUBMIT,
+            request_payload={
+                "national_code": national_code,
+                "birth_date": birth_date,
+                "rand_action": rand_action,
+                "matching_thr": matching_thr,
+                "liveness_thr": liveness_thr,
+            },
+        )
+    except AttemptAlreadyProcessing:
+        _cleanup_temp_file(selfie_video_path)
+        logger.warning(
+            f"Profile {profile_id}: duplicate video submit while processing"
+        )
+        return {
+            "success": False,
+            "error": "kyc_in_progress",
+            "message": "Video KYC already in progress for this profile.",
         }
-    )
 
     # Validate profile state under lock
     with transaction.atomic():
@@ -261,10 +277,13 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
     Poll provider for video authentication result and update profile.
     Reschedules itself if result is not ready yet.
     """
-    attempt = ProfileKYCAttempt.objects.create(
-        profile_id=profile_id,
-        attempt_type=AttemptType.VIDEO_RESULT,
-    ).start()
+    try:
+        attempt = ProfileKYCAttempt.start_new(
+            profile_id=profile_id,
+            attempt_type=AttemptType.VIDEO_RESULT,
+        )
+    except AttemptAlreadyProcessing:
+        return {"success": False, "error": "poll_in_progress"}
 
     # Lock and verify state
     with transaction.atomic():
@@ -302,55 +321,51 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
         max_retries = getattr(settings, "KYC_VIDEO_CHECK_MAX_RETRIES", 6)
         retry_delay = getattr(settings, "KYC_VIDEO_CHECK_RETRY_DELAY", 120)
         attempt.bump_retry()
-        if self.request.retries < max_retries:
-            raise self.retry(exc=e, countdown=retry_delay)
-        # Mark failed after max retries
+
         with transaction.atomic():
             try:
                 profile = Profile.objects.select_for_update().get(
                     id=profile_id
                 )
-                profile.update_video_auth_result(
-                    accepted=False, error_details="failed"
-                )
+                profile.touch_kyc_check()
             except Profile.DoesNotExist:
                 pass
-        attempt.mark_failed(
-            error_message=str(e),
-            error_code="network_error",
-        )
+
+        if self.request.retries < max_retries:
+            raise self.retry(exc=e, countdown=retry_delay)
+
+        attempt.mark_failed(error_message=str(e), error_code="network_error")
         logger.error(f"Profile {profile_id}: Network error after max retries")
-        return {"success": False, "error": "failed", "message": str(e)}
+        return {"success": False, "error": "poll_timeout"}
 
     # Not-ready signals
-    if not result.get("success") and result.get("status") in {404,
-                                                              "in_progress",
-                                                              "network"}:
+    if not result.get("success") and result.get("status") in {
+        404,
+        "in_progress",
+        "network"
+    }:
         max_retries = getattr(settings, "KYC_VIDEO_CHECK_MAX_RETRIES", 6)
         retry_delay = getattr(settings, "KYC_VIDEO_CHECK_RETRY_DELAY", 120)
         attempt.bump_retry()
+        with transaction.atomic():
+            try:
+                profile = Profile.objects.select_for_update().get(
+                    id=profile_id
+                )
+                profile.touch_kyc_check()
+            except Profile.DoesNotExist:
+                pass
+
         if self.request.retries < max_retries:
             logger.info(
-                f"Profile {profile_id}: Video authentication result not ready; retrying in {retry_delay}s"
+                f"Profile {profile_id}: result not ready; retrying in {retry_delay}s"
             )
             raise self.retry(
                 exc=Exception("result_not_ready"), countdown=retry_delay
             )
-        with transaction.atomic():
-            try:
-                profile = Profile.objects.select_for_update().get(
-                    id=profile_id
-                )
-                profile.update_video_auth_result(
-                    accepted=False, error_details="failed"
-                )
-            except Profile.DoesNotExist:
-                pass
+
         attempt.mark_failed("max_retries_exceeded", response_payload=result)
-        return {
-            "success": False, "error": "failed",
-            "message": "Video authentication verification failed after maximum retries"
-        }
+        return {"success": False, "error": "poll_timeout"}
 
     # Other service errors
     if not result.get("success"):
@@ -366,11 +381,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
             except Profile.DoesNotExist:
                 pass
         attempt.mark_failed(error_msg, response_payload=result)
-        logger.error(f"Profile {profile_id}: Service error - {error_msg}")
-        return {
-            "success": False, "error": "service_error",
-            "message": str(error_msg)
-        }
+        return {"success": False, "error": "service_error"}
 
     # Normalize payload: some providers nest in 'data'
     payload = result.get("data") if isinstance(
@@ -388,18 +399,9 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
             accepted = True
         elif verify_status == "REJECT":
             accepted = False
-            reasons = payload.get("reason", [])
-            if isinstance(reasons, list) and reasons:
-                reason_msgs = [f"{r.get('code')}: {r.get('message')}" for r in
-                               reasons if isinstance(r, dict)]
-                logger.info(
-                    f"Profile {profile_id}: Rejection reasons: {', '.join(reason_msgs)}"
-                )
         else:
-            matching_ok = matching == "TRUE"
-            liveness_ok = liveness == "TRUE"
-            spoofing_ok = spoofing == "FALSE"
-            accepted = matching_ok and liveness_ok and spoofing_ok
+            accepted = (matching == "TRUE") and (liveness == "TRUE") and (
+                    spoofing == "FALSE")
     except Exception as e:
         accepted = False
         logger.warning(
@@ -409,23 +411,18 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
     with transaction.atomic():
         try:
             profile = Profile.objects.select_for_update().get(id=profile_id)
-            profile.update_video_auth_result(accepted=accepted)
+            if profile.is_video_kyc_in_progress():
+                profile.update_kyc_result(accepted=accepted)
         except Profile.DoesNotExist:
             pass
 
     attempt.mark_success(response_payload=payload)
 
     # Best-effort final status
-    final_status = None
     try:
         final_status = Profile.objects.get(id=profile_id).video_auth_status
     except Profile.DoesNotExist:
-        pass
-
-    if accepted:
-        logger.info(f"Profile {profile_id}: Video authentication verification successful")
-    else:
-        logger.warning(f"Profile {profile_id}: Video authentication verification failed")
+        final_status = None
 
     return {"success": True, "accepted": accepted, "status": final_status}
 
@@ -500,10 +497,14 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
     Verify phone number and national ID matching using Shahkar API.
     Updates phone_national_id_match_status and auth_stage based on verification result.
     """
-    attempt = ProfileKYCAttempt.objects.create(
-        profile_id=profile_id,
-        attempt_type=AttemptType.SHAHKAR,
-    ).start()
+    try:
+        attempt = ProfileKYCAttempt.start_new(
+            profile_id=profile_id,
+            attempt_type=AttemptType.SHAHKAR,
+        )
+    except AttemptAlreadyProcessing:
+        logger.info(f"Profile {profile_id}: shahkar already in processing")
+        return {"success": False, "error": "shahkar_in_progress"}
 
     try:
         profile = Profile.objects.get(id=profile_id)
@@ -526,6 +527,10 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
     with transaction.atomic():
         try:
             p = Profile.objects.select_for_update().get(id=profile_id)
+            if p.phone_national_id_match_status in (KYCStatus.ACCEPTED,
+                                                    KYCStatus.REJECTED):
+                attempt.mark_failed("terminal_state")
+                return {"success": False, "error": "terminal_state"}
             p.begin_phone_national_id_check()
         except Profile.DoesNotExist:
             attempt.mark_failed("profile_not_found")
@@ -550,23 +555,20 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
         logger.error(
             f"Profile {profile_id}: Shahkar API error after max retries: {e}"
         )
-        with transaction.atomic():
-            try:
+        try:
+            with transaction.atomic():
                 p = Profile.objects.select_for_update().get(id=profile_id)
                 p.phone_national_id_match_status = None
                 p.save(
                     update_fields=["phone_national_id_match_status",
                                    "updated_at"]
                 )
-            except Profile.DoesNotExist:
-                pass
+        except Profile.DoesNotExist:
+            pass
         attempt.mark_failed(
-            error_message=str(e),
-            error_code="service_unavailable",
+            error_message=str(e), error_code="service_unavailable"
         )
-        return {
-            "success": False, "error": "service_unavailable", "message": str(e)
-        }
+        return {"success": False, "error": "service_unavailable"}
 
     if not result.get("success"):
         error_msg = result.get("error", "Unknown service error")
@@ -681,4 +683,26 @@ def rehydrate_shahkar_checks(self) -> dict:
             logger.warning(f"Watchdog skip profile {profile.id}: {e}")
 
     logger.info(f"Shahkar watchdog requeued={requeued}")
+    return {"success": True, "requeued": requeued}
+
+
+@shared_task(bind=True)
+def rehydrate_video_kyc_checks(self) -> dict:
+    stale_minutes = int(getattr(settings, "KYC_VIDEO_STALE_MINUTES", 20))
+    stale_after = timedelta(minutes=stale_minutes)
+    now = timezone.now()
+
+    qs = Profile.objects.filter(
+        auth_stage=AuthenticationStage.IDENTITY_VERIFIED,
+        kyc_status=KYCStatus.PROCESSING,
+    ).exclude(video_task_id__isnull=True).exclude(video_task_id__exact="")
+
+    requeued = 0
+    for p in qs.iterator(chunk_size=500):
+        last = p.kyc_last_checked_at or p.video_submitted_at or p.updated_at or p.created_at
+        if (now - last) > stale_after:
+            check_profile_video_kyc_result.apply_async((p.id,), countdown=1)
+            requeued += 1
+
+    logger.info(f"Video watchdog requeued={requeued}")
     return {"success": True, "requeued": requeued}

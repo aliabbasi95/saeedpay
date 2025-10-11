@@ -80,3 +80,4 @@ class VideoKYCSubmitView(generics.GenericAPIView):
         ) as tmp_file:
             for chunk in video_file.chunks():
                 tmp_file.write(chunk)
+            return tmp_file.name

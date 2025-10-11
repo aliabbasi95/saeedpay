@@ -127,13 +127,16 @@ class Profile(BaseModel):
     # -----------------------
     def can_submit_video_auth(self) -> bool:
         """User can submit video only in IDENTITY_VERIFIED stage."""
-        return self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED
-
-    def is_video_auth_in_progress(self) -> bool:
-        """Video authentication is in progress if stage=VIDEO_VERIFIED and status=PROCESSING."""
         return (
-                self.auth_stage == AuthenticationStage.VIDEO_VERIFIED
-                and self.video_auth_status == KYCStatus.PROCESSING
+                self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED
+                and self.kyc_status != KYCStatus.PROCESSING
+        )
+
+    def is_video_kyc_in_progress(self) -> bool:
+        """Video KYC is in progress if stage=IDENTITY_VERIFIED and status=PROCESSING."""
+        return (
+                self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED
+                and self.kyc_status == KYCStatus.PROCESSING
         )
 
     def has_valid_video_task(self) -> bool:
@@ -199,8 +202,7 @@ class Profile(BaseModel):
                     "در این مرحله امکان ارسال ویدئو وجود ندارد؛ باید در مرحله «تایید هویت» باشید."
                 )
             )
-        self.auth_stage = AuthenticationStage.VIDEO_VERIFIED
-        self.video_auth_status = KYCStatus.PROCESSING
+        self.kyc_status = KYCStatus.PROCESSING
         self.video_submitted_at = timezone.now()
 
         update_fields = ["auth_stage", "video_auth_status", "video_submitted_at",
@@ -225,9 +227,8 @@ class Profile(BaseModel):
         self.video_verified_at = now
 
         if accepted:
-            self.video_auth_status = KYCStatus.ACCEPTED
-            # When video auth is accepted, advance to VIDEO_VERIFIED stage (stage 3)
             self.auth_stage = AuthenticationStage.VIDEO_VERIFIED
+            self.kyc_status = KYCStatus.ACCEPTED
         elif error_details and "rejected" in error_details.lower():
             self.video_auth_status = KYCStatus.REJECTED
         else:
@@ -256,8 +257,8 @@ class Profile(BaseModel):
             ]
         )
 
-    def can_retry_video_auth(self) -> bool:
-        return self.auth_stage == AuthenticationStage.VIDEO_VERIFIED and self.video_auth_status in [
+    def can_retry_video_kyc(self) -> bool:
+        return self.auth_stage == AuthenticationStage.IDENTITY_VERIFIED and self.kyc_status in [
             KYCStatus.FAILED,
             KYCStatus.REJECTED,
         ]
@@ -272,6 +273,10 @@ class Profile(BaseModel):
             "has_task": self.has_valid_video_task(),
             "last_checked": self.video_auth_last_checked_at.isoformat() if self.video_auth_last_checked_at else None,
         }
+
+    def touch_kyc_check(self) -> None:
+        self.kyc_last_checked_at = timezone.localtime(timezone.now())
+        self.save(update_fields=["kyc_last_checked_at", "updated_at"])
 
     class Meta:
         verbose_name = _("پروفایل")
