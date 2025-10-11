@@ -2,14 +2,13 @@
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
-from credit.api.public.v1.serializers.loan_risk_serializers import (
+from credit.api.public.v1.serializers import (
     LoanRiskOTPRequestSerializer,
     LoanRiskOTPVerifySerializer,
     LoanRiskReportSerializer,
     LoanRiskReportDetailSerializer,
     LoanRiskReportListSerializer,
 )
-
 
 loan_risk_otp_request_schema = extend_schema(
     tags=["Credit · Loan Risk"],
@@ -50,7 +49,6 @@ loan_risk_otp_request_schema = extend_schema(
         }
     }
 )
-
 
 loan_risk_otp_verify_schema = extend_schema(
     tags=["Credit · Loan Risk"],
@@ -97,7 +95,6 @@ loan_risk_otp_verify_schema = extend_schema(
     }
 )
 
-
 loan_risk_report_list_schema = extend_schema_view(
     get=extend_schema(
         tags=["Credit · Loan Risk"],
@@ -109,7 +106,6 @@ loan_risk_report_list_schema = extend_schema_view(
         responses={200: LoanRiskReportListSerializer(many=True)},
     )
 )
-
 
 loan_risk_report_detail_schema = extend_schema_view(
     get=extend_schema(
@@ -125,7 +121,6 @@ loan_risk_report_detail_schema = extend_schema_view(
         responses={200: LoanRiskReportDetailSerializer},
     )
 )
-
 
 loan_risk_report_latest_schema = extend_schema(
     tags=["Credit · Loan Risk"],
@@ -147,7 +142,6 @@ loan_risk_report_latest_schema = extend_schema(
         }
     }
 )
-
 
 loan_risk_report_check_schema = extend_schema(
     tags=["Credit · Loan Risk"],

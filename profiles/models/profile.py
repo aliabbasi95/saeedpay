@@ -205,7 +205,8 @@ class Profile(BaseModel):
         self.video_auth_status = KYCStatus.PROCESSING
         self.video_submitted_at = timezone.now()
 
-        update_fields = ["auth_stage", "video_auth_status", "video_submitted_at",
+        update_fields = ["auth_stage", "video_auth_status",
+                         "video_submitted_at",
                          "updated_at"]
         if task_id:
             if len(task_id.strip()) > 64:

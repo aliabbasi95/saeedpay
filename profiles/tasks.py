@@ -488,7 +488,10 @@ def reset_profile_video_auth(
     logger.info(
         f"Profile {profile_id}: Video authentication reset to IDENTITY_VERIFIED stage. Reason: {reason}"
     )
-    return {"success": True, "message": "Profile video authentication reset successfully"}
+    return {
+        "success": True,
+        "message": "Profile video authentication reset successfully"
+    }
 
 
 @shared_task(bind=True)

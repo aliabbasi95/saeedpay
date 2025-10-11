@@ -4,7 +4,7 @@ from .credit_limit import CreditLimitViewSet
 from .statement import StatementViewSet
 from .statement_line import StatementLineViewSet
 
-from .loan_risk_views import (
+from .loan_risk import (
     LoanRiskOTPRequestView,
     LoanRiskOTPVerifyView,
     LoanRiskReportCheckView,
