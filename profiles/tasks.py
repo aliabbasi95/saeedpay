@@ -330,13 +330,13 @@ def submit_profile_video_auth(
         try:
             profile = Profile.objects.select_for_update().get(id=profile_id)
             profile.mark_video_submitted(task_id=unique_id)
+            attempt.mark_success(
+                response_payload=result, external_id=unique_id
+            )
             transaction.on_commit(
                 lambda: check_profile_video_auth_result.apply_async(
                     (profile_id,), countdown=30
                 )
-            )
-            attempt.mark_success(
-                response_payload=result, external_id=unique_id
             )
             logger.info(
                 f"Profile {profile_id}: Video authentication submitted. Task ID: {unique_id}"

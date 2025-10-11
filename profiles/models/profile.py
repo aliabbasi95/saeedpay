@@ -236,8 +236,13 @@ class Profile(BaseModel):
             self.video_auth_status = KYCStatus.FAILED
 
         self.save(
-            update_fields=["video_auth_last_checked_at", "video_auth_status",
-                           "video_verified_at", "updated_at"]
+            update_fields=[
+                "video_auth_last_checked_at",
+                "video_auth_status",
+                "video_verified_at",
+                "updated_at",
+                "auth_stage"
+            ]
         )
 
     def reset_to_identity_verified(self) -> None:
