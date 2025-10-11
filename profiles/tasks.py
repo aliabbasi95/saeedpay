@@ -327,7 +327,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
                 profile = Profile.objects.select_for_update().get(
                     id=profile_id
                 )
-                profile.touch_kyc_check()
+                profile.touch_video_auth_check()
             except Profile.DoesNotExist:
                 pass
 
@@ -352,7 +352,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
                 profile = Profile.objects.select_for_update().get(
                     id=profile_id
                 )
-                profile.touch_kyc_check()
+                profile.touch_video_auth_check()
             except Profile.DoesNotExist:
                 pass
 
@@ -411,8 +411,8 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
     with transaction.atomic():
         try:
             profile = Profile.objects.select_for_update().get(id=profile_id)
-            if profile.is_video_kyc_in_progress():
-                profile.update_kyc_result(accepted=accepted)
+            if profile.is_video_auth_in_progress():
+                profile.update_video_auth_result(accepted=accepted)
         except Profile.DoesNotExist:
             pass
 
@@ -687,21 +687,21 @@ def rehydrate_shahkar_checks(self) -> dict:
 
 
 @shared_task(bind=True)
-def rehydrate_video_kyc_checks(self) -> dict:
+def rehydrate_video_auth_checks(self) -> dict:
     stale_minutes = int(getattr(settings, "KYC_VIDEO_STALE_MINUTES", 20))
     stale_after = timedelta(minutes=stale_minutes)
     now = timezone.now()
 
     qs = Profile.objects.filter(
         auth_stage=AuthenticationStage.IDENTITY_VERIFIED,
-        kyc_status=KYCStatus.PROCESSING,
+        video_auth_status=KYCStatus.PROCESSING,
     ).exclude(video_task_id__isnull=True).exclude(video_task_id__exact="")
 
     requeued = 0
     for p in qs.iterator(chunk_size=500):
-        last = p.kyc_last_checked_at or p.video_submitted_at or p.updated_at or p.created_at
+        last = p.video_auth_last_checked_at or p.video_submitted_at or p.updated_at or p.created_at
         if (now - last) > stale_after:
-            check_profile_video_kyc_result.apply_async((p.id,), countdown=1)
+            check_profile_video_auth_result.apply_async((p.id,), countdown=1)
             requeued += 1
 
     logger.info(f"Video watchdog requeued={requeued}")
