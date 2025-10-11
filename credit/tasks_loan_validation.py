@@ -187,7 +187,7 @@ def verify_loan_otp_and_request_report(self, report_id: int, otp_code: str) -> d
         # Automatically trigger checking the result after a delay
         check_loan_report_result.apply_async(
             args=[report_id],
-            countdown=5  # Check after 5 seconds
+            countdown=10  # Check after 10 seconds
         )
         
         return {
@@ -298,12 +298,10 @@ def check_loan_report_result(self, report_id: int) -> dict:
         error_msg = result.get("error", "Failed to get report")
         error_code = result.get("error_code")
         
-        # If still processing, retry
-        if "processing" in error_msg.lower() or "در حال پردازش" in error_msg:
-            retry_delay = 10  # 10 seconds
-            if self.request.retries < self.max_retries:
-                logger.info(f"Report {report_id} still processing, will retry")
-                raise self.retry(countdown=retry_delay)
+        retry_delay = 10  # 10 seconds
+        if self.request.retries < self.max_retries:
+            logger.info(f"Report {report_id} still processing, will retry")
+            raise self.retry(countdown=retry_delay)
         
         # Failed permanently
         report.mark_failed(error_message=error_msg, error_code=error_code)
