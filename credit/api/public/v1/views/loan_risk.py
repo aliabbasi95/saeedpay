@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from credit.api.public.v1.schema.loan_risk import (
+from credit.api.public.v1.schema import (
     otp_request_schema,
     otp_verify_schema,
     report_viewset_schema,

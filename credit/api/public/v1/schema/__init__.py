@@ -11,10 +11,9 @@ from .statement import (
 from .statement_line import statement_line_viewset_schema
 
 from .loan_risk import (
-    loan_risk_otp_request_schema,
-    loan_risk_otp_verify_schema,
-    loan_risk_report_check_schema,
-    loan_risk_report_detail_schema,
-    loan_risk_report_list_schema,
-    loan_risk_report_latest_schema,
+    otp_request_schema,
+    otp_verify_schema,
+    report_viewset_schema,
+    report_latest_schema,
+    report_check_schema,
 )
