@@ -194,6 +194,20 @@ class LoanRiskReport(BaseModel):
             ]
         )
 
+    def mark_expired(self, error_message: str, error_code: str = None) -> None:
+        """Mark report as expired with error details."""
+        self.status = LoanReportStatus.EXPIRED
+        self.error_message = error_message
+        self.error_code = error_code
+        self.save(
+            update_fields=[
+                "status",
+                "error_message",
+                "error_code",
+                "updated_at"
+            ]
+        )
+
     def mark_failed(self, error_message: str, error_code: str = None) -> None:
         """Mark report as failed with error details."""
         self.status = LoanReportStatus.FAILED
