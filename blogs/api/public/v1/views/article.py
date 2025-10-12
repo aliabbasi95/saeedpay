@@ -55,7 +55,7 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
             return super().get_object()
 
     def get_queryset(self):
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         qs = Article.objects.select_related("author", "author__profile")
 
         if self.action in ["list", "retrieve"]:

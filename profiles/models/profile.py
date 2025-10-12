@@ -175,7 +175,7 @@ class Profile(BaseModel):
         self.auth_stage = AuthenticationStage.IDENTITY_VERIFIED
         self.video_auth_status = None
         self.phone_national_id_match_status = KYCStatus.ACCEPTED
-        self.identity_verified_at = timezone.now()
+        self.identity_verified_at = timezone.localtime(timezone.now())
         self.save(
             update_fields=[
                 "auth_stage",
@@ -203,7 +203,7 @@ class Profile(BaseModel):
                 )
             )
         self.video_auth_status = KYCStatus.PROCESSING
-        self.video_submitted_at = timezone.now()
+        self.video_submitted_at = timezone.localtime(timezone.now())
 
         update_fields = ["auth_stage", "video_auth_status",
                          "video_submitted_at",
@@ -223,7 +223,7 @@ class Profile(BaseModel):
             self, accepted: bool, error_details: str | None = None
     ) -> None:
         """Finalize video authentication result for current attempt."""
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         self.video_auth_last_checked_at = now
         self.video_verified_at = now
 

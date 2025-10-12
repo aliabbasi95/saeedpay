@@ -82,7 +82,9 @@ class TestAvailableLimitProperty:
             user=user, year=y, month=m, status=StatementStatus.PENDING_PAYMENT,
             opening_balance=0, closing_balance=-400_000,
             total_debit=400_000, total_credit=0,
-            due_date=timezone.now() + timezone.timedelta(days=3),
+            due_date=timezone.localtime(timezone.now()) + timezone.timedelta(
+                days=3
+                ),
         )
         assert limit.available_limit == 500_000
 

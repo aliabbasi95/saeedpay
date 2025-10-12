@@ -117,7 +117,9 @@ class PaymentRequest(BaseModel):
 
     def save(self, *args, **kwargs):
         if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(
+            self.expires_at = timezone.localtime(
+                timezone.now()
+                ) + timezone.timedelta(
                 minutes=PAYMENT_REQUEST_EXPIRY_MINUTES
             )
         if not self.reference_code:

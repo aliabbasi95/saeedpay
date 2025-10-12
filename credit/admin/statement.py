@@ -197,8 +197,9 @@ class StatementAdmin(BaseAdmin):
 
     @admin.display(description=_("روزهای تاخیر"))
     def overdue_days(self, obj):
-        if obj.due_date and timezone.now() > obj.due_date:
-            return (timezone.now() - obj.due_date).days
+        now = timezone.localtime(timezone.now())
+        if obj.due_date and now > obj.due_date:
+            return (now - obj.due_date).days
         return "-"
 
     @admin.display(description=_("جریمهٔ تجمعی"))

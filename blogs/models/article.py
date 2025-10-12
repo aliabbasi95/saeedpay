@@ -15,7 +15,8 @@ class ArticleManager(models.Manager):
     def published(self):
         """Return only published articles whose publication time has passed."""
         return self.filter(
-            status="published", published_at__lte=timezone.now()
+            status="published",
+            published_at__lte=timezone.localtime(timezone.now())
         )
 
     def draft(self):
@@ -127,7 +128,9 @@ class Article(BaseModel):
                         self.slug = candidate
                         # If published & no timestamp, set it before initial save
                         if self.status == ArticleStatus.PUBLISHED and not self.published_at:
-                            self.published_at = timezone.now()
+                            self.published_at = timezone.localtime(
+                                timezone.now()
+                                )
                         return super().save(*args, **kwargs)
                 except IntegrityError:
                     suffix += 1
@@ -135,7 +138,7 @@ class Article(BaseModel):
         else:
             # Keep published_at consistent if transitioning to published without a timestamp
             if self.status == ArticleStatus.PUBLISHED and not self.published_at:
-                self.published_at = timezone.now()
+                self.published_at = timezone.localtime(timezone.now())
             return super().save(*args, **kwargs)
 
     def get_absolute_url(self):
@@ -148,7 +151,7 @@ class Article(BaseModel):
         return (
                 self.status == ArticleStatus.PUBLISHED
                 and self.published_at is not None
-                and self.published_at <= timezone.now()
+                and self.published_at <= timezone.localtime(timezone.now())
         )
 
     @property

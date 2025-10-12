@@ -118,7 +118,9 @@ class PaymentRequestDetailWithWalletsSerializer(
         # Payment allowed only when PR is in CREATED and not yet expired.
         if obj.status != PaymentRequestStatus.CREATED:
             return False
-        if obj.expires_at and obj.expires_at < timezone.now():
+        if obj.expires_at and obj.expires_at < timezone.localtime(
+                timezone.now()
+                ):
             return False
         return True
 

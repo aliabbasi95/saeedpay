@@ -126,7 +126,7 @@ class StatementUseCases:
           4) If closed_with_penalty: compute penalty on the pending snapshot and add a PENALTY line to CURRENT.
              (Penalty is computed *before* status changes, because compute_penalty_amount depends on status.)
         """
-        now = now or timezone.now()
+        now = now or timezone.localtime(timezone.now())
 
         pending_candidates = (
             Statement.objects
@@ -235,5 +235,5 @@ class StatementUseCases:
         statement, _ = Statement.objects.get_or_create_current_statement(user)
         statement.add_purchase(
             transaction=None, description=description, amount=amount
-            )
+        )
         return statement

@@ -120,7 +120,7 @@ class CreditLimit(BaseModel):
     def activate(self):
         with transaction.atomic():
             CreditLimit.objects.filter(user=self.user, is_active=True).update(
-                is_active=False, updated_at=timezone.now()
+                is_active=False, updated_at=timezone.localtime(timezone.now())
             )
             self.is_active = True
             self.save(update_fields=["is_active", "updated_at"])
@@ -128,7 +128,7 @@ class CreditLimit(BaseModel):
     @classmethod
     def deactivate_user_active_limits(cls, user):
         return cls.objects.filter(user=user, is_active=True).update(
-            is_active=False, updated_at=timezone.now()
+            is_active=False, updated_at=timezone.localtime(timezone.now())
         )
 
     def __str__(self):

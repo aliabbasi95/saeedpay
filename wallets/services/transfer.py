@@ -82,7 +82,9 @@ def create_wallet_transfer_request(
 
 
 def check_and_expire_transfer_request(transfer_request):
-    if transfer_request.expires_at and transfer_request.expires_at < timezone.now():
+    if transfer_request.expires_at and transfer_request.expires_at < timezone.localtime(
+            timezone.now()
+            ):
         if transfer_request.status == TransferStatus.PENDING_CONFIRMATION:
             transfer_request.status = TransferStatus.EXPIRED
             transfer_request.save()
@@ -158,7 +160,7 @@ def reject_wallet_transfer_request(transfer: WalletTransferRequest):
 
 
 def expire_pending_transfer_requests():
-    now = timezone.now()
+    now = timezone.localtime(timezone.now())
     expired = WalletTransferRequest.objects.filter(
         status=TransferStatus.PENDING_CONFIRMATION,
         expires_at__lt=now,

@@ -185,7 +185,7 @@ class StatementLine(BaseModel):
         if self.is_voided:
             return False
         self.is_voided = True
-        self.voided_at = timezone.now()
+        self.voided_at = timezone.localtime(timezone.now())
         self.voided_by = by
         self.void_reason = (reason or "")[:255]
         super().save(

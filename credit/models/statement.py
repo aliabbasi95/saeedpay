@@ -220,7 +220,7 @@ class Statement(BaseModel):
         credit_limit = CreditLimit.objects.get_user_credit_limit(self.user)
         grace_days = credit_limit.grace_days if credit_limit else 0
 
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         self.status = StatementStatus.PENDING_PAYMENT
         self.closed_at = now
         self.due_date = now + timedelta(days=int(grace_days))
@@ -312,7 +312,7 @@ class Statement(BaseModel):
         """True if now is on/before the due_date."""
         if not self.due_date:
             return False
-        now = now or timezone.now()
+        now = now or timezone.localtime(timezone.now())
         return now <= self.due_date
 
     def calculate_minimum_payment_amount(self) -> int:
@@ -350,7 +350,7 @@ class Statement(BaseModel):
         else:
             self.status = StatementStatus.CLOSED_WITH_PENALTY
 
-        self.closed_at = timezone.now()
+        self.closed_at = timezone.localtime(timezone.now())
         self.save(update_fields=["status", "closed_at"])
         return self.status
 
@@ -366,7 +366,7 @@ class Statement(BaseModel):
         if not self.due_date:
             return 0
 
-        now = now or timezone.now()
+        now = now or timezone.localtime(timezone.now())
         if now <= self.due_date:
             return 0
 

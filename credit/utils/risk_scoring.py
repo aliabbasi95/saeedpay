@@ -28,7 +28,9 @@ class RiskScoringEngine:
 
         # User profile factors
         if hasattr(user, 'date_joined'):
-            account_age = (timezone.now() - user.date_joined).days
+            account_age = (timezone.localtime(
+                timezone.now()
+                ) - user.date_joined).days
             if account_age > 365:
                 score += 15
             elif account_age > 180:

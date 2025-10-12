@@ -6,9 +6,12 @@ from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+
+from lib.erp_base.models import BaseModel
 
 
-class KYCVideoAsset(models.Model):
+class KYCVideoAsset(BaseModel):
     """
     Durable copy of a submitted KYC video with retention policy metadata.
     - 'file' should be stored on a durable storage (S3, etc).
@@ -18,18 +21,27 @@ class KYCVideoAsset(models.Model):
         "profiles.Profile",
         on_delete=models.CASCADE,
         related_name="kyc_video_assets",
+        verbose_name=_("پروفایل"),
     )
-    file = models.FileField(upload_to="kyc_videos/%Y/%m/%d/")
-    sha256 = models.CharField(max_length=64, blank=True, null=True)
-    size = models.BigIntegerField(default=0)
-    is_approved_copy = models.BooleanField(default=False)
-    retention_until = models.DateTimeField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    file = models.FileField(
+        upload_to="kyc_videos/%Y/%m/%d/", verbose_name=_("فایل ویدئو")
+    )
+    sha256 = models.CharField(
+        max_length=64, blank=True, null=True, verbose_name=_("هش SHA256")
+    )
+    size = models.BigIntegerField(default=0, verbose_name=_("حجم (بایت)"))
+    is_approved_copy = models.BooleanField(
+        default=False, verbose_name=_("نسخهٔ مورد تأیید")
+    )
+    retention_until = models.DateTimeField(
+        blank=True, null=True, verbose_name=_("نگهداشت تا")
+    )
     created_by_attempt = models.ForeignKey(
         "profiles.ProfileKYCAttempt",
         null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name="video_assets",
+        verbose_name=_("ایجاد شده توسط تلاش"),
     )
 
     # ---------- Factory ----------

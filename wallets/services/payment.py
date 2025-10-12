@@ -29,7 +29,7 @@ def create_payment_request(
     - created_expires_at set (immutable)
     - expires_at mirrors current-phase deadline for compatibility
     """
-    created_deadline = timezone.now() + timedelta(
+    created_deadline = timezone.localtime(timezone.now()) + timedelta(
         minutes=CREDIT_AUTH_HOLD_EXPIRY_MINUTES
     )
     return PaymentRequest.objects.create(
@@ -113,7 +113,7 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
                     payment_request=request_obj,
                     amount=int(request_obj.amount),
                     status=Auth.Status.ACTIVE,
-                    expires_at=timezone.now() + timedelta(
+                    expires_at=timezone.localtime(timezone.now()) + timedelta(
                         minutes=MERCHANT_CONFIRM_WINDOW_MINUTES
                     ),
                 )
@@ -123,12 +123,12 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
             )
 
         # Switch to merchant confirmation phase; set immutable + mirror expires_at
-        m_deadline = timezone.now() + timedelta(
+        m_deadline = timezone.localtime(timezone.now()) + timedelta(
             minutes=MERCHANT_CONFIRM_WINDOW_MINUTES
         )
         request_obj.paid_by = user
         request_obj.paid_wallet = wallet
-        request_obj.paid_at = timezone.now()
+        request_obj.paid_at = timezone.localtime(timezone.now())
         request_obj.status = PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
         request_obj.merchant_confirm_expires_at = m_deadline
         request_obj.expires_at = m_deadline  # compatibility
@@ -149,7 +149,9 @@ def check_and_expire_payment_request(
     Expire if current-phase deadline (expires_at) has passed. We also set immutable audit fields earlier.
     """
     is_expired = False
-    if payment_request.expires_at and payment_request.expires_at < timezone.now():
+    if payment_request.expires_at and payment_request.expires_at < timezone.localtime(
+            timezone.now()
+            ):
         if payment_request.status not in [
             PaymentRequestStatus.EXPIRED, PaymentRequestStatus.COMPLETED,
             PaymentRequestStatus.CANCELLED

@@ -1,7 +1,6 @@
 # profiles/admin/kyc_attempt.py
 
 from __future__ import annotations
-from __future__ import annotations
 
 import json
 from datetime import timedelta
@@ -20,14 +19,14 @@ from profiles.tasks import (
     reset_profile_video_auth,
 )
 from profiles.utils.choices import (
-    AttemptStatus, KYCStatus,
+    AttemptStatus,
+    KYCStatus,
     AuthenticationStage,
-)
-from profiles.utils.choices import (
     AttemptType,
 )
 
 
+# ---------------- Utils (badges, json pretty, links) ----------------
 def _badge(text: str, color: str) -> str:
     """Render a small colored badge."""
     return format_html(
@@ -38,13 +37,12 @@ def _badge(text: str, color: str) -> str:
 
 
 def _status_badge(value: str) -> str:
-    """Map AttemptStatus to consistent badge colors."""
     colors = {
-        AttemptStatus.PROCESSING: "#f59e0b",  # amber
-        AttemptStatus.SUCCESS: "#16a34a",  # green
-        AttemptStatus.FAILED: "#ef4444",  # red
-        AttemptStatus.REJECTED: "#6b7280",  # gray
-        AttemptStatus.PENDING: "#3b82f6",  # blue
+        AttemptStatus.PROCESSING: "#f59e0b",
+        AttemptStatus.SUCCESS: "#16a34a",
+        AttemptStatus.FAILED: "#ef4444",
+        AttemptStatus.REJECTED: "#6b7280",
+        AttemptStatus.PENDING: "#3b82f6",
     }
     return _badge(value, colors.get(value, "#3b82f6"))
 
@@ -57,12 +55,10 @@ def _kyc_result_badge(value: str | None) -> str:
         KYCStatus.PROCESSING: "#3b82f6",
         None: "#6b7280",
     }
-    text = value or "None"
-    return _badge(text, colors.get(value, "#6b7280"))
+    return _badge(value or "None", colors.get(value, "#6b7280"))
 
 
 def _pretty_json(obj: dict | None) -> str:
-    """Safe pretty JSON renderer for admin detail pages."""
     if not obj:
         return "-"
     try:
@@ -70,15 +66,20 @@ def _pretty_json(obj: dict | None) -> str:
     except Exception:
         pretty = str(obj)
     return mark_safe(
-        f'<pre style="white-space:pre-wrap; direction:ltr">{pretty}</pre>'
+        '<pre style="white-space:pre-wrap; direction:ltr; margin:0">{}</pre>'.format(
+            pretty
+        )
     )
 
 
 def _admin_link_to_profile(profile_id: int) -> str:
     url = reverse("admin:profiles_profile_change", args=[profile_id])
-    return format_html('<a href="{}">Profile #{}</a>', url, profile_id)
+    return format_html(
+        '<a href="{}" target="_blank">Profile #{}</a>', url, profile_id
+    )
 
 
+# ---------------- Custom filters ----------------
 class HasExternalIDFilter(admin.SimpleListFilter):
     title = "دارای شناسه خارجی؟"
     parameter_name = "has_external_id"
@@ -86,16 +87,16 @@ class HasExternalIDFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         return (("yes", "بله"), ("no", "خیر"))
 
-    def queryset(self, request, queryset):
+    def queryset(self, request, qs):
         if self.value() == "yes":
-            return queryset.exclude(external_id__isnull=True).exclude(
+            return qs.exclude(external_id__isnull=True).exclude(
                 external_id__exact=""
             )
         if self.value() == "no":
-            return queryset.filter(
+            return qs.filter(
                 Q(external_id__isnull=True) | Q(external_id__exact="")
             )
-        return queryset
+        return qs
 
 
 class HasErrorFilter(admin.SimpleListFilter):
@@ -105,46 +106,43 @@ class HasErrorFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         return (("yes", "بله"), ("no", "خیر"))
 
-    def queryset(self, request, queryset):
+    def queryset(self, request, qs):
         if self.value() == "yes":
-            return queryset.exclude(error_message__isnull=True).exclude(
+            return qs.exclude(error_message__isnull=True).exclude(
                 error_message__exact=""
             )
         if self.value() == "no":
-            return queryset.filter(
+            return qs.filter(
                 Q(error_message__isnull=True) | Q(error_message__exact="")
             )
-        return queryset
+        return qs
 
 
 class StaleProcessingFilter(admin.SimpleListFilter):
-    """Show attempts that stuck in PROCESSING beyond a threshold."""
     title = "باقیمانده در حالت پردازش"
     parameter_name = "stale_proc"
 
     def lookups(self, request, model_admin):
-        return (("15", "قدیمی‌تر از ۱۵ دقیقه"),
-                ("60", "قدیمی‌تر از ۱ ساعت"),
+        return (("15", "قدیمی‌تر از ۱۵ دقیقه"), ("60", "قدیمی‌تر از ۱ ساعت"),
                 ("240", "قدیمی‌تر از ۴ ساعت"))
 
-    def queryset(self, request, queryset):
+    def queryset(self, request, qs):
         if not self.value():
-            return queryset
-        minutes = int(self.value())
-        cutoff = timezone.now() - timedelta(minutes=minutes)
-        return queryset.filter(
+            return qs
+        cutoff = timezone.now() - timedelta(minutes=int(self.value()))
+        return qs.filter(
             status=AttemptStatus.PROCESSING, started_at__lt=cutoff
         )
 
 
+# ---------------- ModelAdmin ----------------
 @admin.register(ProfileKYCAttempt)
 class ProfileKYCAttemptAdmin(admin.ModelAdmin):
-    """Operator-friendly admin for tracing KYC flow."""
     list_display = (
         "id",
         "profile_link",
         "attempt_type",
-        "status_badge",
+        "status_badge_col",
         "external_id",
         "retry_count",
         "duration_sec",
@@ -157,7 +155,7 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
         HasExternalIDFilter,
         HasErrorFilter,
         StaleProcessingFilter,
-        "created_at",
+        ("created_at", admin.DateFieldListFilter),
     )
     search_fields = (
         "id",
@@ -171,6 +169,8 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
     ordering = ("-created_at",)
     autocomplete_fields = ("profile",)
+    list_select_related = ("profile",)
+
     readonly_fields = (
         "id",
         "profile",
@@ -188,34 +188,45 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
         "request_pretty",
         "response_pretty",
         "profile_snapshot",
+        "duration_readonly",
+        "jalali_creation_time",
+        "jalali_update_time",
     )
+
     fieldsets = (
-        ("Attempt", {
+        ("مشخصات تلاش", {
             "fields": (
                 ("id", "attempt_type", "status"),
                 ("profile", "external_id", "retry_count"),
                 ("started_at", "finished_at"),
-                "duration_readonly",
+                ("duration_readonly",),
             )
         }),
-        ("HTTP / Error", {
+        ("HTTP / خطا", {
             "fields": (("http_status", "error_code"), "error_message")
         }),
-        ("Payloads", {
+        ("Payloadها", {
             "classes": ("collapse",),
             "fields": ("request_pretty", "response_pretty")
         }),
+        ("نمای کلی پروفایل مرتبط", {
+            "fields": ("profile_snapshot",)
+        }),
     )
-    actions = ("action_requeue_shahkar", "action_poll_video_result",
-               "action_reset_video")
 
-    # ---------- list_display helpers ----------
+    actions = (
+        "action_requeue_shahkar",
+        "action_poll_video_result",
+        "action_reset_video"
+    )
+
+    # ---- list_display helpers
     @admin.display(description="پروفایل")
     def profile_link(self, obj: ProfileKYCAttempt):
         return _admin_link_to_profile(obj.profile_id)
 
     @admin.display(description="وضعیت", ordering="status")
-    def status_badge(self, obj: ProfileKYCAttempt):
+    def status_badge_col(self, obj: ProfileKYCAttempt):
         return _status_badge(obj.status)
 
     @admin.display(description="مدت (ثانیه)")
@@ -224,7 +235,7 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
             return round((obj.finished_at - obj.started_at).total_seconds(), 3)
         return "-"
 
-    # ---------- detail helpers ----------
+    # ---- detail helpers
     @admin.display(description="درخواست (JSON مرتب)")
     def request_pretty(self, obj: ProfileKYCAttempt):
         return _pretty_json(obj.request_payload)
@@ -250,37 +261,28 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
             f"<strong>کد ملی:</strong> {p.national_id or '-'} <br>"
             f"<strong>مرحله احراز:</strong> {AuthenticationStage(p.auth_stage).label} <br>"
             f"<strong>شاهکار:</strong> {_kyc_result_badge(p.phone_national_id_match_status)} <br>"
-            f"<strong>احراز هویت ویدئویی:</strong> {_kyc_result_badge(p.video_auth_status)}"
+            f"<strong>احراز ویدئویی:</strong> {_kyc_result_badge(p.video_auth_status)}"
             "</div>"
         )
 
-    # ---------- actions ----------
+    # ---- actions
     @admin.action(
-        description="ارسال دوباره استعلام شاهکار (برای رکوردهای انتخاب‌شده)"
+        description="ارسال دوباره استعلام شاهکار (برای موارد انتخاب‌شده)"
     )
     def action_requeue_shahkar(self, request, queryset):
         count = 0
         for att in queryset:
-            # Only meaningful for Shahkar attempts
             if att.attempt_type != AttemptType.SHAHKAR:
                 continue
             verify_identity_phone_national_id.delay(att.profile_id)
             count += 1
-        if count:
-            self.message_user(
-                request, f"{count} تسک شاهکار دوباره صف شد.",
-                level=messages.SUCCESS
-            )
+        self.message_user(
+            request,
+            f"{count} تسک شاهکار دوباره صف شد." if count else "مورد معتبری برای شاهکار در انتخاب وجود ندارد.",
+            level=messages.SUCCESS if count else messages.WARNING
+        )
 
-        else:
-            self.message_user(
-                request, "مورد معتبری برای شاهکار در انتخاب وجود ندارد.",
-                level=messages.WARNING
-            )
-
-    @admin.action(
-        description="پول کردن نتیجهٔ ویدئو (برای رکوردهای انتخاب‌شده)"
-    )
+    @admin.action(description="پول کردن نتیجهٔ ویدئو (برای موارد انتخاب‌شده)")
     def action_poll_video_result(self, request, queryset):
         count = 0
         for att in queryset:
@@ -288,16 +290,11 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
                 continue
             check_profile_video_auth_result.delay(att.profile_id)
             count += 1
-        if count:
-            self.message_user(
-                request, f"پول نتیجه برای {count} مورد صف شد.",
-                level=messages.SUCCESS
-            )
-        else:
-            self.message_user(
-                request, "موردی از نوع VIDEO_RESULT در انتخاب نیست.",
-                level=messages.WARNING
-            )
+        self.message_user(
+            request,
+            f"پول نتیجه برای {count} مورد صف شد." if count else "موردی از نوع VIDEO_RESULT در انتخاب نیست.",
+            level=messages.SUCCESS if count else messages.WARNING
+        )
 
     @admin.action(description="ریست احراز هویت ویدئویی پروفایل‌های مرتبط")
     def action_reset_video(self, request, queryset):

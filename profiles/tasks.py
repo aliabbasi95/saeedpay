@@ -794,7 +794,7 @@ def rehydrate_shahkar_checks(self) -> dict:
     # Configurable staleness window (minutes)
     stale_minutes = int(getattr(settings, "KYC_SHAHKAR_STALE_MINUTES", 15))
     stale_after = timedelta(minutes=stale_minutes)
-    now = timezone.now()
+    now = timezone.localtime(timezone.now())
 
     qs = Profile.objects.filter(
         national_id__isnull=False,
@@ -822,7 +822,7 @@ def rehydrate_shahkar_checks(self) -> dict:
 def rehydrate_video_auth_checks(self) -> dict:
     stale_minutes = int(getattr(settings, "KYC_VIDEO_STALE_MINUTES", 20))
     stale_after = timedelta(minutes=stale_minutes)
-    now = timezone.now()
+    now = timezone.localtime(timezone.now())
 
     qs = Profile.objects.filter(
         auth_stage=AuthenticationStage.IDENTITY_VERIFIED,

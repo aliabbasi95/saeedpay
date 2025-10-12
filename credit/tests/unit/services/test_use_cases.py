@@ -664,7 +664,7 @@ class TestFinalizeDueWindows:
         stmt.save(update_fields=["year", "month"])
 
         # 3) close to pending (past-due)
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         stmt.status = StatementStatus.PENDING_PAYMENT
         stmt.closed_at = closed_at or (now - dt.timedelta(days=10))
         stmt.due_date = now - dt.timedelta(days=grace_days)  # already overdue
@@ -726,7 +726,7 @@ class TestFinalizeDueWindows:
         current, _ = Statement.objects.get_or_create_current_statement(user)
 
         # No payments in window
-        now = timezone.now() + dt.timedelta(days=1)
+        now = timezone.localtime(timezone.now()) + dt.timedelta(days=1)
 
         # Expected penalty as computed by model helper (before status changes)
         expected_penalty = pending.compute_penalty_amount(now=now)
@@ -767,7 +767,7 @@ class TestFinalizeDueWindows:
         ).count() == 0
 
         # Finalize now (no payments made)
-        now = timezone.now() + dt.timedelta(days=1)
+        now = timezone.localtime(timezone.now()) + dt.timedelta(days=1)
         StatementUseCases.finalize_due_windows(now=now)
 
         # CURRENT must be created
@@ -796,7 +796,7 @@ class TestFinalizeDueWindows:
         current, _ = Statement.objects.get_or_create_current_statement(user)
 
         result = StatementUseCases.finalize_due_windows(
-            now=timezone.now() + dt.timedelta(days=1)
+            now=timezone.localtime(timezone.now()) + dt.timedelta(days=1)
         )
         pending.refresh_from_db()
         current.refresh_from_db()
@@ -823,7 +823,7 @@ class TestFinalizeDueWindows:
         current, _ = Statement.objects.get_or_create_current_statement(user)
 
         # Choose 'now' far after due_date so raw daily penalty would exceed the cap
-        now = timezone.now() + dt.timedelta(days=365)
+        now = timezone.localtime(timezone.now()) + dt.timedelta(days=365)
         expected_cap = int(abs(debt) * STATEMENT_MAX_PENALTY_RATE)
 
         StatementUseCases.finalize_due_windows(now=now)
@@ -855,7 +855,7 @@ class TestFinalizeDueWindows:
                 StatementLineType.PAYMENT, abs(int(stmt.closing_balance)) + 1
             )
         # close to pending, already overdue
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         stmt.status = StatementStatus.PENDING_PAYMENT
         stmt.closed_at = now - dt.timedelta(days=10)
         stmt.due_date = now - dt.timedelta(days=3)
@@ -888,7 +888,7 @@ class TestFinalizeDueWindows:
         )
         current, _ = Statement.objects.get_or_create_current_statement(user)
 
-        now = timezone.now() + dt.timedelta(days=10)
+        now = timezone.localtime(timezone.now()) + dt.timedelta(days=10)
         # First run
         StatementUseCases.finalize_due_windows(now=now)
         pen_count_1 = current.lines.filter(
@@ -928,7 +928,7 @@ class TestFinalizeDueWindows:
         stmt.add_line(StatementLineType.PURCHASE, 150_000)
         stmt.refresh_from_db()
 
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         stmt.status = StatementStatus.PENDING_PAYMENT
         stmt.closed_at = now - dt.timedelta(days=2)
         stmt.due_date = now + dt.timedelta(days=3)  # not due yet
@@ -1035,7 +1035,9 @@ class TestFinalizeDueWindows:
         """
         active_credit_limit_factory(user=user, is_active=True, expiry_days=30)
         Statement.objects.get_or_create_current_statement(user)
-        res = StatementUseCases.finalize_due_windows(now=timezone.now())
+        res = StatementUseCases.finalize_due_windows(
+            now=timezone.localtime(timezone.now())
+            )
         assert (res.finalized_count, res.closed_without_penalty_count,
                 res.closed_with_penalty_count) == (0, 0, 0)
 
@@ -1050,7 +1052,7 @@ class TestSumPaymentsHelper:
     ):
         # three payments: before, inside, after
         stmt = current_statement_factory(user)
-        t0 = timezone.now()
+        t0 = timezone.localtime(timezone.now())
         inside_amount = 50_000
 
         # before
@@ -1080,7 +1082,7 @@ class TestSumPaymentsHelper:
         Payments at exactly 'start' timestamp should be included.
         """
         stmt = current_statement_factory(user)
-        t0 = timezone.now()
+        t0 = timezone.localtime(timezone.now())
 
         # Put one payment exactly at start, and one outside
         orig_now = timezone.now
@@ -1103,7 +1105,7 @@ class TestSumPaymentsHelper:
             self, user, current_statement_factory
     ):
         stmt = current_statement_factory(user)
-        t0 = timezone.now()
+        t0 = timezone.localtime(timezone.now())
         orig_now = timezone.now
         try:
             timezone.now = lambda: t0
@@ -1124,7 +1126,7 @@ class TestSumPaymentsHelper:
         stmt.add_line(StatementLineType.PAYMENT, 10_000)
         stmt.add_line(StatementLineType.PAYMENT, 20_000)
 
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         # end <= start → zero
         s1 = StatementUseCases._sum_payments_on_current_during_window(
             current_statement=stmt, start=now,
@@ -1146,8 +1148,8 @@ class TestSumPaymentsHelper:
         With a valid time window but no PAYMENT lines, the sum must be zero.
         """
         stmt = current_statement_factory(user)
-        start = timezone.now() - dt.timedelta(days=1)
-        end = timezone.now()
+        start = timezone.localtime(timezone.now()) - dt.timedelta(days=1)
+        end = timezone.localtime(timezone.now())
         s = StatementUseCases._sum_payments_on_current_during_window(
             current_statement=stmt, start=start, end=end
         )
@@ -1257,7 +1259,7 @@ class TestSumIgnoresNonPayments:
             self, user, current_statement_factory
     ):
         stmt = current_statement_factory(user)
-        t0 = timezone.now()
+        t0 = timezone.localtime(timezone.now())
 
         # Insert non-payment lines around/inside window
         orig_now = timezone.now
@@ -1294,7 +1296,7 @@ class TestPenaltySign:
         current, _ = Statement.objects.get_or_create_current_statement(user)
 
         # Force overdue far enough to ensure a positive penalty amount > 0
-        now = timezone.now() + dt.timedelta(days=30)
+        now = timezone.localtime(timezone.now()) + dt.timedelta(days=30)
         StatementUseCases.finalize_due_windows(now=now)
 
         pen = current.lines.filter(type=StatementLineType.PENALTY).last()

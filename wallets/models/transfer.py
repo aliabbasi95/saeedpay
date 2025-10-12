@@ -72,7 +72,9 @@ class WalletTransferRequest(BaseModel):
                     "Reference code generation failed. Please try again."
                 )
         if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(minutes=1)
+            self.expires_at = timezone.localtime(
+                timezone.now()
+                ) + timezone.timedelta(minutes=1)
         super().save(*args, **kwargs)
 
     def __str__(self):

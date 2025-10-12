@@ -40,7 +40,7 @@ class StoreApiKey(models.Model):
     def regenerate(self):
         key, key_hash = self.generate_key_and_hash()
         self.key_hash = key_hash
-        self.last_regenerated_at = timezone.now()
+        self.last_regenerated_at = timezone.localtime(timezone.now())
         self.is_active = True
         self.save()
         return key

@@ -48,6 +48,6 @@ class TestWalletModel:
         wallet = Wallet.objects.create(
             user=user, kind=WalletKind.CREDIT, owner_type=OwnerType.CUSTOMER
         )
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         assert now - wallet.created_at < timedelta(seconds=5)
         assert now - wallet.updated_at < timedelta(seconds=5)

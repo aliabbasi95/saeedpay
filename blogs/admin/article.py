@@ -186,7 +186,7 @@ class ArticleAdmin(BaseAdmin):
         """
         Publish selected articles. Only set published_at if it's null to preserve original schedule.
         """
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         updated = queryset.filter(published_at__isnull=True).update(
             status="published", published_at=now
         )

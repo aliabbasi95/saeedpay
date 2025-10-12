@@ -83,9 +83,9 @@ class TestClosingStatement:
             user=user, year=today.year, month=today.month,
             status=StatementStatus.CURRENT
         )
-        before = timezone.now()
+        before = timezone.localtime(timezone.now())
         stmt.close_statement()
-        after = timezone.now()
+        after = timezone.localtime(timezone.now())
         stmt.refresh_from_db()
         assert stmt.status == StatementStatus.PENDING_PAYMENT
         assert stmt.closed_at is not None and before <= stmt.closed_at <= after
@@ -138,7 +138,7 @@ class TestIsWithinDue:
             user=user, year=today.year, month=today.month,
             status=StatementStatus.PENDING_PAYMENT
         )
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         stmt.due_date = now + timedelta(days=2)
         assert stmt.is_within_due(now=now) is True
         stmt.due_date = now - timedelta(days=1)
@@ -151,7 +151,7 @@ class TestIsWithinDue:
         stmt = Statement.objects.create(
             user=user, year=today.year, month=today.month,
             status=StatementStatus.PENDING_PAYMENT,
-            due_date=timezone.now() + timedelta(seconds=1),
+            due_date=timezone.localtime(timezone.now()) + timedelta(seconds=1),
         )
         assert stmt.is_within_due() is True
 
@@ -162,7 +162,7 @@ class TestIsWithinDue:
             user=user, year=today.year, month=today.month,
             status=StatementStatus.PENDING_PAYMENT
         )
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         stmt.due_date = now
         assert stmt.is_within_due(now=now) is True
 
@@ -259,7 +259,7 @@ class TestPenaltyComputation:
             status=StatementStatus.PENDING_PAYMENT
         )
         stmt.closing_balance = -2_000_000
-        stmt.due_date = timezone.now() - timedelta(days=5)
+        stmt.due_date = timezone.localtime(timezone.now()) - timedelta(days=5)
         expected = int(2_000_000 * STATEMENT_PENALTY_RATE * 5)
         cap = int(2_000_000 * STATEMENT_MAX_PENALTY_RATE)
         computed = stmt.compute_penalty_amount()
@@ -274,7 +274,7 @@ class TestPenaltyComputation:
         s1 = Statement.objects.create(
             user=user, year=y0, month=m0, status=StatementStatus.CURRENT,
             closing_balance=-1,
-            due_date=timezone.now() - timedelta(days=1),
+            due_date=timezone.localtime(timezone.now()) - timedelta(days=1),
         )
         assert s1.compute_penalty_amount() == 0
         s2 = Statement.objects.create(
@@ -286,13 +286,13 @@ class TestPenaltyComputation:
         s3 = Statement.objects.create(
             user=user, year=y2, month=m2,
             status=StatementStatus.PENDING_PAYMENT, closing_balance=0,
-            due_date=timezone.now() - timedelta(days=1),
+            due_date=timezone.localtime(timezone.now()) - timedelta(days=1),
         )
         assert s3.compute_penalty_amount() == 0
         s4 = Statement.objects.create(
             user=user, year=y3, month=m3,
             status=StatementStatus.PENDING_PAYMENT, closing_balance=-1000,
-            due_date=timezone.now() + timedelta(days=1),
+            due_date=timezone.localtime(timezone.now()) + timedelta(days=1),
         )
         assert s4.compute_penalty_amount() == 0
 
@@ -303,7 +303,7 @@ class TestPenaltyComputation:
             status=StatementStatus.PENDING_PAYMENT
         )
         stmt.closing_balance = -1_000_000
-        base_due = timezone.now()
+        base_due = timezone.localtime(timezone.now())
         stmt.due_date = base_due
         custom_now = base_due + timedelta(days=3)
         expected_raw = int(1_000_000 * STATEMENT_PENALTY_RATE * 3)

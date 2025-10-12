@@ -69,7 +69,7 @@ def _make_pending_past_due_on_prev_month(
         stmt.refresh_from_db()
 
     # Close into pending with past-due dates
-    now = timezone.now()
+    now = timezone.localtime(timezone.now())
     stmt.status = StatementStatus.PENDING_PAYMENT
     stmt.closed_at = now - dt.timedelta(days=closed_days_ago)
     stmt.due_date = now - dt.timedelta(days=grace_days_ago)

@@ -90,7 +90,7 @@ class TestPaymentRequestModel:
             pr2.full_clean()
 
     def test_expires_at_can_be_set(self, store):
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         pr = PaymentRequest.objects.create(
             store=store, amount=8888, return_url="https://expire.com",
             expires_at=now

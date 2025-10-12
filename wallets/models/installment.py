@@ -50,7 +50,9 @@ class Installment(BaseModel):
 
     @property
     def is_overdue(self) -> bool:
-        return self.status == InstallmentStatus.UNPAID and self.due_date < timezone.now().date()
+        return self.status == InstallmentStatus.UNPAID and self.due_date < timezone.localtime(
+            timezone.now()
+            ).date()
 
     @property
     def current_penalty(self) -> int:
@@ -59,7 +61,7 @@ class Installment(BaseModel):
     def calculate_penalty(self, daily_rate: float = 0.005) -> int:
         if self.status == InstallmentStatus.PAID:
             return self.penalty_amount
-        today = timezone.now().date()
+        today = timezone.localtime(timezone.now()).date()
         if self.due_date >= today:
             return 0
         overdue_days = (today - self.due_date).days
@@ -71,7 +73,7 @@ class Installment(BaseModel):
         self.amount_paid = amount_paid
         self.penalty_amount = penalty_paid
         self.transaction = transaction
-        self.paid_at = timezone.now()
+        self.paid_at = timezone.localtime(timezone.now())
         self.status = InstallmentStatus.PAID
         self.save()
 

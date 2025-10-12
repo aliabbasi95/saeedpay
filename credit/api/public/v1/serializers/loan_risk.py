@@ -29,7 +29,7 @@ class LoanRiskOTPRequestSerializer(serializers.Serializer):
             )
 
         # Check auth stage - must be IDENTITY_VERIFIED (Stage 3)
-        if profile.auth_stage != AuthenticationStage.IDENTITY_VERIFIED:
+        if profile.auth_stage < AuthenticationStage.VIDEO_VERIFIED:
             raise serializers.ValidationError(
                 {
                     "non_field_errors": [

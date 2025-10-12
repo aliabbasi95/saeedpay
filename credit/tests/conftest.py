@@ -189,7 +189,7 @@ def pending_past_due_statement_factory(db, jalali_helpers, statement_factory):
             days_since_closed: int = 10,
     ) -> Statement:
         py, pm = jalali_helpers.prev_month()
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
 
         stmt = statement_factory(
             user=user,

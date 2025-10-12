@@ -10,7 +10,7 @@ from wallets.utils.choices import PaymentRequestStatus
 
 
 def expire_pending_payment_requests():
-    now = timezone.now()
+    now = timezone.localtime(timezone.now())
     expired = PaymentRequest.objects.filter(
         status__in=[
             PaymentRequestStatus.CREATED,

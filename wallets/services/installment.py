@@ -40,7 +40,7 @@ def generate_installments_for_plan(plan: InstallmentPlan) -> list[Installment]:
     base_amount = total_amount // count
     remaining = total_amount - (base_amount * count)
 
-    start_date = timezone.now().date()
+    start_date = timezone.localtime(timezone.now()).date()
 
     for i in range(count):
         due_date = start_date + relativedelta(months=period_months * i)

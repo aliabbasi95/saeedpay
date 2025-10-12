@@ -11,36 +11,31 @@ from profiles.models.kyc_video_asset import KYCVideoAsset
 
 
 class RetentionStatusFilter(admin.SimpleListFilter):
-    """Filter by retention bucket: Infinite, Expiring (future date), Expired."""
-    title = _("Retention status")
+    title = _("وضعیت نگهداشت")
     parameter_name = "retention_status"
 
     def lookups(self, request, model_admin):
         return (
-            ("infinite", _("Infinite")),
-            ("expiring", _("Expiring")),
-            ("expired", _("Expired")),
+            ("infinite", _("نامحدود")),
+            ("expiring", _("در حال انقضا")),
+            ("expired", _("منقضی شده"))
         )
 
-    def queryset(self, request, queryset):
-        val = self.value()
+    def queryset(self, request, qs):
         now = timezone.now()
-        if val == "infinite":
-            return queryset.filter(retention_until__isnull=True)
-        if val == "expiring":
-            return queryset.filter(retention_until__gt=now)
-        if val == "expired":
-            return queryset.filter(
+        if self.value() == "infinite":
+            return qs.filter(retention_until__isnull=True)
+        if self.value() == "expiring":
+            return qs.filter(retention_until__gt=now)
+        if self.value() == "expired":
+            return qs.filter(
                 retention_until__lte=now, retention_until__isnull=False
             )
-        return queryset
+        return qs
 
 
 @admin.register(KYCVideoAsset)
 class KYCVideoAssetAdmin(admin.ModelAdmin):
-    """
-    Clean and practical admin for durable KYC video assets.
-    """
     list_display = (
         "id",
         "profile",
@@ -49,30 +44,32 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
         "size_human",
         "sha256_short",
         "attempt_link",
-        "created_at",
         "file_link",
+        "jalali_creation_time",
+        "jalali_update_time",
     )
-    list_filter = (
-        "is_approved_copy",
-        RetentionStatusFilter,
-        ("created_at", admin.DateFieldListFilter),
-    )
-    search_fields = (
-        "id",
-        "profile__id",
-        "created_by_attempt__id",
-        "sha256",
-        "file",
-    )
+    list_filter = ("is_approved_copy", RetentionStatusFilter,
+                   ("created_at", admin.DateFieldListFilter))
+    search_fields = ("id", "profile__id", "created_by_attempt__id", "sha256",
+                     "file")
+    ordering = ("-created_at",)
+    date_hierarchy = "created_at"
+    list_select_related = ("profile", "created_by_attempt")
+
     readonly_fields = (
+        "retention_badge",
         "sha256",
         "size",
-        "retention_badge",
         "size_human",
         "file_link",
+        "created_by_attempt",
         "created_at",
+        "updated_at",
+        "jalali_creation_time",
+        "jalali_update_time",
         "updated_info",
     )
+
     fields = (
         "profile",
         "file",
@@ -84,24 +81,18 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
         "size",
         "size_human",
         "created_by_attempt",
-        "created_at",
+        ("created_at", "jalali_creation_time"),
+        ("updated_at", "jalali_update_time"),
         "updated_info",
     )
-    date_hierarchy = "created_at"
-    ordering = ("-created_at",)
 
-    # ----- Computed/pretty fields -----
-
+    # ---------- computed displays ----------
+    @admin.display(description="SHA256 کوتاه")
     def sha256_short(self, obj: KYCVideoAsset) -> str:
-        """Shortened SHA256 for listing."""
-        if not obj.sha256:
-            return "-"
-        return f"{obj.sha256[:10]}…"
+        return f"{obj.sha256[:10]}…" if obj.sha256 else "-"
 
-    sha256_short.short_description = "SHA256"
-
+    @admin.display(description="حجم")
     def size_human(self, obj: KYCVideoAsset) -> str:
-        """Display size in a human-readable format."""
         size = obj.size or 0
         for unit in ("B", "KB", "MB", "GB"):
             if size < 1024:
@@ -109,54 +100,43 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
             size /= 1024.0
         return f"{size:.2f} TB"
 
-    size_human.short_description = "Size"
-
+    @admin.display(description="نگهداشت")
     def retention_badge(self, obj: KYCVideoAsset) -> str:
-        """Color-coded retention: Infinite / Expiring in Xd / Expired."""
         if obj.retention_until is None:
-            return format_html('<span style="color:#0a7">Infinite</span>')
+            return format_html('<span style="color:#0a7">نامحدود</span>')
         now = timezone.now()
         if obj.retention_until <= now:
-            return format_html('<span style="color:#c00">Expired</span>')
+            return format_html('<span style="color:#c00">منقضی شده</span>')
         days = (obj.retention_until.date() - now.date()).days
         return format_html(
-            '<span style="color:#a70">Expiring in {}d</span>', days
+            '<span style="color:#a70">انقضا در {} روز</span>', days
         )
 
-    retention_badge.short_description = "Retention"
-
+    @admin.display(description="Attempt")
     def attempt_link(self, obj: KYCVideoAsset) -> str:
-        """Clickable link to the creating attempt, if present."""
         if not obj.created_by_attempt_id:
             return "-"
         return format_html(
-            '<a href="/admin/{app}/{model}/{pk}/" target="_blank">#{}</a>',
+            '<a href="/admin/profiles/profilekycattempt/{}/" target="_blank">#{}</a>',
             obj.created_by_attempt_id,
-            app="profiles",
-            model="profilekycattempt",
-            pk=obj.created_by_attempt_id,
+            obj.created_by_attempt_id,
         )
 
-    attempt_link.short_description = "Attempt"
-
+    @admin.display(description="فایل")
     def file_link(self, obj: KYCVideoAsset) -> str:
-        """Safe link to view/download the file (if storage provides a URL)."""
         try:
             url = obj.file.url
-            return format_html('<a href="{}" target="_blank">Open</a>', url)
+            return format_html(
+                '<a href="{}" target="_blank">باز کردن</a>', url
+            )
         except Exception:
             return "-"
 
-    file_link.short_description = "File"
-
+    @admin.display(description="مسیر ذخیره‌سازی")
     def updated_info(self, obj: KYCVideoAsset) -> str:
-        """Compact debug info."""
         return f"path={obj.file.name}"
 
-    updated_info.short_description = "Storage path"
-
-    # ----- Actions -----
-
+    # ---------- actions ----------
     actions = [
         "action_mark_approved",
         "action_mark_not_approved",
@@ -166,61 +146,58 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
         "action_purge_files_and_records",
     ]
 
-    @admin.action(description="Mark as approved copy (keep retention as-is)")
+    @admin.action(description="نشانه‌گذاری به‌عنوان نسخهٔ مورد تأیید")
     def action_mark_approved(self, request, queryset):
         updated = queryset.update(is_approved_copy=True)
         self.message_user(
-            request, f"Marked {updated} asset(s) as approved.",
+            request, f"{updated} مورد به‌عنوان مورد تأیید علامت‌گذاری شد.",
             level=messages.SUCCESS
         )
 
-    @admin.action(description="Mark as not approved")
+    @admin.action(description="لغو تأیید نسخه")
     def action_mark_not_approved(self, request, queryset):
         updated = queryset.update(is_approved_copy=False)
         self.message_user(
-            request, f"Marked {updated} asset(s) as not approved.",
-            level=messages.SUCCESS
+            request, f"تأیید {updated} مورد لغو شد.", level=messages.SUCCESS
         )
 
-    @admin.action(description="Set infinite retention")
+    @admin.action(description="نگهداشت نامحدود")
     def action_set_infinite_retention(self, request, queryset):
-        now = timezone.now()  # noqa: F841
         count = 0
         for obj in queryset:
             obj.mark_retention(days=None, approved=obj.is_approved_copy)
             count += 1
         self.message_user(
-            request, f"Updated {count} asset(s) to infinite retention.",
+            request, f"نگهداشت نامحدود برای {count} مورد تنظیم شد.",
             level=messages.SUCCESS
         )
 
-    @admin.action(description="Set retention to 30 days")
+    @admin.action(description="تنظیم نگهداشت ۳۰ روز")
     def action_set_retention_30d(self, request, queryset):
         count = 0
         for obj in queryset:
             obj.mark_retention(days=30, approved=obj.is_approved_copy)
             count += 1
         self.message_user(
-            request, f"Updated {count} asset(s) retention to 30 days.",
+            request, f"نگهداشت ۳۰ روز برای {count} مورد تنظیم شد.",
             level=messages.SUCCESS
         )
 
-    @admin.action(description="Set retention to 90 days")
+    @admin.action(description="تنظیم نگهداشت ۹۰ روز")
     def action_set_retention_90d(self, request, queryset):
         count = 0
         for obj in queryset:
             obj.mark_retention(days=90, approved=obj.is_approved_copy)
             count += 1
         self.message_user(
-            request, f"Updated {count} asset(s) retention to 90 days.",
+            request, f"نگهداشت ۹۰ روز برای {count} مورد تنظیم شد.",
             level=messages.SUCCESS
         )
 
-    @admin.action(description="Purge files & delete selected records")
+    @admin.action(description="حذف فایل‌ها و رکوردهای انتخاب‌شده")
     def action_purge_files_and_records(self, request, queryset):
         deleted = 0
         for obj in queryset:
-            # Best-effort file deletion
             try:
                 if obj.file:
                     obj.file.delete(save=False)
@@ -229,5 +206,5 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
             obj.delete()
             deleted += 1
         self.message_user(
-            request, f"Purged {deleted} asset(s).", level=messages.WARNING
+            request, f"{deleted} مورد حذف شد.", level=messages.WARNING
         )

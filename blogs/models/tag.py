@@ -38,7 +38,8 @@ class Tag(BaseModel):
         """
         return (
             self.articles.filter(
-                status="published", published_at__lte=timezone.now()
+                status="published",
+                published_at__lte=timezone.localtime(timezone.now())
             )
             .distinct()
             .count()
