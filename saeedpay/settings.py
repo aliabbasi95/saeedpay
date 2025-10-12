@@ -125,7 +125,7 @@ KYC_VIDEO_CHECK_MAX_RETRIES = config(
     "KYC_VIDEO_CHECK_MAX_RETRIES", default=6, cast=int
 )
 KYC_VIDEO_CHECK_RETRY_DELAY = config(
-    "KYC_VIDEO_CHECK_RETRY_DELAY", default=120, cast=int
+    "KYC_VIDEO_CHECK_RETRY_DELAY", default=30, cast=int
 )
 KYC_SHAHKAR_MAX_RETRIES = config(
     "KYC_SHAHKAR_MAX_RETRIES", default=3, cast=int
@@ -434,7 +434,7 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 15 * 60,  # seconds
     },
     "rehydrate-video-kyc-checks-every-15m": {
-        "task": "profiles.tasks.rehydrate_video_kyc_checks",
+        "task": "profiles.tasks.rehydrate_video_auth_checks",
         "schedule": 15 * 60,  # seconds
     },
     # profiles / KYC videos GC

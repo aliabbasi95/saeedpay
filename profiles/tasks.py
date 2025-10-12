@@ -428,7 +428,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
         result = service.get_video_verification_result(video_task_id)
     except Exception as e:
         max_retries = getattr(settings, "KYC_VIDEO_CHECK_MAX_RETRIES", 6)
-        retry_delay = getattr(settings, "KYC_VIDEO_CHECK_RETRY_DELAY", 120)
+        retry_delay = getattr(settings, "KYC_VIDEO_CHECK_RETRY_DELAY", 30)
         attempt.bump_retry()
 
         with transaction.atomic():
@@ -454,7 +454,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
         "network"
     }:
         max_retries = getattr(settings, "KYC_VIDEO_CHECK_MAX_RETRIES", 6)
-        retry_delay = getattr(settings, "KYC_VIDEO_CHECK_RETRY_DELAY", 120)
+        retry_delay = getattr(settings, "KYC_VIDEO_CHECK_RETRY_DELAY", 30)
         attempt.bump_retry()
         with transaction.atomic():
             try:

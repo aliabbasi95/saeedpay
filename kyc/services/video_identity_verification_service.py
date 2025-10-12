@@ -2,11 +2,11 @@
 
 import logging
 import os
-import time
-import requests
-from typing import Optional, Dict, Any, Callable
-from django.conf import settings
+from typing import Optional, Dict, Any
 from urllib.parse import urljoin
+
+import requests
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class VideoIdentityVerificationService:
         if not self.base_url:
             logger.warning(
                 "Video Identity Verification service: base_url not configured"
-                )
+            )
 
     def verify_idcard_video(
             self,
@@ -74,7 +74,7 @@ class VideoIdentityVerificationService:
         # Prepare request
         url = urljoin(
             self.base_url.rstrip("/") + "/", "api/vvs/video/verify-idcard-img"
-            )
+        )
         headers = {
             "Authorization": f"Bearer {access_token}",
             "User-Agent": "SaeedPay-KYC-Service/1.0"
@@ -129,7 +129,7 @@ class VideoIdentityVerificationService:
             else:
                 logger.error(
                     f"Unexpected status {response.status_code}: {response.text}"
-                    )
+                )
                 return {
                     "success": False, "error": response.text,
                     "status": response.status_code
@@ -142,7 +142,7 @@ class VideoIdentityVerificationService:
             return {"success": False, "error": str(e), "status": "exception"}
 
     def get_verification_result(self, unique_id: str, access_token: str) -> \
-    Dict[str, Any]:
+            Dict[str, Any]:
         """
         Fetch the result of a video-based identity verification by uniqueId.
         Args:
@@ -154,7 +154,7 @@ class VideoIdentityVerificationService:
         if not access_token:
             logger.error(
                 "Access token is required for fetching verification result"
-                )
+            )
             return {
                 "success": False,
                 "error": "access_token_required",
@@ -163,7 +163,7 @@ class VideoIdentityVerificationService:
 
         url = urljoin(
             self.base_url.rstrip("/") + "/", "api/vvs/video/verify/result"
-            )
+        )
         headers = {
             "Authorization": f"Bearer {access_token}",
             "User-Agent": "SaeedPay-KYC-Service/1.0",
@@ -199,7 +199,7 @@ class VideoIdentityVerificationService:
                         "spoofing": details.get("spoofing"),
                         "spoofingDoubleCheck": details.get(
                             "spoofingDoubleCheck"
-                            ),
+                        ),
                         "verifyStatus": verify_status,
                         "verifyStatusMsg": details.get("verifyStatusMsg"),
                         "reason": details.get("reason", []),
@@ -216,18 +216,26 @@ class VideoIdentityVerificationService:
                 # Result not yet available
                 logger.info(
                     f"Verification result not yet available for {unique_id}"
-                    )
+                )
                 return {
                     "success": False,
                     "error": "Result not yet available",
                     "status": 404,
+                }
+            elif response.status_code == 202:
+                retry_after = response.headers.get("Retry-After")
+                return {
+                    "success": False,
+                    "status": "in_progress",
+                    "error": "Verification still in progress",
+                    "retry_after": retry_after,
                 }
             else:
                 try:
                     err_json = response.json()
                     logger.error(
                         f"Unexpected status {response.status_code}: {err_json}"
-                        )
+                    )
                     return {
                         "success": False,
                         "error": err_json,
