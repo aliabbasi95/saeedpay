@@ -194,6 +194,19 @@ class LoanRiskReport(BaseModel):
             ]
         )
 
+        # Trigger credit limit grant (post-commit, idempotent)
+        from credit.services.credit_limit_service import (
+            maybe_grant_credit_after_risk_report,
+        )
+        try:
+            maybe_grant_credit_after_risk_report(
+                profile=self.profile,
+                risk_level=self.risk_level,
+            )
+        except Exception:
+            # Hardening: never let credit grant error break report finalization
+            pass
+
     def mark_expired(self, error_message: str, error_code: str = None) -> None:
         """Mark report as expired with error details."""
         self.status = LoanReportStatus.EXPIRED
