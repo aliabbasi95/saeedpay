@@ -60,6 +60,7 @@ ADMIN_REORDER = (
             "credit.CreditLimit",
             "credit.Statement",
             "credit.StatementLine",
+            "credit.LoanRiskReport",
         ),
     },
     {

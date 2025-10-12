@@ -74,8 +74,6 @@ class ProfileAdmin(admin.ModelAdmin):
     inlines = (ProfileKYCAttemptInline,)
     autocomplete_fields = ("user",)
     list_select_related = ("user",)
-    list_per_page = 40
-    save_on_top = True
 
     readonly_fields = (
         "created_at",
