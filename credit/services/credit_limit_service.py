@@ -242,8 +242,14 @@ def maybe_grant_credit_after_risk_report(*, profile, risk_level: str) -> dict:
     if profile.auth_stage != AuthenticationStage.VIDEO_VERIFIED:
         return {"granted": False, "reason": "auth_stage_not_video_verified"}
 
-    eligible = {LoanRiskLevel.A1, LoanRiskLevel.A2, LoanRiskLevel.B1,
-                LoanRiskLevel.B2}
+    eligible = {
+        LoanRiskLevel.A1,
+        LoanRiskLevel.A2,
+        LoanRiskLevel.B1,
+        LoanRiskLevel.B3,
+        LoanRiskLevel.B2,
+        LoanRiskLevel.B3,
+    }
     if risk_level not in eligible:
         return {"granted": False, "reason": "risk_level_not_eligible"}
 

@@ -139,8 +139,11 @@ CREDIT_DEFAULT_APPROVED_LIMIT = config(
 CREDIT_LIMIT_BY_RISK_LEVEL = {
     "A1": 50_000_000,
     "A2": 50_000_000,
+    "A3": 50_000_000,
     "B1": 50_000_000,
     "B2": 50_000_000,
+    "B3": 50_000_000,
+    "C3": 50_000_000,
 }
 CREDIT_LIMIT_FALLBACK = 0
 
@@ -240,7 +243,7 @@ REST_FRAMEWORK = {
         "auth-change-password": "30/hour",
         "auth-reset-password": "10/hour",
         "auth-otp": "60/hour",
-        "otp-by-phone": "5/hour",
+        "otp-by-phone": "100/hour",
 
         # ── Blogs / Comments ─────────────────────────────────────────────────
         "comments": "300/hour",

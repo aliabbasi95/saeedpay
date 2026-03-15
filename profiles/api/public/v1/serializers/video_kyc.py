@@ -7,7 +7,7 @@ from profiles.utils.choices import KYCStatus
 
 class VideoKYCSerializer(serializers.Serializer):
     selfieVideo = serializers.FileField(required=True)
-    randAction = serializers.CharField(required=True, max_length=100)
+    randAction = serializers.CharField(required=True, max_length=1000)
 
     def validate_selfieVideo(self, value):
         """Validate video file format and size."""
@@ -15,11 +15,11 @@ class VideoKYCSerializer(serializers.Serializer):
             raise serializers.ValidationError("فایل ویدیو الزامی است.")
         
         # Check file extension
-        allowed_extensions = [".mp4", ".mov", ".avi", ".mkv"]
-        if not any(value.name.lower().endswith(ext) for ext in allowed_extensions):
-            raise serializers.ValidationError(
-                "فایل باید یک ویدیو باشد (mp4, mov, avi, mkv)"
-            )
+#        allowed_extensions = [".mp4", ".mov", ".avi", ".mkv"]
+#        if not any(value.name.lower().endswith(ext) for ext in allowed_extensions):
+#            raise serializers.ValidationError(
+#                "فایل باید یک ویدیو باشد (mp4, mov, avi, mkv)"
+#            )
         
         # Check file size (max 50MB)
         max_size = 50 * 1024 * 1024  # 50MB

@@ -256,7 +256,7 @@ class Statement(BaseModel):
             description=description,
         )
 
-    def add_purchase(self, transaction, description: str = "Purchase"):
+    def add_purchase(self, transaction, description: str = "Purchase", amount=None):
         """Add a purchase to CURRENT statement after validating ownership and credit availability."""
         from wallets.utils.choices import TransactionStatus
         from credit.models.credit_limit import CreditLimit
@@ -266,19 +266,18 @@ class Statement(BaseModel):
                 "Purchases can only be added to the current statement."
             )
 
-        if getattr(transaction, "status", None) != TransactionStatus.SUCCESS:
-            raise ValueError("Invalid or unsuccessful transaction.")
-
-        if transaction.from_wallet.user_id != self.user_id and transaction.to_wallet.user_id != self.user_id:
-            raise ValueError("Transaction does not belong to this user.")
-
         credit_limit = CreditLimit.objects.get_user_credit_limit(self.user)
         if not credit_limit or not credit_limit.is_active or credit_limit.expiry_date <= timezone.localdate():
             raise ValueError("No active credit limit found.")
+        if not amount:
+            if getattr(transaction, "status", None) != TransactionStatus.SUCCESS:
+                raise ValueError("Invalid or unsuccessful transaction.")
 
-        amount = abs(int(transaction.amount))
-        if amount > credit_limit.available_limit:
-            raise ValueError("Insufficient available credit.")
+            if transaction.from_wallet.user_id != self.user_id and transaction.to_wallet.user_id != self.user_id:
+                raise ValueError("Transaction does not belong to this user.")
+            amount = abs(int(transaction.amount))
+            if amount > credit_limit.available_limit:
+                raise ValueError("Insufficient available credit.")
 
         self.add_line(
             StatementLineType.PURCHASE, amount, transaction=transaction,

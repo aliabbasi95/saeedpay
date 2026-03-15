@@ -29,14 +29,30 @@ class LoanReportStatus(models.TextChoices):
     EXPIRED = 'EXPIRED', 'منقضی شده'
 
 
+
 class LoanRiskLevel(models.TextChoices):
-    """Credit risk levels."""
-    A1 = 'A1', 'ریسک بسیار پایین'
-    A2 = 'A2', 'ریسک پایین'
-    B1 = 'B1', 'ریسک کم'
-    B2 = 'B2', 'ریسک متوسط پایین'
-    C1 = 'C1', 'ریسک متوسط'
-    C2 = 'C2', 'ریسک متوسط بالا'
-    D = 'D', 'ریسک بالا'
-    E = 'E', 'ریسک بسیار بالا'
-    UNKNOWN = 'UNKNOWN', 'نامشخص'
+    """Credit risk levels (granular)."""
+
+    # A — Excellent (Very Low Risk)
+    A1 = "A1", _("ریسک بسیار پایین (A1)")
+    A2 = "A2", _("ریسک بسیار پایین (A2)")
+    A3 = "A3", _("ریسک بسیار پایین (A3)")
+
+    # B — Good (Low Risk)
+    B1 = "B1", _("ریسک پایین (B1)")
+    B2 = "B2", _("ریسک پایین (B2)")
+    B3 = "B3", _("ریسک پایین (B3)")
+
+    # C — Fair (Medium Risk)
+    C1 = "C1", _("ریسک متوسط (C1)")
+    C2 = "C2", _("ریسک متوسط (C2)")
+    C3 = "C3", _("ریسک متوسط (C3)")
+
+    # D — High Risk
+    D = "D", _("ریسک بالا (D)")
+
+    # E — Very High Risk
+    E = "E", _("ریسک بسیار بالا (E)")
+
+    # Unknown / Not scored
+    UNKNOWN = "UNKNOWN", _("نامشخص")
