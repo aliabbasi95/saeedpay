@@ -5,32 +5,38 @@ from django.utils import timezone
 
 from wallets.models import PaymentRequest
 from wallets.services import expire_pending_transfer_requests
-from wallets.services.payment import rollback_payment
+from wallets.services.payment import (
+    check_and_expire_payment_request,
+    rollback_payment,
+)
 from wallets.utils.choices import PaymentRequestStatus
 
 
 def expire_pending_payment_requests():
     now = timezone.localtime(timezone.now())
-    expired = PaymentRequest.objects.filter(
+    expired_requests = PaymentRequest.objects.filter(
         status__in=[
             PaymentRequestStatus.CREATED,
             PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION,
         ],
         expires_at__lt=now,
     )
-    for req in expired:
-        req.mark_expired()
+    for payment_request in expired_requests:
+        check_and_expire_payment_request(
+            payment_request,
+            raise_exception=False,
+        )
 
 
 def cleanup_cancelled_and_expired_requests():
-    for req in PaymentRequest.objects.filter(
-            status__in=[
-                PaymentRequestStatus.EXPIRED,
-                PaymentRequestStatus.CANCELLED
-            ]
-    ):
-        # Works for both CASH (reversal) and CREDIT (release authorization)
-        rollback_payment(req)
+    stale_requests = PaymentRequest.objects.filter(
+        status__in=[
+            PaymentRequestStatus.EXPIRED,
+            PaymentRequestStatus.CANCELLED,
+        ]
+    )
+    for payment_request in stale_requests:
+        rollback_payment(payment_request)
 
 
 @shared_task

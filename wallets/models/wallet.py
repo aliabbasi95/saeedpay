@@ -1,4 +1,4 @@
-# wallets/models.py
+# wallets/models/wallet.py
 
 import random
 

@@ -1,3 +1,5 @@
+# wallets/api/public/v1/serializers/__init__.py
+
 from .wallet import WalletSerializer
 from .transaction import TransactionSerializer
 from .payment import (

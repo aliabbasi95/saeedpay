@@ -1,3 +1,5 @@
+# credit/models/__init__.py
+
 from .credit_limit import CreditLimit
 from .statement import Statement
 from .authorization import CreditAuthorization

@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
 from utils.reference import generate_reference_code
-from wallets.models import Wallet
+from wallets.models.wallet import Wallet
 from wallets.utils.choices import TransactionStatus, TransactionPurpose
 
 
@@ -15,32 +15,49 @@ class Transaction(BaseModel):
         unique=True,
         null=True,
         blank=True,
-        verbose_name="کد پیگیری"
+        verbose_name=_("کد پیگیری"),
     )
     status = models.CharField(
         max_length=16,
         choices=TransactionStatus.choices,
         default=TransactionStatus.PENDING,
-        verbose_name=_("وضعیت")
+        verbose_name=_("وضعیت"),
     )
     purpose = models.CharField(
         max_length=32,
         choices=TransactionPurpose.choices,
         verbose_name=_("نوع عملیات"),
         db_index=True,
-        null=True
+        null=True,
+        blank=True,
+    )
+    payment = models.ForeignKey(
+        "wallets.Payment",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="transactions",
+        verbose_name=_("پرداخت مرتبط"),
+    )
+    related_transaction = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="child_transactions",
+        verbose_name=_("تراکنش مرتبط"),
     )
     from_wallet = models.ForeignKey(
         Wallet,
         on_delete=models.CASCADE,
         related_name="outgoing_transactions",
-        verbose_name=_("از کیف پول")
+        verbose_name=_("از کیف پول"),
     )
     to_wallet = models.ForeignKey(
         Wallet,
         on_delete=models.CASCADE,
         related_name="incoming_transactions",
-        verbose_name=_("به کیف پول")
+        verbose_name=_("به کیف پول"),
     )
     amount = models.BigIntegerField(verbose_name=_("مبلغ"))
     payment_request = models.ForeignKey(
@@ -48,7 +65,7 @@ class Transaction(BaseModel):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        verbose_name=_("درخواست پرداخت")
+        verbose_name=_("درخواست پرداخت"),
     )
     description = models.TextField(blank=True)
 
@@ -56,16 +73,17 @@ class Transaction(BaseModel):
         if not self.reference_code:
             for _ in range(5):
                 code = generate_reference_code(prefix="TRX", random_digits=6)
-                if not Transaction.objects.filter(
-                        reference_code=code
-                ).exists():
+                if not Transaction.objects.filter(reference_code=code).exists():
                     self.reference_code = code
                     break
             else:
                 raise Exception(
-                    "Reference code generation failed. Please try again."
+                    "Transaction reference code generation failed."
                 )
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.reference_code or self.pk} | {self.amount}"
 
     class Meta:
         verbose_name = _("تراکنش کیف پول")
@@ -73,16 +91,20 @@ class Transaction(BaseModel):
         indexes = [
             models.Index(
                 fields=["payment_request", "purpose", "status"],
-                name="trx_pr_purpose_status_idx"
+                name="trx_pr_purpose_status_idx",
             ),
             models.Index(
                 fields=["from_wallet_id", "to_wallet_id"],
-                name="trx_from_to_idx"
+                name="trx_from_to_idx",
+            ),
+            models.Index(
+                fields=["payment", "purpose", "status"],
+                name="trx_payment_purpose_status_idx",
             ),
         ]
         constraints = [
-            # amount must be positive
             models.CheckConstraint(
-                check=models.Q(amount__gt=0), name="trx_amount_gt_zero"
+                check=models.Q(amount__gt=0),
+                name="trx_amount_gt_zero",
             ),
         ]

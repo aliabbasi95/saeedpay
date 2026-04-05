@@ -29,6 +29,28 @@ class OwnerType(models.TextChoices):
     SYSTEM = "system", _("سیستم")
 
 
+class PaymentFlowType(models.TextChoices):
+    ONLINE = "online", _("آنلاین")
+    QR_POS = "qr_pos", _("حضوری QR")
+
+
+class PaymentMethod(models.TextChoices):
+    CASH = "cash", _("نقدی")
+    CREDIT = "credit", _("اعتباری")
+
+
+class PaymentStatus(models.TextChoices):
+    CREATED = "created", _("ایجاد شده")
+    AUTHORIZED = "authorized", _("مجاز/هولد شده")
+    AWAITING_MERCHANT_CONFIRMATION = "awaiting_merchant", _(
+        "در انتظار تایید فروشگاه"
+    )
+    COMPLETED = "completed", _("تکمیل شده")
+    CANCELLED = "cancelled", _("لغو شده")
+    EXPIRED = "expired", _("منقضی شده")
+    FAILED = "failed", _("ناموفق")
+
+
 class PaymentRequestStatus(models.TextChoices):
     CREATED = "created", _("در انتظار پرداخت کاربر")
     AWAITING_MERCHANT_CONFIRMATION = "awaiting_merchant", _(

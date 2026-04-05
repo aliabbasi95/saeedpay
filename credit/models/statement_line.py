@@ -31,18 +31,37 @@ class StatementLine(BaseModel):
         on_delete=models.SET_NULL,
         verbose_name=_("تراکنش مرتبط"),
     )
+    payment = models.ForeignKey(
+        "wallets.Payment",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="statement_lines",
+        verbose_name=_("پرداخت مرتبط"),
+    )
+    payment_request = models.ForeignKey(
+        "wallets.PaymentRequest",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="statement_lines",
+        verbose_name=_("درخواست پرداخت مرتبط"),
+    )
     description = models.CharField(
         max_length=255,
         blank=True,
-        verbose_name=_("توضیحات")
+        verbose_name=_("توضیحات"),
     )
 
-    # --- audit / soft-delete / reversal ---
     is_voided = models.BooleanField(
-        default=False, db_index=True, verbose_name=_("باطل‌شده")
+        default=False,
+        db_index=True,
+        verbose_name=_("باطل‌شده"),
     )
     voided_at = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("زمان ابطال")
+        null=True,
+        blank=True,
+        verbose_name=_("زمان ابطال"),
     )
     voided_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -53,7 +72,9 @@ class StatementLine(BaseModel):
         verbose_name=_("ابطال‌کننده"),
     )
     void_reason = models.CharField(
-        max_length=255, blank=True, verbose_name=_("دلیل ابطال")
+        max_length=255,
+        blank=True,
+        verbose_name=_("دلیل ابطال"),
     )
     reverses = models.ForeignKey(
         "self",
@@ -64,7 +85,6 @@ class StatementLine(BaseModel):
         verbose_name=_("معکوسِ سطر"),
     )
 
-    # managers
     class ActiveLineManager(models.Manager):
         def get_queryset(self):
             return super().get_queryset().filter(is_voided=False)
@@ -72,7 +92,6 @@ class StatementLine(BaseModel):
     objects = ActiveLineManager()
     all_objects = models.Manager()
 
-    # ---------- helpers ----------
     @staticmethod
     def _debit_types():
         return {
@@ -86,23 +105,17 @@ class StatementLine(BaseModel):
     def _credit_types():
         return {StatementLineType.PAYMENT}
 
-    # ---------- validations ----------
     def clean(self):
         errors = {}
 
-        # amount must be non-zero
         if int(self.amount or 0) == 0:
             errors["amount"] = _("Amount cannot be zero.")
 
-        # transaction must belong to statement user
         if self.transaction_id and self.statement_id:
             from_to_user_ids = (
-                                   Transaction.objects.filter(
-                                       pk=self.transaction_id
-                                   )
+                                   Transaction.objects.filter(pk=self.transaction_id)
                                    .values_list(
-                                       "from_wallet__user_id",
-                                       "to_wallet__user_id"
+                                       "from_wallet__user_id", "to_wallet__user_id"
                                    )
                                    .first()
                                ) or (None, None)
@@ -112,13 +125,25 @@ class StatementLine(BaseModel):
                     "Transaction does not belong to the statement user."
                 )
 
-        # allowed types by statement status
+        if self.payment_id and self.payment_request_id:
+            if self.payment.payment_request_id != self.payment_request_id:
+                errors["payment_request"] = _(
+                    "payment_request does not match payment."
+                )
+
+        if self.payment_id and self.statement_id:
+            if self.payment.payer_id != self.statement.user_id:
+                errors["payment"] = _(
+                    "Payment does not belong to the statement user."
+                )
+
         if self.statement_id:
             statement_obj = self.statement
             if self.type in {
                 StatementLineType.PURCHASE,
                 StatementLineType.FEE,
-                StatementLineType.INTEREST
+                StatementLineType.INTEREST,
+                StatementLineType.PENALTY,
             }:
                 if statement_obj.status != StatementStatus.CURRENT:
                     errors["type"] = _(
@@ -129,20 +154,13 @@ class StatementLine(BaseModel):
                     errors["type"] = _(
                         "Payments are only allowed on CURRENT statements."
                     )
-            elif self.type == StatementLineType.PENALTY:
-                if statement_obj.status != StatementStatus.CURRENT:
-                    errors["type"] = _(
-                        "Penalty lines should be added to the CURRENT statement."
-                    )
 
         if errors:
             raise ValidationError(errors)
 
-    # ---------- persistence ----------
     def save(self, *args, **kwargs):
         is_new = self.pk is None
 
-        # normalize sign by type
         amount_value = int(self.amount or 0)
         if self.type in self._debit_types() and amount_value > 0:
             self.amount = -abs(amount_value)
@@ -151,7 +169,6 @@ class StatementLine(BaseModel):
 
         amount_changed_by_normalization = self.amount != amount_value
 
-        # model-level validation (includes clean())
         self.full_clean()
         if kwargs.get("update_fields") is not None:
             ufs = set(kwargs["update_fields"])
@@ -161,7 +178,6 @@ class StatementLine(BaseModel):
 
         super().save(*args, **kwargs)
 
-        # recompute parent balances when needed (only non-voided lines affect totals)
         update_fields = kwargs.get("update_fields")
         should_recompute = (
                 is_new
@@ -171,15 +187,11 @@ class StatementLine(BaseModel):
         if should_recompute and self.statement_id:
             self.statement.update_balances()
 
-    # ---------- lifecycle: forbid hard delete ----------
     def delete(self, *args, **kwargs):
         raise ValidationError(
-            _(
-                "Deleting statement lines is not allowed. Use void() or reverse()."
-            )
+            _("Deleting statement lines is not allowed. Use void() or reverse().")
         )
 
-    # ---------- lifecycle: void / reverse ----------
     @db_transaction.atomic
     def void(self, by=None, reason: str = "") -> bool:
         if self.is_voided:
@@ -189,8 +201,7 @@ class StatementLine(BaseModel):
         self.voided_by = by
         self.void_reason = (reason or "")[:255]
         super().save(
-            update_fields=["is_voided", "voided_at", "voided_by",
-                           "void_reason"]
+            update_fields=["is_voided", "voided_at", "voided_by", "void_reason"]
         )
         if self.statement_id:
             self.statement.update_balances()
@@ -203,21 +214,25 @@ class StatementLine(BaseModel):
         if self.reversed_by.exists():
             raise ValidationError(_("This line is already reversed."))
 
-        # pick reverse type/amount
-        if self.type in self._debit_types():  # amount < 0
-            rev_type = StatementLineType.PAYMENT  # positive
+        if self.type in self._debit_types():
+            rev_type = StatementLineType.PAYMENT
             rev_amount = abs(int(self.amount))
-        else:  # PAYMENT (amount > 0)
-            rev_type = StatementLineType.PURCHASE  # negative
+        else:
+            rev_type = StatementLineType.PURCHASE
             rev_amount = -abs(int(self.amount))
 
         rev = StatementLine.all_objects.create(
             statement=self.statement,
             type=rev_type,
             amount=rev_amount,
-            description=(f"Reversal of line {self.pk}: {reason}"[
-                             :255] if reason else f"Reversal of line {self.pk}"),
+            description=(
+                f"Reversal of line {self.pk}: {reason}"[:255]
+                if reason
+                else f"Reversal of line {self.pk}"
+            ),
             reverses=self,
+            payment=self.payment,
+            payment_request=self.payment_request,
         )
         if self.statement_id:
             self.statement.update_balances()
@@ -231,15 +246,14 @@ class StatementLine(BaseModel):
         verbose_name_plural = _("سطرهای صورتحساب")
         ordering = ["created_at"]
         constraints = [
-            # only one interest line per statement (among active lines)
             models.UniqueConstraint(
                 fields=["statement", "type"],
                 condition=models.Q(
-                    type=StatementLineType.INTEREST, is_voided=False
+                    type=StatementLineType.INTEREST,
+                    is_voided=False,
                 ),
                 name="uniq_interest_per_statement",
             ),
-            # hard DB-level sign guard: payments > 0, charges < 0
             models.CheckConstraint(
                 name="amount_sign_by_type",
                 check=(
@@ -258,8 +272,11 @@ class StatementLine(BaseModel):
         ]
         indexes = [
             models.Index(
-                fields=["statement", "created_at"], name="stl_stmt_created_idx"
+                fields=["statement", "created_at"],
+                name="stl_stmt_created_idx",
             ),
             models.Index(fields=["type"], name="stl_type_idx"),
             models.Index(fields=["is_voided"], name="stl_void_idx"),
+            models.Index(fields=["payment"], name="stl_payment_idx"),
+            models.Index(fields=["payment_request"], name="stl_pr_idx"),
         ]

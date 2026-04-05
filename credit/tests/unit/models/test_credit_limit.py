@@ -1,3 +1,5 @@
+# credit/tests/unit/models/test_credit_limit.py
+
 import pytest
 from django.db import IntegrityError
 from django.utils import timezone
@@ -84,7 +86,7 @@ class TestAvailableLimitProperty:
             total_debit=400_000, total_credit=0,
             due_date=timezone.localtime(timezone.now()) + timezone.timedelta(
                 days=3
-                ),
+            ),
         )
         assert limit.available_limit == 500_000
 

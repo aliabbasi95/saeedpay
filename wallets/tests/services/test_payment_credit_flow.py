@@ -2,14 +2,22 @@
 
 import pytest
 
-from credit.models import Statement
+from credit.models import CreditAuthorization, Statement
 from credit.models.credit_limit import CreditLimit
 from wallets.models import Wallet
 from wallets.services.payment import (
     create_payment_request,
-    pay_payment_request, verify_payment_request,
+    pay_payment_request,
+    rollback_payment,
+    verify_payment_request,
 )
-from wallets.utils.choices import OwnerType, WalletKind
+from wallets.utils.choices import (
+    OwnerType,
+    PaymentFlowType,
+    PaymentRequestStatus,
+    PaymentStatus,
+    WalletKind,
+)
 
 
 @pytest.mark.django_db
@@ -17,6 +25,7 @@ class TestPaymentCreditFlow:
 
     def setup_credit_limit(self, customer_user, approved=1_000_000):
         from django.utils import timezone
+
         limit = CreditLimit.objects.create(
             user=customer_user,
             approved_limit=approved,
@@ -29,52 +38,102 @@ class TestPaymentCreditFlow:
         return limit
 
     def test_credit_purchase_records_statement_after_verify(
-            self, store, customer_user, ensure_escrow
+            self, store, customer_user
     ):
         credit_wallet = Wallet.objects.create(
-            user=customer_user, kind=WalletKind.CREDIT,
-            owner_type=OwnerType.CUSTOMER, balance=0
+            user=customer_user,
+            kind=WalletKind.CREDIT,
+            owner_type=OwnerType.CUSTOMER,
+            balance=0,
         )
         self.setup_credit_limit(customer_user, approved=2_000_000)
-        pr = create_payment_request(
-            store=store, amount=250_000, return_url="https://cb.com"
+
+        payment_request = create_payment_request(
+            store=store,
+            customer=customer_user.customer,
+            amount=250_000,
+            return_url="https://cb.com",
         )
 
-        txn = pay_payment_request(pr, customer_user, credit_wallet)
-        credit_wallet.refresh_from_db()
-        assert credit_wallet.balance <= 0
-        Wallet.objects.create(
-            user=store.merchant.user,
-            kind=WalletKind.MERCHANT_GATEWAY,
-            owner_type=OwnerType.MERCHANT,
-            balance=0
-        )
-        verify_payment_request(pr)
+        payment = pay_payment_request(payment_request, customer_user, credit_wallet)
+        payment.refresh_from_db()
+        payment_request.refresh_from_db()
 
-        st = Statement.objects.get_current_statement(customer_user)
-        assert st is not None
-        st.refresh_from_db()
-        assert st.closing_balance < 0
-        assert st.lines.filter(transaction=txn, type="purchase").exists()
+        assert payment.status == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
+        assert payment_request.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
 
-    def test_credit_rollback_before_verify_returns_balance(
-            self, store, customer_user, ensure_escrow
+        auth = CreditAuthorization.objects.get(payment=payment)
+        assert auth.status == CreditAuthorization.Status.ACTIVE
+
+        verify_payment_request(payment_request, store=store)
+
+        statement = Statement.objects.get_current_statement(customer_user)
+        assert statement is not None
+        statement.refresh_from_db()
+        assert statement.closing_balance < 0
+        assert statement.lines.filter(payment=payment, type="purchase").exists()
+
+        auth.refresh_from_db()
+        assert auth.status == CreditAuthorization.Status.SETTLED
+
+    def test_credit_rollback_before_verify_releases_authorization(
+            self, store, customer_user
     ):
         credit_wallet = Wallet.objects.create(
-            user=customer_user, kind=WalletKind.CREDIT,
-            owner_type=OwnerType.CUSTOMER, balance=0
+            user=customer_user,
+            kind=WalletKind.CREDIT,
+            owner_type=OwnerType.CUSTOMER,
+            balance=0,
         )
         self.setup_credit_limit(customer_user, approved=1_000_000)
-        pr = create_payment_request(
-            store=store, amount=100_000, return_url="https://ok.com"
+
+        payment_request = create_payment_request(
+            store=store,
+            customer=customer_user.customer,
+            amount=100_000,
+            return_url="https://ok.com",
         )
-        from wallets.services.payment import rollback_payment
 
-        pay_payment_request(pr, customer_user, credit_wallet)
-        credit_wallet.refresh_from_db()
-        bal_after_pay = credit_wallet.balance
-        assert bal_after_pay == -100_000
+        payment = pay_payment_request(payment_request, customer_user, credit_wallet)
+        auth = CreditAuthorization.objects.get(payment=payment)
+        assert auth.status == CreditAuthorization.Status.ACTIVE
 
-        rollback_payment(pr)
-        credit_wallet.refresh_from_db()
-        assert credit_wallet.balance == 0
+        payment_request.mark_expired()
+        rollback_payment(payment_request)
+
+        auth.refresh_from_db()
+        payment.refresh_from_db()
+        assert auth.status == CreditAuthorization.Status.RELEASED
+        assert payment.status == PaymentStatus.EXPIRED
+
+    def test_qr_credit_purchase_is_finalized_immediately(
+            self, store, customer_user
+    ):
+        credit_wallet = Wallet.objects.create(
+            user=customer_user,
+            kind=WalletKind.CREDIT,
+            owner_type=OwnerType.CUSTOMER,
+            balance=0,
+        )
+        self.setup_credit_limit(customer_user, approved=1_000_000)
+
+        payment_request = create_payment_request(
+            store=store,
+            customer=customer_user.customer,
+            amount=150_000,
+            return_url="https://ok.com",
+            flow_type=PaymentFlowType.QR_POS,
+        )
+
+        payment = pay_payment_request(payment_request, customer_user, credit_wallet)
+        payment_request.refresh_from_db()
+        payment.refresh_from_db()
+
+        assert payment_request.status == PaymentRequestStatus.COMPLETED
+        assert payment.status == PaymentStatus.COMPLETED
+
+        auth = CreditAuthorization.objects.get(payment=payment)
+        assert auth.status == CreditAuthorization.Status.SETTLED
+
+        statement = Statement.objects.get_current_statement(customer_user)
+        assert statement.lines.filter(payment=payment, type="purchase").exists()
