@@ -7,16 +7,17 @@ import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-import credit.api.public.v1.views.credit as views_mod
 from credit.models.statement import Statement
 from credit.models.statement_line import StatementLine
-from credit.utils.choices import StatementStatus, StatementLineType
+from credit.services.use_cases import StatementUseCases
+from credit.utils.choices import StatementLineType, StatementStatus
 from wallets.utils.choices import TransactionStatus, WalletKind
 
 pytestmark = pytest.mark.django_db
 
 
 # ----------------------------- Helpers ----------------------------- #
+
 
 @pytest.fixture
 def api_client():
@@ -29,6 +30,15 @@ def auth_client(api_client, user):
     return api_client
 
 
+@pytest.fixture(autouse=True)
+def _configure_credit_statement_write_throttle(settings):
+    rest = dict(getattr(settings, "REST_FRAMEWORK", {}) or {})
+    rates = dict(rest.get("DEFAULT_THROTTLE_RATES", {}) or {})
+    rates["credit-statements-write"] = "1000/min"
+    rest["DEFAULT_THROTTLE_RATES"] = rates
+    settings.REST_FRAMEWORK = rest
+
+
 def _as_json(resp):
     try:
         return json.loads(resp.content.decode())
@@ -38,8 +48,9 @@ def _as_json(resp):
 
 # ------------------------- CreditLimit Views ------------------------ #
 
+
 class TestCreditLimitListView:
-    url_name = "credit_limit_list"
+    url_name = "credit_public_v1:credit-limit-list"
 
     def test_requires_auth(self, api_client):
         url = reverse(self.url_name)
@@ -78,11 +89,9 @@ class TestCreditLimitListView:
 
 
 class TestCreditLimitDetailView:
-    url_name = "credit_limit_detail"
+    url_name = "credit_public_v1:credit-limit-detail"
 
-    def test_requires_auth(
-            self, api_client, active_credit_limit_factory, user
-    ):
+    def test_requires_auth(self, api_client, active_credit_limit_factory, user):
         limit = active_credit_limit_factory(user=user)
         url = reverse(self.url_name, args=[limit.id])
         resp = api_client.get(url)
@@ -107,8 +116,9 @@ class TestCreditLimitDetailView:
 
 # --------------------------- Statement Views (paginated) ------------ #
 
+
 class TestStatementListView:
-    url_name = "statement_list"
+    url_name = "credit_public_v1:statement-list"
 
     def test_requires_auth(self, api_client):
         url = reverse(self.url_name)
@@ -185,9 +195,7 @@ class TestStatementListView:
 
         url = reverse(self.url_name)
         # Ask for larger than MAX_PAGE_SIZE; expect it to clamp to MAX_PAGE_SIZE
-        resp = auth_client.get(
-            url, {"page": 1, "page_size": MAX_PAGE_SIZE + 100}
-        )
+        resp = auth_client.get(url, {"page": 1, "page_size": MAX_PAGE_SIZE + 100})
         assert resp.status_code == 200
         data = resp.json()
         assert "results" in data
@@ -195,7 +203,7 @@ class TestStatementListView:
 
 
 class TestStatementDetailView:
-    url_name = "statement_detail"
+    url_name = "credit_public_v1:statement-detail"
 
     def test_requires_auth(self, api_client, user):
         stmt = Statement.objects.create(
@@ -226,9 +234,7 @@ class TestStatementDetailView:
         resp = auth_client.get(url)
         assert resp.status_code == 200
         payload = resp.json()
-        assert isinstance(payload.get("lines"), list) and len(
-            payload["lines"]
-        ) == 2
+        assert isinstance(payload.get("lines"), list) and len(payload["lines"]) == 2
 
         url2 = reverse(self.url_name, args=[stmt_other.id])
         resp2 = auth_client.get(url2)
@@ -237,8 +243,9 @@ class TestStatementDetailView:
 
 # ------------------------- StatementLine List (paginated) ---------- #
 
+
 class TestStatementLineListView:
-    url_name = "statement_line_list"
+    url_name = "credit_public_v1:statement-line-list"
 
     def test_requires_auth(self, api_client):
         url = reverse(self.url_name)
@@ -257,7 +264,11 @@ class TestStatementLineListView:
             made.append(
                 StatementLine.objects.create(
                     statement=stmt,
-                    type=StatementLineType.PURCHASE if i % 2 == 0 else StatementLineType.PAYMENT,
+                    type=(
+                        StatementLineType.PURCHASE
+                        if i % 2 == 0
+                        else StatementLineType.PAYMENT
+                    ),
                     amount=1000 + i,
                 )
             )
@@ -302,9 +313,7 @@ class TestStatementLineListView:
         returned_ids_p3 = [item["id"] for item in payload3["results"]]
         assert returned_ids_p3 == expected_ids_p3
 
-    def test_can_filter_by_statement_id_with_pagination(
-            self, auth_client, user
-    ):
+    def test_can_filter_by_statement_id_with_pagination(self, auth_client, user):
         s1 = Statement.objects.create(
             user=user, year=1404, month=1, status=StatementStatus.CURRENT
         )
@@ -330,9 +339,7 @@ class TestStatementLineListView:
         assert data["count"] == 5
         assert len(data["results"]) == 3
         # second page => remaining 2
-        r2 = auth_client.get(
-            url, {"statement_id": s2.id, "page_size": 3, "page": 2}
-        )
+        r2 = auth_client.get(url, {"statement_id": s2.id, "page_size": 3, "page": 2})
         assert r2.status_code == 200
         data2 = r2.json()
         assert data2["count"] == 5
@@ -346,7 +353,7 @@ class TestStatementLineListView:
         With pagination params, page=1 should return 200 and empty results.
         """
         # My statement (no lines needed here)
-        mine = Statement.objects.create(
+        Statement.objects.create(
             user=user, year=1404, month=1, status=StatementStatus.CURRENT
         )
 
@@ -374,8 +381,9 @@ class TestStatementLineListView:
 
 # ----------------------------- AddPurchase ------------------------- #
 
+
 class TestAddPurchaseView:
-    url_name = "add_purchase"
+    url_name = "credit_public_v1:statement-add-purchase"
 
     def _mock_transaction(
             self,
@@ -406,52 +414,59 @@ class TestAddPurchaseView:
         url = reverse(self.url_name)
         resp = auth_client.post(url, {}, format="json")
         assert resp.status_code == 400
-        assert _as_json(resp).get("error") == "transaction_id is required"
+        assert _as_json(resp).get("detail") == "transaction_id is required"
 
     def test_forbidden_when_transaction_not_users_from_wallet(
             self, auth_client, user, mocker
     ):
         trx = self._mock_transaction(user.id, belongs=False)
-        mocker.patch.object(views_mod, "get_object_or_404", return_value=trx)
+        mocker.patch(
+            "credit.api.public.v1.views.statement.get_object_or_404",
+            return_value=trx,
+        )
 
         url = reverse(self.url_name)
         resp = auth_client.post(url, {"transaction_id": 123}, format="json")
         assert resp.status_code == 403
-        assert _as_json(resp).get(
-            "error"
-        ) == "transaction does not belong to user"
+        assert _as_json(resp).get("detail") == "Transaction does not belong to user."
 
-    def test_bad_request_when_wallet_not_credit(
-            self, auth_client, user, mocker
-    ):
+    def test_bad_request_when_wallet_not_credit(self, auth_client, user, mocker):
         trx = self._mock_transaction(user.id, from_wallet_kind="NON_CREDIT")
-        mocker.patch.object(views_mod, "get_object_or_404", return_value=trx)
+        mocker.patch(
+            "credit.api.public.v1.views.statement.get_object_or_404",
+            return_value=trx,
+        )
 
         url = reverse(self.url_name)
         resp = auth_client.post(url, {"transaction_id": 123}, format="json")
         assert resp.status_code == 400
-        assert _as_json(resp).get(
-            "error"
-        ) == "transaction is not from a credit wallet"
+        assert (
+                _as_json(resp).get(
+                    "detail"
+                ) == "Transaction is not from a credit wallet."
+        )
 
-    def test_bad_request_when_transaction_not_success(
-            self, auth_client, user, mocker
-    ):
+    def test_bad_request_when_transaction_not_success(self, auth_client, user, mocker):
         trx = self._mock_transaction(user.id, status=TransactionStatus.PENDING)
-        mocker.patch.object(views_mod, "get_object_or_404", return_value=trx)
+        mocker.patch(
+            "credit.api.public.v1.views.statement.get_object_or_404",
+            return_value=trx,
+        )
 
         url = reverse(self.url_name)
         resp = auth_client.post(url, {"transaction_id": 123}, format="json")
         assert resp.status_code == 400
-        assert _as_json(resp).get("error") == "transaction must be SUCCESS"
+        assert _as_json(resp).get("detail") == "Transaction must be SUCCESS."
 
-    def test_success_calls_usecase_and_returns_201(
-            self, auth_client, user, mocker
-    ):
+    def test_success_calls_usecase_and_returns_201(self, auth_client, user, mocker):
         trx = self._mock_transaction(user.id)
-        mocker.patch.object(views_mod, "get_object_or_404", return_value=trx)
+        mocker.patch(
+            "credit.api.public.v1.views.statement.get_object_or_404",
+            return_value=trx,
+        )
+
         uc_mock = mocker.patch.object(
-            views_mod.StatementUseCases,
+            StatementUseCases,
             "record_successful_purchase_from_transaction",
         )
 
@@ -469,13 +484,16 @@ class TestAddPurchaseView:
 
     def test_usecase_exception_returns_400(self, auth_client, user, mocker):
         trx = self._mock_transaction(user.id)
-        mocker.patch.object(views_mod, "get_object_or_404", return_value=trx)
+        mocker.patch(
+            "credit.api.public.v1.views.statement.get_object_or_404",
+            return_value=trx,
+        )
 
         def _raise(*args, **kwargs):
             raise RuntimeError("boom")
 
         mocker.patch.object(
-            views_mod.StatementUseCases,
+            StatementUseCases,
             "record_successful_purchase_from_transaction",
             side_effect=_raise,
         )
@@ -483,13 +501,14 @@ class TestAddPurchaseView:
         url = reverse(self.url_name)
         resp = auth_client.post(url, {"transaction_id": 123}, format="json")
         assert resp.status_code == 400
-        assert "error" in _as_json(resp)
+        assert "detail" in _as_json(resp)
 
 
 # ------------------------------ AddPayment ------------------------- #
 
+
 class TestAddPaymentView:
-    url_name = "add_payment"
+    url_name = "credit_public_v1:statement-add-payment"
 
     def _mock_transaction(
             self, *, user_id_from, user_id_to, status=TransactionStatus.SUCCESS
@@ -517,11 +536,11 @@ class TestAddPaymentView:
 
         resp = auth_client.post(url, {"amount": "abc"}, format="json")
         assert resp.status_code == 400
-        assert _as_json(resp).get("error") == "amount must be integer"
+        assert _as_json(resp).get("detail") == "amount must be integer"
 
         resp2 = auth_client.post(url, {"amount": 0}, format="json")
         assert resp2.status_code == 400
-        assert _as_json(resp2).get("error") == "amount must be > 0"
+        assert _as_json(resp2).get("detail") == "amount must be > 0"
 
     def test_with_transaction_must_be_success_and_belong_to_user(
             self, auth_client, user, user_factory, mocker
@@ -529,11 +548,11 @@ class TestAddPaymentView:
         other = user_factory()
 
         trx_not_success = self._mock_transaction(
-            user_id_from=user.id, user_id_to=user.id,
-            status=TransactionStatus.FAILED
+            user_id_from=user.id, user_id_to=user.id, status=TransactionStatus.FAILED
         )
-        mocker.patch.object(
-            views_mod, "get_object_or_404", return_value=trx_not_success
+        mocker.patch(
+            "credit.api.public.v1.views.statement.get_object_or_404",
+            return_value=trx_not_success,
         )
         url = reverse(self.url_name)
         resp = auth_client.post(
@@ -543,25 +562,22 @@ class TestAddPaymentView:
         assert _as_json(resp).get("error") == "transaction must be SUCCESS"
 
         trx_not_belong = self._mock_transaction(
-            user_id_from=other.id, user_id_to=other.id,
-            status=TransactionStatus.SUCCESS
+            user_id_from=other.id, user_id_to=other.id, status=TransactionStatus.SUCCESS
         )
-        mocker.patch.object(
-            views_mod, "get_object_or_404", return_value=trx_not_belong
+        mocker.patch(
+            "credit.api.public.v1.views.statement.get_object_or_404",
+            return_value=trx_not_belong,
         )
+
         resp2 = auth_client.post(
             url, {"amount": 1000, "transaction_id": 456}, format="json"
         )
         assert resp2.status_code == 403
-        assert _as_json(resp2).get(
-            "error"
-        ) == "transaction does not belong to user"
+        assert _as_json(resp2).get("error") == "transaction does not belong to user"
 
-    def test_success_calls_usecase_and_returns_201(
-            self, auth_client, user, mocker
-    ):
+    def test_success_calls_usecase_and_returns_201(self, auth_client, user, mocker):
         uc_mock = mocker.patch.object(
-            views_mod.StatementUseCases, "record_payment_on_current_statement"
+            StatementUseCases, "record_payment_on_current_statement"
         )
         url = reverse(self.url_name)
         resp = auth_client.post(
@@ -579,9 +595,12 @@ class TestAddPaymentView:
             self, auth_client, user, mocker
     ):
         trx = self._mock_transaction(user_id_from=user.id, user_id_to=999)
-        mocker.patch.object(views_mod, "get_object_or_404", return_value=trx)
+        mocker.patch(
+            "credit.api.public.v1.views.statement.get_object_or_404",
+            return_value=trx,
+        )
         uc_mock = mocker.patch.object(
-            views_mod.StatementUseCases, "record_payment_on_current_statement"
+            StatementUseCases, "record_payment_on_current_statement"
         )
         url = reverse(self.url_name)
         payload = {"amount": 3500, "transaction_id": 456, "description": "Pay"}
@@ -594,20 +613,21 @@ class TestAddPaymentView:
 
     def test_usecase_exception_returns_400(self, auth_client, mocker):
         mocker.patch.object(
-            views_mod.StatementUseCases,
+            StatementUseCases,
             "record_payment_on_current_statement",
             side_effect=RuntimeError("oops"),
         )
         url = reverse(self.url_name)
         resp = auth_client.post(url, {"amount": 1000}, format="json")
         assert resp.status_code == 400
-        assert "error" in _as_json(resp)
+        assert "detail" in _as_json(resp)
 
 
 # ---------------------------- CloseStatement ----------------------- #
 
+
 class TestCloseStatementView:
-    url_name = "close_statement"
+    url_name = "credit_public_v1:statement-close-current"
 
     def test_requires_auth(self, api_client):
         url = reverse(self.url_name)
@@ -616,19 +636,17 @@ class TestCloseStatementView:
 
     def test_no_current_statement_returns_400(self, auth_client, mocker):
         mocker.patch.object(
-            views_mod.Statement.objects, "get_current_statement",
-            return_value=None
+            Statement.objects, "get_current_statement", return_value=None
         )
         url = reverse(self.url_name)
         resp = auth_client.post(url, {}, format="json")
         assert resp.status_code == 400
-        assert _as_json(resp).get("error") == "No current statement"
+        assert _as_json(resp).get("detail") == "No current statement."
 
     def test_successful_close_returns_200(self, auth_client, mocker):
         stmt = Mock()
         mocker.patch.object(
-            views_mod.Statement.objects, "get_current_statement",
-            return_value=stmt
+            Statement.objects, "get_current_statement", return_value=stmt
         )
         url = reverse(self.url_name)
         resp = auth_client.post(url, {}, format="json")
@@ -639,18 +657,18 @@ class TestCloseStatementView:
     def test_close_raises_returns_400(self, auth_client, mocker):
         stmt = Mock()
         stmt.close_statement.side_effect = RuntimeError("cannot close")
-        mocker.patch.object(
-            views_mod.Statement.objects, "get_current_statement",
-            return_value=stmt
+        mocker.patch(
+            "credit.api.public.v1.views.statement.Statement.objects.get_current_statement",
+            return_value=stmt,
         )
         url = reverse(self.url_name)
         resp = auth_client.post(url, {}, format="json")
         assert resp.status_code == 400
-        assert "error" in _as_json(resp)
+        assert "detail" in _as_json(resp)
 
 
 class TestStatementListViewMore:
-    url_name = "statement_list"
+    url_name = "credit_public_v1:statement-list"
 
     def test_next_and_previous_links_exist_when_paginated(
             self, auth_client, user, settings
@@ -689,8 +707,7 @@ class TestStatementListViewMore:
         # only 3 items => 1 page
         for i in range(3):
             Statement.objects.create(
-                user=user, year=1404, month=i + 1,
-                status=StatementStatus.CURRENT
+                user=user, year=1404, month=i + 1, status=StatementStatus.CURRENT
             )
 
         url = reverse(self.url_name)
@@ -699,14 +716,15 @@ class TestStatementListViewMore:
 
 
 class TestStatementLineListViewMore:
-    url_name = "statement_line_list"
+    url_name = "credit_public_v1:statement-line-list"
 
     def test_respects_max_page_size_cap(self, auth_client, user, settings):
         """
         Asking for more than max_page_size should clamp to max_page_size (100 by our StandardPagination).
         """
-        settings.REST_FRAMEWORK[
-            "PAGE_SIZE"] = 10  # default doesn't matter when page_size is given
+        settings.REST_FRAMEWORK["PAGE_SIZE"] = (
+            10  # default doesn't matter when page_size is given
+        )
         # one statement with 150 lines
         stmt = Statement.objects.create(
             user=user, year=1404, month=1, status=StatementStatus.CURRENT
@@ -714,7 +732,9 @@ class TestStatementLineListViewMore:
         for i in range(150):
             StatementLine.objects.create(
                 statement=stmt,
-                type=StatementLineType.PURCHASE if i % 2 == 0 else StatementLineType.FEE,
+                type=(
+                    StatementLineType.PURCHASE if i % 2 == 0 else StatementLineType.FEE
+                ),
                 amount=1000 + i,
             )
 
@@ -724,9 +744,7 @@ class TestStatementLineListViewMore:
         data = resp.json()
         assert len(data["results"]) == 100  # clamped to max_page_size
 
-    def test_non_integer_statement_id_filter_returns_empty_200(
-            self, auth_client, user
-    ):
+    def test_non_integer_statement_id_filter_returns_empty_200(self, auth_client, user):
         """
         Our view does not validate statement_id type; a non-integer won't match any rows.
         Expect 200 OK with empty results (not a 400).
@@ -748,11 +766,9 @@ class TestStatementLineListViewMore:
 
 
 class TestAddPurchaseViewMore:
-    url_name = "add_purchase"
+    url_name = "credit_public_v1:statement-add-purchase"
 
-    def test_uses_default_description_when_omitted(
-            self, auth_client, user, mocker
-    ):
+    def test_uses_default_description_when_omitted(self, auth_client, user, mocker):
         """
         If 'description' is omitted, the view should pass 'Purchase' to the use case.
         """
@@ -761,11 +777,13 @@ class TestAddPurchaseViewMore:
         trx.status = TransactionStatus.SUCCESS
         trx.from_wallet = Mock(user_id=user.id, kind=WalletKind.CREDIT)
         trx.to_wallet = Mock(user_id=999)
-        mocker.patch.object(views_mod, "get_object_or_404", return_value=trx)
+        mocker.patch(
+            "credit.api.public.v1.views.statement.get_object_or_404",
+            return_value=trx,
+        )
 
         uc_mock = mocker.patch.object(
-            views_mod.StatementUseCases,
-            "record_successful_purchase_from_transaction"
+            StatementUseCases, "record_successful_purchase_from_transaction"
         )
         url = reverse(self.url_name)
         resp = auth_client.post(url, {"transaction_id": 123}, format="json")
@@ -775,16 +793,14 @@ class TestAddPurchaseViewMore:
 
 
 class TestAddPaymentViewMore:
-    url_name = "add_payment"
+    url_name = "credit_public_v1:statement-add-payment"
 
-    def test_uses_default_description_when_omitted(
-            self, auth_client, mocker, user
-    ):
+    def test_uses_default_description_when_omitted(self, auth_client, mocker, user):
         """
         If 'description' is omitted, the view should pass 'Payment' to the use case.
         """
         uc_mock = mocker.patch.object(
-            views_mod.StatementUseCases, "record_payment_on_current_statement"
+            StatementUseCases, "record_payment_on_current_statement"
         )
         url = reverse(self.url_name)
         resp = auth_client.post(url, {"amount": 1234}, format="json")

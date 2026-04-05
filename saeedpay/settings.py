@@ -257,6 +257,7 @@ REST_FRAMEWORK = {
         # ── Credit (Statements) ──────────────────────────────────────────────
         "credit-statements-read": "300/hour",
         "credit-statement-lines-read": "600/hour",
+        "credit-statements-write": "60/min",
 
         # ── Wallets / Payment Requests ───────────────────────────────────────
         "payment-requests-read": "300/hour",

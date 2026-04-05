@@ -32,14 +32,14 @@ class TestPaymentRequestModel:
         assert pr.status == PaymentRequestStatus.COMPLETED
 
         with patch(
-                "wallets.services.payment.rollback_payment"
+                "wallets.models.payment_request.rollback_payment"
         ) as rollback_mock:
             pr.mark_cancelled()
             assert pr.status == PaymentRequestStatus.CANCELLED
             assert rollback_mock.called
 
         with patch(
-                "wallets.services.payment.rollback_payment"
+                "wallets.models.payment_request.rollback_payment"
         ) as rollback_mock:
             pr.mark_expired()
             assert pr.status == PaymentRequestStatus.EXPIRED

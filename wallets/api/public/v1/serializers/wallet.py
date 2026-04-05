@@ -4,6 +4,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from wallets.models import Wallet
+from wallets.utils.choices import OwnerType
 from wallets.utils.choices import WalletKind
 
 
@@ -58,3 +59,7 @@ class WalletSerializer(serializers.ModelSerializer):
         if obj.kind == WalletKind.CREDIT:
             return self._get_available_limit(obj)
         return max(0, int(getattr(obj, "available_balance", 0) or 0))
+
+
+class WalletListQuerySerializer(serializers.Serializer):
+    owner_type = serializers.ChoiceField(choices=OwnerType.choices)
