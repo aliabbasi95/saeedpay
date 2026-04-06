@@ -1,7 +1,7 @@
 # wallets/api/partner/v1/views/payment.py
 
 from django.conf import settings
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -59,8 +59,7 @@ class PartnerPaymentRequestViewSet(
 
     def get_queryset(self):
         return (
-            PaymentRequest.objects
-            .select_related("store", "paid_by", "paid_wallet")
+            PaymentRequest.objects.select_related("store", "paid_by", "paid_wallet")
             .filter(store=self.request.store)
         )
 
@@ -150,9 +149,7 @@ class PartnerPaymentRequestViewSet(
     def verify(self, request, *args, **kwargs):
         reference_code = kwargs.get(self.lookup_field)
         try:
-            payment_request = self.get_queryset().get(
-                reference_code=reference_code
-            )
+            payment_request = self.get_queryset().get(reference_code=reference_code)
         except PaymentRequest.DoesNotExist:
             return payment_error_response(
                 detail="درخواست پرداخت پیدا نشد.",

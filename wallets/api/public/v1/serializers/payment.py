@@ -7,7 +7,7 @@ from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
 
 from auth_api.models import PhoneOTP
-from wallets.api.public.v1.serializers import WalletSerializer
+from wallets.api.public.v1.serializers.wallet import WalletSerializer
 from wallets.models import PaymentRequest
 from wallets.services.payment import list_eligible_wallets_for_payment_request
 from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
@@ -131,16 +131,12 @@ class PaymentConfirmResponseSerializer(PaymentActionResponseSerializer):
     pass
 
 
-class PaymentRequestDetailWithWalletsSerializer(
-    PaymentRequestDetailSerializer
-):
+class PaymentRequestDetailWithWalletsSerializer(PaymentRequestDetailSerializer):
     available_wallets = serializers.SerializerMethodField()
     can_pay = serializers.SerializerMethodField()
     reason = serializers.SerializerMethodField()
 
-    @extend_schema_field(
-        serializers.ListField(child=serializers.DictField())
-    )
+    @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_available_wallets(self, obj: PaymentRequest):
         request = self.context.get("request")
         user = getattr(request, "user", None)
@@ -153,9 +149,7 @@ class PaymentRequestDetailWithWalletsSerializer(
     def get_can_pay(self, obj: PaymentRequest) -> bool:
         if obj.status != PaymentRequestStatus.CREATED:
             return False
-        if obj.expires_at and obj.expires_at < timezone.localtime(
-                timezone.now()
-        ):
+        if obj.expires_at and obj.expires_at < timezone.localtime(timezone.now()):
             return False
         return True
 

@@ -1,18 +1,18 @@
 # wallets/api/public/v1/schema/payment_requests.py
 
 from drf_spectacular.utils import (
-    extend_schema,
-    OpenApiResponse,
     OpenApiExample,
     OpenApiParameter,
+    OpenApiResponse,
     OpenApiTypes,
+    extend_schema,
 )
 
 from wallets.api.public.v1.serializers.payment import (
-    PaymentRequestListItemSerializer,
-    PaymentRequestDetailWithWalletsSerializer,
+    PaymentActionResponseSerializer,
     PaymentConfirmSerializer,
-    PaymentConfirmResponseSerializer,
+    PaymentRequestDetailWithWalletsSerializer,
+    PaymentRequestListItemSerializer,
 )
 
 payment_list_schema = extend_schema(
@@ -21,43 +21,52 @@ payment_list_schema = extend_schema(
     description="فهرست درخواست‌های پرداخت کاربر با فیلترها.",
     parameters=[
         OpenApiParameter(
-            name="status", type=OpenApiTypes.STR,
+            name="status",
+            type=OpenApiTypes.STR,
             location=OpenApiParameter.QUERY,
-            description="created|completed|expired"
+            description="created|awaiting_merchant|completed|cancelled|expired",
         ),
         OpenApiParameter(
-            name="store_id", type=OpenApiTypes.INT,
+            name="store_id",
+            type=OpenApiTypes.INT,
             location=OpenApiParameter.QUERY,
-            description="Store ID"
+            description="Store ID",
         ),
         OpenApiParameter(
-            name="q", type=OpenApiTypes.STR, location=OpenApiParameter.QUERY,
-            description="reference_code icontains"
+            name="q",
+            type=OpenApiTypes.STR,
+            location=OpenApiParameter.QUERY,
+            description="reference_code icontains",
         ),
         OpenApiParameter(
-            name="created_from", type=OpenApiTypes.STR,
+            name="created_from",
+            type=OpenApiTypes.STR,
             location=OpenApiParameter.QUERY,
-            description="ISO date/datetime"
+            description="ISO date/datetime",
         ),
         OpenApiParameter(
-            name="created_to", type=OpenApiTypes.STR,
+            name="created_to",
+            type=OpenApiTypes.STR,
             location=OpenApiParameter.QUERY,
-            description="ISO date/datetime"
+            description="ISO date/datetime",
         ),
         OpenApiParameter(
-            name="expires_from", type=OpenApiTypes.STR,
+            name="expires_from",
+            type=OpenApiTypes.STR,
             location=OpenApiParameter.QUERY,
-            description="ISO date/datetime"
+            description="ISO date/datetime",
         ),
         OpenApiParameter(
-            name="expires_to", type=OpenApiTypes.STR,
+            name="expires_to",
+            type=OpenApiTypes.STR,
             location=OpenApiParameter.QUERY,
-            description="ISO date/datetime"
+            description="ISO date/datetime",
         ),
         OpenApiParameter(
-            name="ordering", type=OpenApiTypes.STR,
+            name="ordering",
+            type=OpenApiTypes.STR,
             location=OpenApiParameter.QUERY,
-            description="-created_at|created_at|-amount|amount"
+            description="-created_at|created_at|-amount|amount",
         ),
     ],
     responses={200: PaymentRequestListItemSerializer(many=True)},
@@ -68,9 +77,7 @@ payment_retrieve_schema = extend_schema(
     summary="Get payment request details",
     description="جزییات یک درخواست پرداخت (به‌همراه کیف‌های مجاز کاربر).",
     responses={
-        200: OpenApiResponse(
-            response=PaymentRequestDetailWithWalletsSerializer
-        ),
+        200: OpenApiResponse(response=PaymentRequestDetailWithWalletsSerializer),
         404: OpenApiResponse(description="Not found"),
     },
     examples=[
@@ -84,6 +91,9 @@ payment_retrieve_schema = extend_schema(
                 "store_name": "Demo Store",
                 "status": "expired",
                 "status_display": "منقضی‌شده",
+                "flow_type": "online",
+                "flow_type_display": "آنلاین",
+                "merchant_confirmation_required": True,
                 "expires_at": "2025-09-27T12:34:56Z",
                 "paid_at": None,
                 "can_pay": False,
@@ -100,19 +110,27 @@ payment_confirm_schema = extend_schema(
     summary="Confirm & pay",
     request=PaymentConfirmSerializer,
     responses={
-        200: PaymentConfirmResponseSerializer,
+        200: PaymentActionResponseSerializer,
         400: OpenApiResponse(description="Validation error"),
         404: OpenApiResponse(description="Not found"),
         410: OpenApiResponse(description="Expired"),
     },
     examples=[
         OpenApiExample(
-            "OK", value={
+            "OK",
+            value={
                 "detail": "پرداخت با موفقیت انجام شد.",
+                "code": "payment_confirmed",
                 "payment_reference_code": "PR123456",
+                "payment_request_status": "awaiting_merchant",
+                "payment_status": "awaiting_merchant",
                 "transaction_reference_code": "TRX111222",
+                "next_action": "waiting_for_store_confirmation",
+                "merchant_confirmation_required": True,
                 "return_url": "https://example.com/orders/42",
-            }, response_only=True
+                "amount": 10000,
+            },
+            response_only=True,
         )
     ],
 )

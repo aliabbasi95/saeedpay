@@ -116,46 +116,7 @@ class PaymentVerifyResponseSerializer(PaymentActionResponseSerializer):
     pass
 
 
-class PaymentRequestCreateResponseSerializer(serializers.Serializer):
-    detail = serializers.CharField()
-    code = serializers.CharField()
-    payment_reference_code = serializers.CharField(
-        required=False,
-        allow_null=True,
-        allow_blank=True,
-    )
-    payment_request_status = serializers.CharField(
-        required=False,
-        allow_null=True,
-        allow_blank=True,
-    )
-    payment_status = serializers.CharField(
-        required=False,
-        allow_null=True,
-        allow_blank=True,
-    )
-    transaction_reference_code = serializers.CharField(
-        required=False,
-        allow_null=True,
-        allow_blank=True,
-    )
-    next_action = serializers.CharField(
-        required=False,
-        allow_null=True,
-        allow_blank=True,
-    )
-    merchant_confirmation_required = serializers.BooleanField(
-        required=False,
-        allow_null=True,
-    )
-    return_url = serializers.URLField(
-        required=False,
-        allow_null=True,
-    )
-    amount = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-    )
+class PaymentRequestCreateResponseSerializer(PaymentActionResponseSerializer):
     payment_request_id = serializers.IntegerField()
     flow_type = serializers.CharField()
     payment_url = serializers.URLField()
