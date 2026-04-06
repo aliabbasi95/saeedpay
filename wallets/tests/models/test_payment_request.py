@@ -1,7 +1,5 @@
 # wallets/tests/models/test_payment_request.py
 
-from unittest.mock import patch
-
 import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -21,29 +19,31 @@ class TestPaymentRequestModel:
         assert pr.status == PaymentRequestStatus.CREATED
         assert pr.expires_at is not None
 
-    def test_mark_methods_and_rollback_calls(self, store):
+    def test_mark_methods_only_change_status_fields(self, store):
         pr = PaymentRequest.objects.create(
-            store=store, amount=2000, return_url="https://site.com"
+            store=store,
+            amount=2000,
+            return_url="https://site.com",
         )
+
         pr.mark_awaiting_merchant()
+        pr.refresh_from_db()
         assert pr.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
 
         pr.mark_completed()
+        pr.refresh_from_db()
         assert pr.status == PaymentRequestStatus.COMPLETED
+        assert pr.completed_at is not None
 
-        with patch(
-                "wallets.models.payment_request.rollback_payment"
-        ) as rollback_mock:
-            pr.mark_cancelled()
-            assert pr.status == PaymentRequestStatus.CANCELLED
-            assert rollback_mock.called
+        pr.mark_cancelled()
+        pr.refresh_from_db()
+        assert pr.status == PaymentRequestStatus.CANCELLED
+        assert pr.cancelled_at is not None
 
-        with patch(
-                "wallets.models.payment_request.rollback_payment"
-        ) as rollback_mock:
-            pr.mark_expired()
-            assert pr.status == PaymentRequestStatus.EXPIRED
-            assert rollback_mock.called
+        pr.mark_expired()
+        pr.refresh_from_db()
+        assert pr.status == PaymentRequestStatus.EXPIRED
+        assert pr.expired_at is not None
 
     def test_str(self, store):
         pr = PaymentRequest.objects.create(

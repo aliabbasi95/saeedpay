@@ -3,7 +3,7 @@
 import pytest
 from rest_framework.exceptions import ValidationError
 
-from wallets.models import Wallet
+from wallets.models import Wallet, PaymentRequest
 from wallets.services.payment import (
     check_and_expire_payment_request,
     create_payment_request,
@@ -177,31 +177,43 @@ class TestPaymentService:
         with pytest.raises(ValidationError):
             verify_payment_request(payment_request, store=store)
 
-    def test_double_verify(self, store, customer_user, ensure_escrow):
-        customer_wallet = Wallet.objects.create(
-            user=customer_user,
-            kind=WalletKind.CASH,
-            owner_type=OwnerType.CUSTOMER,
-            balance=1_000,
-        )
-        Wallet.objects.create(
+    def test_double_verify(
+            self, store, customer_user, customer_cash_wallet, ensure_escrow
+    ):
+        Wallet.objects.get_or_create(
             user=store.merchant.user,
             kind=WalletKind.MERCHANT_GATEWAY,
             owner_type=OwnerType.MERCHANT,
-            balance=0,
+            defaults={"balance": 0},
         )
 
-        payment_request = create_payment_request(
+        payment_request = PaymentRequest.objects.create(
             store=store,
             customer=customer_user.customer,
-            amount=100,
-            return_url="https://ok.com",
+            amount=10_000,
+            return_url="https://callback.example.com",
         )
-        pay_payment_request(payment_request, customer_user, customer_wallet)
-        verify_payment_request(payment_request, store=store)
 
-        with pytest.raises(ValidationError):
-            verify_payment_request(payment_request, store=store)
+        payment = pay_payment_request(
+            payment_request,
+            customer_user,
+            customer_cash_wallet,
+        )
+
+        assert payment.status == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
+
+        first_verified_payment = verify_payment_request(payment_request, store=store)
+        payment_request.refresh_from_db()
+        first_verified_payment.refresh_from_db()
+
+        assert payment_request.status == PaymentRequestStatus.COMPLETED
+        assert first_verified_payment.status == PaymentStatus.COMPLETED
+
+        second_verified_payment = verify_payment_request(payment_request, store=store)
+        second_verified_payment.refresh_from_db()
+
+        assert second_verified_payment.id == first_verified_payment.id
+        assert second_verified_payment.status == PaymentStatus.COMPLETED
 
     def test_double_rollback_is_idempotent(self, store, customer_user, ensure_escrow):
         customer_wallet = Wallet.objects.create(

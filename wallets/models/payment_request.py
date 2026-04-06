@@ -14,22 +14,6 @@ from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
 from wallets.utils.consts import PAYMENT_REQUEST_EXPIRY_MINUTES
 
 
-def rollback_payment(payment_request):
-    """
-    Patchable model-level rollback hook.
-
-    This keeps the model decoupled from service imports at import time and
-    avoids circular imports. The actual service function is imported lazily.
-    """
-    from wallets.services.payment import rollback_payment as service_rollback_payment
-
-    payment = payment_request.payments.order_by("-created_at", "-id").first()
-    if payment is None:
-        return None
-
-    return service_rollback_payment(payment)
-
-
 class PaymentRequest(BaseModel):
     store = models.ForeignKey(
         Store,
@@ -135,15 +119,11 @@ class PaymentRequest(BaseModel):
             self.cancelled_at = timezone.localtime(timezone.now())
         self.save(update_fields=["status", "cancelled_at"])
 
-        rollback_payment(self)
-
     def mark_expired(self):
         self.status = PaymentRequestStatus.EXPIRED
         if not self.expired_at:
             self.expired_at = timezone.localtime(timezone.now())
         self.save(update_fields=["status", "expired_at"])
-
-        rollback_payment(self)
 
     def save(self, *args, **kwargs):
         if not self.expires_at:

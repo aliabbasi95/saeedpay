@@ -32,6 +32,34 @@ from wallets.utils.consts import (
 logger = logging.getLogger(__name__)
 
 
+def _is_terminal_payment_request_status(status: str) -> bool:
+    return status in {
+        PaymentRequestStatus.COMPLETED,
+        PaymentRequestStatus.CANCELLED,
+        PaymentRequestStatus.EXPIRED,
+    }
+
+
+def _get_latest_payment_for_request(payment_request: PaymentRequest):
+    return (
+        Payment.objects.select_for_update()
+        .filter(payment_request=payment_request)
+        .order_by("-created_at", "-id")
+        .first()
+    )
+
+
+def _ensure_payment_request_status(
+        payment_request: PaymentRequest,
+        *,
+        allowed_statuses: set[str],
+        error_message: str,
+        error_code: str = "invalid_state",
+):
+    if payment_request.status not in allowed_statuses:
+        raise ValidationError(error_message, code=error_code)
+
+
 def create_payment_request(
         store,
         amount,
@@ -119,14 +147,18 @@ def expire_payment_request(payment_request: PaymentRequest):
         request_obj = PaymentRequest.objects.select_for_update().get(
             pk=payment_request.pk
         )
+
+        if request_obj.status == PaymentRequestStatus.EXPIRED:
+            return request_obj
+
         if request_obj.status in [
-            PaymentRequestStatus.EXPIRED,
             PaymentRequestStatus.CANCELLED,
             PaymentRequestStatus.COMPLETED,
         ]:
             return request_obj
 
         request_obj.mark_expired()
+        rollback_payment(request_obj)
         return request_obj
 
 
@@ -135,14 +167,18 @@ def cancel_payment_request(payment_request: PaymentRequest):
         request_obj = PaymentRequest.objects.select_for_update().get(
             pk=payment_request.pk
         )
+
+        if request_obj.status == PaymentRequestStatus.CANCELLED:
+            return request_obj
+
         if request_obj.status in [
-            PaymentRequestStatus.CANCELLED,
             PaymentRequestStatus.EXPIRED,
             PaymentRequestStatus.COMPLETED,
         ]:
             return request_obj
 
         request_obj.mark_cancelled()
+        rollback_payment(request_obj)
         return request_obj
 
 
@@ -250,19 +286,42 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
             .get(pk=payment_request.pk)
         )
 
-        check_and_expire_payment_request(request_obj)
-
         if store is not None and request_obj.store_id != store.id:
             raise ValidationError(
                 "این درخواست پرداخت متعلق به این فروشگاه نیست.",
                 code="forbidden_store",
             )
 
-        if request_obj.status != PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION:
+        check_and_expire_payment_request(request_obj)
+
+        latest_payment = _get_latest_payment_for_request(request_obj)
+
+        if request_obj.status == PaymentRequestStatus.COMPLETED:
+            if latest_payment and latest_payment.status == PaymentStatus.COMPLETED:
+                return latest_payment
             raise ValidationError(
-                "پرداخت قابل نهایی‌سازی نیست یا قبلاً تایید شده است.",
-                code="invalid_state",
+                "درخواست پرداخت تکمیل شده اما پرداخت نهایی مرتبط پیدا نشد.",
+                code="completed_without_payment",
             )
+
+        if request_obj.status == PaymentRequestStatus.CANCELLED:
+            raise ValidationError(
+                "درخواست پرداخت لغو شده است.",
+                code="cancelled",
+            )
+
+        if request_obj.status == PaymentRequestStatus.EXPIRED:
+            raise ValidationError(
+                "درخواست پرداخت منقضی شده است.",
+                code="expired",
+            )
+
+        _ensure_payment_request_status(
+            request_obj,
+            allowed_statuses={PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION},
+            error_message="پرداخت قابل نهایی‌سازی نیست یا قبلاً تایید شده است.",
+            error_code="invalid_state",
+        )
 
         payment = (
             Payment.objects.select_for_update()
@@ -270,7 +329,7 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
                 payment_request=request_obj,
                 status=PaymentStatus.AWAITING_MERCHANT_CONFIRMATION,
             )
-            .order_by("-created_at")
+            .order_by("-created_at", "-id")
             .first()
         )
         if not payment:
