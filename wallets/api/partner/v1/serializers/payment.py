@@ -67,21 +67,95 @@ class PaymentRequestPartnerDetailSerializer(serializers.ModelSerializer):
         return obj.flow_type == PaymentFlowType.ONLINE
 
 
-class PaymentVerifyResponseSerializer(serializers.Serializer):
+class PaymentActionResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
-    payment_reference_code = serializers.CharField()
-    transaction_reference_code = serializers.CharField()
-    amount = serializers.IntegerField()
-    payment_status = serializers.CharField(required=False, allow_blank=True)
-    payment_request_status = serializers.CharField(required=False, allow_blank=True)
+    code = serializers.CharField()
+    payment_reference_code = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    payment_request_status = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    payment_status = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    transaction_reference_code = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    next_action = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    merchant_confirmation_required = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+    )
+    return_url = serializers.URLField(
+        required=False,
+        allow_null=True,
+    )
+    amount = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+    )
+
+
+class PaymentVerifyResponseSerializer(PaymentActionResponseSerializer):
+    """
+    Backward-compatible alias for older imports/schemas.
+    """
+    pass
 
 
 class PaymentRequestCreateResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    code = serializers.CharField()
+    payment_reference_code = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    payment_request_status = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    payment_status = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    transaction_reference_code = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    next_action = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    merchant_confirmation_required = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+    )
+    return_url = serializers.URLField(
+        required=False,
+        allow_null=True,
+    )
+    amount = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+    )
     payment_request_id = serializers.IntegerField()
-    payment_reference_code = serializers.CharField()
-    amount = serializers.IntegerField()
-    description = serializers.CharField()
-    return_url = serializers.URLField()
-    status = serializers.CharField()
     flow_type = serializers.CharField()
     payment_url = serializers.URLField()

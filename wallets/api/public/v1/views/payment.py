@@ -8,13 +8,17 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
+from wallets.api.payment_responses import (
+    payment_error_response,
+    payment_success_response,
+)
 from wallets.api.public.v1.schema import (
     payment_confirm_schema,
     payment_list_schema,
     payment_retrieve_schema,
 )
 from wallets.api.public.v1.serializers.payment import (
-    PaymentConfirmResponseSerializer,
+    PaymentActionResponseSerializer,
     PaymentConfirmSerializer,
     PaymentRequestDetailWithWalletsSerializer,
     PaymentRequestListItemSerializer,
@@ -24,7 +28,7 @@ from wallets.services.payment import (
     check_and_expire_payment_request,
     pay_payment_request,
 )
-from wallets.utils.choices import OwnerType, PaymentFlowType, PaymentStatus
+from wallets.utils.choices import OwnerType
 
 _ALLOWED_ORDERING = {"created_at", "-created_at", "amount", "-amount"}
 
@@ -36,14 +40,6 @@ def _parse_dt_maybe(value):
     if dt:
         return dt
     return parse_date(value)
-
-
-def _error_response(detail, code, http_status, pr=None):
-    payload = {"detail": detail, "code": code}
-    if pr is not None:
-        payload["reference_code"] = pr.reference_code
-        payload["return_url"] = pr.return_url
-    return Response(payload, status=http_status)
 
 
 class PaymentRequestViewSet(
@@ -155,39 +151,44 @@ class PaymentRequestViewSet(
     @payment_retrieve_schema
     def retrieve(self, request, *args, **kwargs):
         self.serializer_class = PaymentRequestDetailWithWalletsSerializer
-        pr = self.get_object()
-        check_and_expire_payment_request(pr, raise_exception=False)
-        serializer = self.get_serializer(pr, context={"request": request})
+        payment_request = self.get_object()
+        check_and_expire_payment_request(payment_request, raise_exception=False)
+        payment_request.refresh_from_db()
+
+        serializer = self.get_serializer(
+            payment_request,
+            context={"request": request},
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @payment_confirm_schema
     @action(detail=True, methods=["post"], url_path="confirm")
     def confirm(self, request, *args, **kwargs):
         self._require_authenticated_user(request)
-        pr = self.get_object()
+        payment_request = self.get_object()
 
         try:
-            check_and_expire_payment_request(pr)
-        except ValidationError as e:
-            if getattr(e, "code", None) == "expired":
-                return _error_response(
-                    "درخواست پرداخت منقضی شده است.",
-                    "expired",
-                    status.HTTP_410_GONE,
-                    pr,
-                )
-            return _error_response(
-                str(e),
-                "validation_error",
-                status.HTTP_400_BAD_REQUEST,
-                pr,
+            check_and_expire_payment_request(payment_request)
+            payment_request.refresh_from_db()
+        except ValidationError as exc:
+            code = getattr(exc, "code", "validation_error")
+            http_status = (
+                status.HTTP_410_GONE
+                if code == "expired"
+                else status.HTTP_400_BAD_REQUEST
             )
-        except Exception as e:
-            return _error_response(
-                str(e),
-                "unknown_error",
-                status.HTTP_400_BAD_REQUEST,
-                pr,
+            return payment_error_response(
+                detail=str(exc),
+                code=code,
+                http_status=http_status,
+                payment_request=payment_request,
+            )
+        except Exception as exc:
+            return payment_error_response(
+                detail=str(exc),
+                code="unknown_error",
+                http_status=status.HTTP_400_BAD_REQUEST,
+                payment_request=payment_request,
             )
 
         serializer = PaymentConfirmSerializer(
@@ -204,52 +205,39 @@ class PaymentRequestViewSet(
                 owner_type=OwnerType.CUSTOMER,
             )
         except Wallet.DoesNotExist:
-            return _error_response(
-                "کیف پول پیدا نشد یا متعلق به شما نیست.",
-                "wallet_not_owned",
-                status.HTTP_400_BAD_REQUEST,
-                pr,
+            return payment_error_response(
+                detail="کیف پول پیدا نشد یا متعلق به شما نیست.",
+                code="wallet_not_owned",
+                http_status=status.HTTP_400_BAD_REQUEST,
+                payment_request=payment_request,
             )
 
         try:
-            payment = pay_payment_request(pr, request.user, wallet)
-        except ValidationError as e:
-            code = getattr(e, "code", "validation_error")
-            return _error_response(
-                str(e),
-                code,
-                status.HTTP_400_BAD_REQUEST,
-                pr,
+            payment = pay_payment_request(payment_request, request.user, wallet)
+            payment_request.refresh_from_db()
+            payment.refresh_from_db()
+        except ValidationError as exc:
+            return payment_error_response(
+                detail=str(exc),
+                code=getattr(exc, "code", "validation_error"),
+                http_status=status.HTTP_400_BAD_REQUEST,
+                payment_request=payment_request,
             )
-        except Exception as e:
-            return _error_response(
-                str(e),
-                "business_rule",
-                status.HTTP_400_BAD_REQUEST,
-                pr,
+        except Exception as exc:
+            return payment_error_response(
+                detail=str(exc),
+                code="business_rule",
+                http_status=status.HTTP_400_BAD_REQUEST,
+                payment_request=payment_request,
             )
 
-        merchant_confirmation_required = (
-                pr.flow_type == PaymentFlowType.ONLINE
-        )
-        next_action = (
-            "waiting_for_store_confirmation"
-            if payment.status == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
-            else "none"
+        payload_response = payment_success_response(
+            detail="پرداخت با موفقیت انجام شد.",
+            code="payment_confirmed",
+            payment_request=payment_request,
+            payment=payment,
+            http_status=status.HTTP_200_OK,
         )
 
-        payload = {
-            "detail": "پرداخت با موفقیت انجام شد.",
-            "payment_reference_code": pr.reference_code,
-            "transaction_reference_code": payment.operation_reference_code,
-            "return_url": pr.return_url,
-            "payment_status": payment.status,
-            "payment_request_status": pr.status,
-            "next_action": next_action,
-            "merchant_confirmation_required": merchant_confirmation_required,
-        }
-
-        return Response(
-            PaymentConfirmResponseSerializer(payload).data,
-            status=status.HTTP_200_OK,
-        )
+        serializer = PaymentActionResponseSerializer(payload_response.data)
+        return Response(serializer.data, status=payload_response.status_code)

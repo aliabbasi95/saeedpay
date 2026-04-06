@@ -68,10 +68,12 @@ class TestPartnerPaymentRequestApi:
         )
 
         assert response.status_code == 201, response.data
+        assert response.data["code"] == "payment_request_created"
         assert response.data["amount"] == 250000
-        assert response.data["status"] == PaymentRequestStatus.CREATED
+        assert response.data["payment_request_status"] == PaymentRequestStatus.CREATED
         assert response.data["flow_type"] == PaymentFlowType.ONLINE
         assert response.data["payment_reference_code"]
+        assert response.data["merchant_confirmation_required"] is True
         assert response.data["payment_url"].endswith(
             f'{response.data["payment_reference_code"]}/'
         )
@@ -114,7 +116,9 @@ class TestPartnerPaymentRequestApi:
         )
 
         assert response.status_code == 201, response.data
+        assert response.data["code"] == "payment_request_created"
         assert response.data["flow_type"] == PaymentFlowType.QR_POS
+        assert response.data["merchant_confirmation_required"] is False
 
         payment_request = PaymentRequest.objects.get(
             reference_code=response.data["payment_reference_code"]
@@ -147,6 +151,7 @@ class TestPartnerPaymentRequestApi:
         )
 
         assert response.status_code == 404
+        assert response.data["code"] == "customer_not_found"
         assert response.data["detail"] == "مشتری با این کد ملی یافت نشد."
 
     def test_retrieve_payment_request_detail_success(
@@ -274,12 +279,16 @@ class TestPartnerPaymentRequestApi:
 
         assert response.status_code == 200, response.data
         assert response.data["detail"] == "پرداخت نهایی شد."
+        assert response.data["code"] == "payment_verified"
         assert response.data["payment_reference_code"] == payment_request.reference_code
         assert response.data["payment_status"] == PaymentStatus.COMPLETED
         assert (
                 response.data["payment_request_status"]
                 == PaymentRequestStatus.COMPLETED
         )
+        assert response.data["next_action"] == "none"
+        assert response.data["merchant_confirmation_required"] is True
+        assert response.data["amount"] == payment_request.amount
 
         payment.refresh_from_db()
         payment_request.refresh_from_db()

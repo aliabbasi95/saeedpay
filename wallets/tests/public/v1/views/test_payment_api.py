@@ -9,7 +9,13 @@ from auth_api.models import PhoneOTP
 from credit.models.credit_limit import CreditLimit
 from wallets.models import PaymentRequest, Wallet
 from wallets.services.payment import verify_payment_request
-from wallets.utils.choices import OwnerType, PaymentFlowType, WalletKind
+from wallets.utils.choices import (
+    OwnerType,
+    PaymentFlowType,
+    PaymentRequestStatus,
+    PaymentStatus,
+    WalletKind,
+)
 from wallets.utils.escrow import ensure_escrow_wallet_exists
 
 
@@ -99,13 +105,26 @@ class TestPaymentApi:
             {"wallet_id": customer_cash_wallet.id, "code": code},
         )
         assert response.status_code == 200
+        assert response.data["code"] == "payment_confirmed"
         assert response.data["payment_reference_code"] == payment_request.reference_code
         assert response.data["next_action"] == "waiting_for_store_confirmation"
-
-        from wallets.utils.choices import PaymentRequestStatus
+        assert (
+                response.data["payment_status"]
+                == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
+        )
+        assert (
+                response.data["payment_request_status"]
+                == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        )
+        assert response.data["merchant_confirmation_required"] is True
+        assert response.data["return_url"] == payment_request.return_url
+        assert response.data["amount"] == payment_request.amount
 
         payment_request.refresh_from_db()
-        assert payment_request.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        assert (
+                payment_request.status
+                == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        )
 
         Wallet.objects.get_or_create(
             user=store.merchant.user,
@@ -150,11 +169,14 @@ class TestPaymentApi:
             {"wallet_id": customer_cash_wallet.id, "code": code},
         )
         assert response.status_code == 200
+        assert response.data["code"] == "payment_confirmed"
         assert response.data["next_action"] == "none"
         assert response.data["merchant_confirmation_required"] is False
+        assert response.data["payment_status"] == PaymentStatus.COMPLETED
+        assert response.data["payment_request_status"] == PaymentRequestStatus.COMPLETED
 
         payment_request.refresh_from_db()
-        assert payment_request.status == "completed"
+        assert payment_request.status == PaymentRequestStatus.COMPLETED
 
     def test_payment_request_detail_has_available_wallets_for_authenticated_user(
             self, store, customer_user
