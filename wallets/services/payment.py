@@ -581,6 +581,8 @@ def _authorize_cash_payment(payment: Payment, customer_wallet: Wallet):
         extra_data={
             "amount": payment.amount,
             "wallet_id": customer_wallet.id,
+            "payment_method": payment.method,
+            "flow_type": payment.flow_type,
         },
     )
 
@@ -627,6 +629,9 @@ def _authorize_credit_payment(payment: Payment):
         extra_data={
             "credit_authorization_id": authorization.id,
             "amount": payment.amount,
+            "payment_method": payment.method,
+            "flow_type": payment.flow_type,
+            "wallet_id": payment.payer_wallet_id,
         },
     )
 
