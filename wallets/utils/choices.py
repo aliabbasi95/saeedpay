@@ -96,3 +96,15 @@ class InstallmentStatus(models.TextChoices):
     UNPAID = "unpaid", _("پرداخت‌نشده")
     PAID = "paid", _("پرداخت‌شده")
     OVERDUE = "overdue", _("سررسید گذشته")
+
+
+class PaymentEventType(models.TextChoices):
+    PAYMENT_REQUEST_CREATED = "payment_request_created", "درخواست پرداخت ایجاد شد"
+    PAYMENT_AUTHORIZED = "payment_authorized", "پرداخت مجاز شد"
+    AWAITING_MERCHANT = "awaiting_merchant", "در انتظار تایید فروشگاه"
+    PAYMENT_SETTLED = "payment_settled", "تسویه انجام شد"
+    PAYMENT_COMPLETED = "payment_completed", "پرداخت تکمیل شد"
+    PAYMENT_CANCELLED = "payment_cancelled", "پرداخت لغو شد"
+    PAYMENT_EXPIRED = "payment_expired", "پرداخت منقضی شد"
+    PAYMENT_ROLLBACK = "payment_rollback", "بازگشت وجه/آزادسازی انجام شد"
+    PAYMENT_VERIFY_REQUESTED = "payment_verify_requested", "درخواست نهایی‌سازی ثبت شد"
