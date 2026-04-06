@@ -24,6 +24,11 @@ from wallets.services.payment import (
     verify_payment_request,
 )
 from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
+from wallets.services.payment import (
+    create_payment_request,
+    verify_payment_request,
+    check_and_expire_payment_request,
+)
 
 
 @extend_schema(tags=["Wallet · Payment Requests (Partner)"])
@@ -125,13 +130,10 @@ class PartnerPaymentRequestViewSet(
     )
     def retrieve(self, request, *args, **kwargs):
         payment_request = self.get_object()
+        check_and_expire_payment_request(payment_request, raise_exception=False)
+        payment_request.refresh_from_db()
 
-        check_and_expire_payment_request(
-            payment_request,
-            raise_exception=False,
-        )
-
-        serializer = self.get_serializer(payment_request)
+        serializer = PaymentRequestPartnerDetailSerializer(payment_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
@@ -145,13 +147,24 @@ class PartnerPaymentRequestViewSet(
     )
     @action(detail=True, methods=["post"], url_path="verify")
     def verify(self, request, *args, **kwargs):
-        payment_request = self.get_object()
+        reference_code = kwargs.get(self.lookup_field)
+        try:
+            payment_request = self.get_queryset().get(
+                reference_code=reference_code
+            )
+        except PaymentRequest.DoesNotExist:
+            return Response(
+                {"detail": "درخواست پرداخت پیدا نشد."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
         try:
             payment = verify_payment_request(
-                payment_request=payment_request,
+                payment_request,
                 store=request.store,
             )
+            payment_request.refresh_from_db()
+            payment.refresh_from_db()
         except ValidationError as exc:
             return Response(
                 {"detail": str(exc)},
