@@ -209,11 +209,11 @@ class TestPaymentService:
         assert payment_request.status == PaymentRequestStatus.COMPLETED
         assert first_verified_payment.status == PaymentStatus.COMPLETED
 
-        second_verified_payment = verify_payment_request(payment_request, store=store)
-        second_verified_payment.refresh_from_db()
+        with pytest.raises(ValidationError) as exc:
+            verify_payment_request(payment_request, store=store)
 
-        assert second_verified_payment.id == first_verified_payment.id
-        assert second_verified_payment.status == PaymentStatus.COMPLETED
+        assert str(exc.value.detail[0]) == "این درخواست پرداخت قبلاً نهایی شده است."
+        assert exc.value.get_codes()[0] == "already_completed"
 
     def test_double_rollback_is_idempotent(self, store, customer_user, ensure_escrow):
         customer_wallet = Wallet.objects.create(
