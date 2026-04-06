@@ -127,7 +127,6 @@ def expire_payment_request(payment_request: PaymentRequest):
             return request_obj
 
         request_obj.mark_expired()
-        rollback_payment(request_obj)
         return request_obj
 
 
@@ -144,7 +143,6 @@ def cancel_payment_request(payment_request: PaymentRequest):
             return request_obj
 
         request_obj.mark_cancelled()
-        rollback_payment(request_obj)
         return request_obj
 
 
@@ -451,11 +449,7 @@ def _mark_request_completed(payment_request: PaymentRequest, user, wallet):
     )
 
 
-# wallets/services/payment.py
-
 def _settle_cash_payment(payment):
-    from rest_framework.exceptions import ValidationError
-
     customer_to_escrow_txn = payment.transactions.filter(
         status=TransactionStatus.SUCCESS,
         purpose=TransactionPurpose.ESCROW_DEBIT,
