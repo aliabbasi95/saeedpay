@@ -118,8 +118,8 @@ class PaymentAdmin(BaseAdmin):
         if not obj.payment_request_id:
             return "-"
         return self._admin_change_link(
-            "wallets",
-            "paymentrequest",
+            obj.payment_request._meta.app_label,
+            obj.payment_request._meta.model_name,
             obj.payment_request_id,
             obj.payment_request.reference_code,
         )
@@ -129,8 +129,8 @@ class PaymentAdmin(BaseAdmin):
         if not obj.payer_id:
             return "-"
         return self._admin_change_link(
-            "auth",
-            "user",
+            obj.payer._meta.app_label,
+            obj.payer._meta.model_name,
             obj.payer_id,
             obj.payer.username,
         )
@@ -140,8 +140,8 @@ class PaymentAdmin(BaseAdmin):
         if not obj.payer_wallet_id:
             return "-"
         return self._admin_change_link(
-            "wallets",
-            "wallet",
+            obj.payer_wallet._meta.app_label,
+            obj.payer_wallet._meta.model_name,
             obj.payer_wallet_id,
             obj.payer_wallet.wallet_number,
         )

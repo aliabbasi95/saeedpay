@@ -1,12 +1,11 @@
 # wallets/api/partner/v1/views/payment.py
 
 from django.conf import settings
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from merchants.permissions import IsMerchant
@@ -15,15 +14,15 @@ from store.authentication import StoreApiKeyAuthentication
 from wallets.api.partner.v1.serializers import (
     PaymentRequestCreateSerializer,
     PaymentRequestCreateResponseSerializer,
-    PaymentVerifyResponseSerializer,
     PaymentRequestPartnerDetailSerializer,
+    PaymentVerifyResponseSerializer,
 )
 from wallets.models import PaymentRequest
 from wallets.services.payment import (
+    check_and_expire_payment_request,
     create_payment_request,
     verify_payment_request,
 )
-from wallets.utils.choices import PaymentRequestStatus
 from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
 
 
@@ -39,6 +38,7 @@ class PartnerPaymentRequestViewSet(
     retrieve: GET  /payment-requests/{ref}/         -> partner-side details
     verify:   POST /payment-requests/{ref}/verify/  -> finalize payment
     """
+
     authentication_classes = [StoreApiKeyAuthentication]
     permission_classes = [IsMerchant]
     serializer_class = PaymentRequestPartnerDetailSerializer
@@ -73,8 +73,15 @@ class PartnerPaymentRequestViewSet(
         data = serializer.validated_data
 
         try:
-            profile = Profile.objects.get(national_id=data["national_id"])
+            profile = Profile.objects.select_related("user").get(
+                national_id=data["national_id"]
+            )
             customer = profile.user.customer
+        except Profile.DoesNotExist:
+            return Response(
+                {"detail": "مشتری با این کد ملی یافت نشد."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         except Exception:
             return Response(
                 {"detail": "مشتری با این کد ملی یافت نشد."},
@@ -88,6 +95,7 @@ class PartnerPaymentRequestViewSet(
             return_url=data["return_url"],
             description=data.get("description", ""),
             external_guid=data.get("external_guid"),
+            flow_type=data["flow_type"],
         )
 
         payment_url = (
@@ -103,6 +111,7 @@ class PartnerPaymentRequestViewSet(
             "description": payment_request.description,
             "return_url": payment_request.return_url,
             "status": payment_request.status,
+            "flow_type": payment_request.flow_type,
             "payment_url": payment_url,
         }
         return Response(
@@ -117,15 +126,12 @@ class PartnerPaymentRequestViewSet(
     def retrieve(self, request, *args, **kwargs):
         payment_request = self.get_object()
 
-        if payment_request.expires_at and payment_request.status not in (
-                PaymentRequestStatus.EXPIRED,
-                PaymentRequestStatus.CANCELLED,
-                PaymentRequestStatus.COMPLETED,
-        ):
-            if payment_request.expires_at < timezone.localtime(timezone.now()):
-                payment_request.mark_expired()
+        check_and_expire_payment_request(
+            payment_request,
+            raise_exception=False,
+        )
 
-        serializer = PaymentRequestPartnerDetailSerializer(payment_request)
+        serializer = self.get_serializer(payment_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
@@ -139,20 +145,11 @@ class PartnerPaymentRequestViewSet(
     )
     @action(detail=True, methods=["post"], url_path="verify")
     def verify(self, request, *args, **kwargs):
-        reference_code = kwargs.get(self.lookup_field)
-        try:
-            payment_request = self.get_queryset().get(
-                reference_code=reference_code
-            )
-        except PaymentRequest.DoesNotExist:
-            return Response(
-                {"detail": "درخواست پرداخت پیدا نشد."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        payment_request = self.get_object()
 
         try:
             payment = verify_payment_request(
-                payment_request,
+                payment_request=payment_request,
                 store=request.store,
             )
         except ValidationError as exc:
@@ -173,6 +170,8 @@ class PartnerPaymentRequestViewSet(
                     getattr(payment, "operation_reference_code", "") or ""
             ),
             "amount": payment_request.amount,
+            "payment_status": payment.status,
+            "payment_request_status": payment_request.status,
         }
         return Response(
             PaymentVerifyResponseSerializer(payload).data,

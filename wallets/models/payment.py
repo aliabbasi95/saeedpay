@@ -100,21 +100,24 @@ class Payment(BaseModel):
 
     @property
     def operation_reference_code(self) -> str:
-        last_transaction = self.transactions.order_by("-created_at").first()
+        last_transaction = self.transactions.order_by("-created_at", "-id").first()
         if last_transaction:
             return last_transaction.reference_code
 
-        try:
-            auth = self.credit_authorizations.order_by("-created_at").first()
+        credit_authorizations = getattr(self, "credit_authorizations", None)
+        if credit_authorizations is not None:
+            auth = credit_authorizations.order_by("-created_at", "-id").first()
             if auth:
                 return auth.reference_code
-        except Exception:
-            pass
 
         return self.reference_code or ""
 
     def __str__(self):
-        return f"{self.reference_code or self.pk} | {self.get_method_display()} | {self.amount}"
+        return (
+            f"{self.reference_code or self.pk} | "
+            f"{self.get_method_display()} | "
+            f"{self.amount}"
+        )
 
     class Meta:
         verbose_name = _("پرداخت")
