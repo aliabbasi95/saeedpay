@@ -145,11 +145,14 @@ class PaymentRequest(BaseModel):
             to_status: str,
             *,
             datetime_field: str | None = None,
-    ):
+            extra_updates: dict | None = None,
+    ) -> bool:
         self._validate_status_transition(to_status)
 
-        update_fields = ["status"]
+        if self.status == to_status:
+            return False
 
+        update_fields = ["status"]
         self.status = to_status
 
         if datetime_field:
@@ -158,27 +161,110 @@ class PaymentRequest(BaseModel):
                 setattr(self, datetime_field, self._now())
             update_fields.append(datetime_field)
 
-        self.save(update_fields=update_fields)
+        if extra_updates:
+            for field_name, value in extra_updates.items():
+                setattr(self, field_name, value)
+                if field_name not in update_fields:
+                    update_fields.append(field_name)
 
-    def mark_awaiting_merchant(self):
-        self._transition_to(
+        self.save(update_fields=update_fields)
+        return True
+
+    def mark_awaiting_merchant(
+            self,
+            *,
+            user=None,
+            wallet=None,
+            merchant_deadline=None,
+    ) -> bool:
+        extra_updates = {}
+
+        if user is not None:
+            extra_updates["paid_by"] = user
+
+        if wallet is not None:
+            extra_updates["paid_wallet"] = wallet
+
+        if user is not None or wallet is not None:
+            extra_updates["paid_at"] = self.paid_at or self._now()
+
+        if merchant_deadline is not None:
+            extra_updates["merchant_confirm_expires_at"] = merchant_deadline
+            extra_updates["expires_at"] = merchant_deadline
+
+        return self._transition_to(
             PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION,
+            extra_updates=extra_updates or None,
         )
 
-    def mark_completed(self):
-        self._transition_to(
+    def mark_completed(
+            self,
+            *,
+            user=None,
+            wallet=None,
+    ) -> bool:
+        extra_updates = {}
+
+        if user is not None:
+            extra_updates["paid_by"] = user
+
+        if wallet is not None:
+            extra_updates["paid_wallet"] = wallet
+
+        if (
+                user is not None
+                or wallet is not None
+                or self.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        ):
+            extra_updates["paid_at"] = self.paid_at or self._now()
+
+        return self._transition_to(
             PaymentRequestStatus.COMPLETED,
             datetime_field="completed_at",
+            extra_updates=extra_updates or None,
         )
 
-    def mark_cancelled(self):
-        self._transition_to(
+    def mark_completed_direct(
+            self,
+            *,
+            user=None,
+            wallet=None,
+    ) -> bool:
+        if self.status == PaymentRequestStatus.COMPLETED:
+            return False
+
+        if self.status != PaymentRequestStatus.CREATED:
+            self._validate_status_transition(PaymentRequestStatus.COMPLETED)
+
+        update_fields = ["status", "completed_at"]
+
+        self.status = PaymentRequestStatus.COMPLETED
+        if not self.completed_at:
+            self.completed_at = self._now()
+
+        if user is not None:
+            self.paid_by = user
+            update_fields.append("paid_by")
+
+        if wallet is not None:
+            self.paid_wallet = wallet
+            update_fields.append("paid_wallet")
+
+        if not self.paid_at:
+            self.paid_at = self._now()
+            update_fields.append("paid_at")
+
+        self.save(update_fields=update_fields)
+        return True
+
+    def mark_cancelled(self) -> bool:
+        return self._transition_to(
             PaymentRequestStatus.CANCELLED,
             datetime_field="cancelled_at",
         )
 
-    def mark_expired(self):
-        self._transition_to(
+    def mark_expired(self) -> bool:
+        return self._transition_to(
             PaymentRequestStatus.EXPIRED,
             datetime_field="expired_at",
         )

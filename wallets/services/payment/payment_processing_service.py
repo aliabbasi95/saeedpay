@@ -69,15 +69,20 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
             if payment.flow_type == PaymentFlowType.QR_POS:
                 _settle_cash_payment(payment)
                 payment.mark_completed()
-                _mark_request_completed(
+                payment_request.mark_completed_direct(
+                    user=user,
+                    wallet=customer_wallet,
+                )
+                _log_request_completed_event(
                     payment_request=payment_request,
                     user=user,
                     wallet=customer_wallet,
                     payment=payment,
+                    from_status=PaymentRequestStatus.CREATED,
                 )
             else:
                 _mark_payment_awaiting_merchant(payment)
-                _mark_request_awaiting_merchant(
+                _move_request_to_awaiting_merchant(
                     payment_request=payment_request,
                     user=user,
                     wallet=customer_wallet,
@@ -91,15 +96,20 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
             if payment.flow_type == PaymentFlowType.QR_POS:
                 _settle_credit_payment(payment)
                 payment.mark_completed()
-                _mark_request_completed(
+                payment_request.mark_completed_direct(
+                    user=user,
+                    wallet=customer_wallet,
+                )
+                _log_request_completed_event(
                     payment_request=payment_request,
                     user=user,
                     wallet=customer_wallet,
                     payment=payment,
+                    from_status=PaymentRequestStatus.CREATED,
                 )
             else:
                 _mark_payment_awaiting_merchant(payment)
-                _mark_request_awaiting_merchant(
+                _move_request_to_awaiting_merchant(
                     payment_request=payment_request,
                     user=user,
                     wallet=customer_wallet,
@@ -195,12 +205,18 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
                 code="unsupported_payment_method",
             )
 
+        from_status = request_obj.status
         payment.mark_completed()
-        _mark_request_completed(
+        request_obj.mark_completed(
+            user=request_obj.paid_by,
+            wallet=request_obj.paid_wallet,
+        )
+        _log_request_completed_event(
             payment_request=request_obj,
             user=request_obj.paid_by,
             wallet=request_obj.paid_wallet,
             payment=payment,
+            from_status=from_status,
         )
         return payment
 
@@ -318,12 +334,11 @@ def _authorize_credit_payment(payment: Payment):
 
 
 def _mark_payment_awaiting_merchant(payment: Payment):
-    merchant_deadline = merchant_confirm_expiry()
-    payment.merchant_confirm_expires_at = merchant_deadline
+    payment.merchant_confirm_expires_at = merchant_confirm_expiry()
     payment.mark_awaiting_merchant()
 
 
-def _mark_request_awaiting_merchant(
+def _move_request_to_awaiting_merchant(
         *,
         payment_request: PaymentRequest,
         user,
@@ -333,21 +348,10 @@ def _mark_request_awaiting_merchant(
 ):
     from_status = payment_request.status
 
-    payment_request.paid_by = user
-    payment_request.paid_wallet = wallet
-    payment_request.paid_at = now_local()
-    payment_request.status = PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
-    payment_request.merchant_confirm_expires_at = merchant_deadline
-    payment_request.expires_at = merchant_deadline
-    payment_request.save(
-        update_fields=[
-            "paid_by",
-            "paid_wallet",
-            "paid_at",
-            "status",
-            "merchant_confirm_expires_at",
-            "expires_at",
-        ]
+    payment_request.mark_awaiting_merchant(
+        user=user,
+        wallet=wallet,
+        merchant_deadline=merchant_deadline,
     )
 
     create_event(
@@ -367,31 +371,14 @@ def _mark_request_awaiting_merchant(
     )
 
 
-def _mark_request_completed(
+def _log_request_completed_event(
         *,
         payment_request: PaymentRequest,
         user,
         wallet,
         payment: Payment,
+        from_status,
 ):
-    from_status = payment_request.status
-
-    payment_request.paid_by = user
-    payment_request.paid_wallet = wallet
-    if not payment_request.paid_at:
-        payment_request.paid_at = now_local()
-    payment_request.status = PaymentRequestStatus.COMPLETED
-    payment_request.completed_at = now_local()
-    payment_request.save(
-        update_fields=[
-            "paid_by",
-            "paid_wallet",
-            "paid_at",
-            "status",
-            "completed_at",
-        ]
-    )
-
     create_event(
         payment_request=payment_request,
         payment=payment,
