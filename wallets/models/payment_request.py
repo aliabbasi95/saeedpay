@@ -1,6 +1,7 @@
 # wallets/models/payment_request.py
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -15,6 +16,22 @@ from wallets.utils.consts import PAYMENT_REQUEST_EXPIRY_MINUTES
 
 
 class PaymentRequest(BaseModel):
+    ALLOWED_STATUS_TRANSITIONS = {
+        PaymentRequestStatus.CREATED: {
+            PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION,
+            PaymentRequestStatus.CANCELLED,
+            PaymentRequestStatus.EXPIRED,
+        },
+        PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION: {
+            PaymentRequestStatus.COMPLETED,
+            PaymentRequestStatus.CANCELLED,
+            PaymentRequestStatus.EXPIRED,
+        },
+        PaymentRequestStatus.COMPLETED: set(),
+        PaymentRequestStatus.CANCELLED: set(),
+        PaymentRequestStatus.EXPIRED: set(),
+    }
+
     store = models.ForeignKey(
         Store,
         null=True,
@@ -103,33 +120,74 @@ class PaymentRequest(BaseModel):
     cancelled_at = models.DateTimeField(null=True, blank=True)
     expired_at = models.DateTimeField(null=True, blank=True)
 
+    @staticmethod
+    def _now():
+        return timezone.localtime(timezone.now())
+
+    def _get_allowed_next_statuses(self):
+        return self.ALLOWED_STATUS_TRANSITIONS.get(self.status, set())
+
+    def _validate_status_transition(self, to_status: str):
+        if self.status == to_status:
+            return
+
+        allowed_statuses = self._get_allowed_next_statuses()
+        if to_status in allowed_statuses:
+            return
+
+        raise ValidationError(
+            _("Invalid payment request status transition."),
+            code="invalid_status_transition",
+        )
+
+    def _transition_to(
+            self,
+            to_status: str,
+            *,
+            datetime_field: str | None = None,
+    ):
+        self._validate_status_transition(to_status)
+
+        update_fields = ["status"]
+
+        self.status = to_status
+
+        if datetime_field:
+            current_value = getattr(self, datetime_field, None)
+            if not current_value:
+                setattr(self, datetime_field, self._now())
+            update_fields.append(datetime_field)
+
+        self.save(update_fields=update_fields)
+
     def mark_awaiting_merchant(self):
-        self.status = PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
-        self.save(update_fields=["status"])
+        self._transition_to(
+            PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION,
+        )
 
     def mark_completed(self):
-        self.status = PaymentRequestStatus.COMPLETED
-        if not self.completed_at:
-            self.completed_at = timezone.localtime(timezone.now())
-        self.save(update_fields=["status", "completed_at"])
+        self._transition_to(
+            PaymentRequestStatus.COMPLETED,
+            datetime_field="completed_at",
+        )
 
     def mark_cancelled(self):
-        self.status = PaymentRequestStatus.CANCELLED
-        if not self.cancelled_at:
-            self.cancelled_at = timezone.localtime(timezone.now())
-        self.save(update_fields=["status", "cancelled_at"])
+        self._transition_to(
+            PaymentRequestStatus.CANCELLED,
+            datetime_field="cancelled_at",
+        )
 
     def mark_expired(self):
-        self.status = PaymentRequestStatus.EXPIRED
-        if not self.expired_at:
-            self.expired_at = timezone.localtime(timezone.now())
-        self.save(update_fields=["status", "expired_at"])
+        self._transition_to(
+            PaymentRequestStatus.EXPIRED,
+            datetime_field="expired_at",
+        )
 
     def save(self, *args, **kwargs):
         if not self.expires_at:
-            self.expires_at = timezone.localtime(
-                timezone.now()
-            ) + timezone.timedelta(minutes=PAYMENT_REQUEST_EXPIRY_MINUTES)
+            self.expires_at = self._now() + timezone.timedelta(
+                minutes=PAYMENT_REQUEST_EXPIRY_MINUTES
+            )
 
         if not self.reference_code:
             for _ in range(5):
