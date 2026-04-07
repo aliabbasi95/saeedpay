@@ -1,10 +1,6 @@
-# wallets/services/payment.py
-
-import logging
-from datetime import timedelta
+# wallets/services/payment/payment_processing_service.py
 
 from django.db import transaction
-from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from credit.models.authorization import CreditAuthorization
@@ -12,9 +8,26 @@ from credit.models.statement import Statement
 from credit.models.statement_line import StatementLine
 from credit.utils.choices import StatementLineType
 from wallets.models import Payment, PaymentRequest, Transaction, Wallet
-from wallets.services.payment_event import create_payment_event
+from wallets.services.payment.payment_request_service import (
+    check_and_expire_payment_request,
+    ensure_no_active_payment_exists,
+    ensure_request_can_be_paid,
+    resolve_payment_method,
+    validate_wallet_ownership,
+)
+from wallets.services.payment.payment_shared import (
+    build_authorized_event_extra,
+    create_event,
+    credit_auth_hold_expiry,
+    ensure_payment_request_status,
+    get_escrow_wallet,
+    get_latest_payment_for_request,
+    get_merchant_gateway_wallet,
+    merchant_confirm_expiry,
+    now_local,
+    logger,
+)
 from wallets.utils.choices import (
-    OwnerType,
     PaymentEventType,
     PaymentFlowType,
     PaymentMethod,
@@ -22,272 +35,7 @@ from wallets.utils.choices import (
     PaymentStatus,
     TransactionPurpose,
     TransactionStatus,
-    WalletKind,
 )
-from wallets.utils.consts import (
-    CREDIT_AUTH_HOLD_EXPIRY_MINUTES,
-    ESCROW_USER_NAME,
-    ESCROW_WALLET_KIND,
-    MERCHANT_CONFIRM_WINDOW_MINUTES,
-)
-
-logger = logging.getLogger(__name__)
-
-
-# =========================================================
-# Shared low-level helpers
-# =========================================================
-
-
-def _now():
-    return timezone.localtime(timezone.now())
-
-
-def _is_terminal_payment_request_status(status: str) -> bool:
-    return status in {
-        PaymentRequestStatus.COMPLETED,
-        PaymentRequestStatus.CANCELLED,
-        PaymentRequestStatus.EXPIRED,
-    }
-
-
-def _get_latest_payment_for_request(payment_request: PaymentRequest):
-    return (
-        Payment.objects.select_for_update()
-        .filter(payment_request=payment_request)
-        .order_by("-created_at", "-id")
-        .first()
-    )
-
-
-def _ensure_payment_request_status(
-        payment_request: PaymentRequest,
-        *,
-        allowed_statuses: set[str],
-        error_message: str,
-        error_code: str = "invalid_state",
-):
-    if payment_request.status not in allowed_statuses:
-        raise ValidationError(error_message, code=error_code)
-
-
-def _create_event(
-        *,
-        payment_request: PaymentRequest,
-        event_type,
-        payment=None,
-        transaction=None,
-        actor=None,
-        from_status=None,
-        to_status=None,
-        description="",
-        extra_data=None,
-):
-    create_payment_event(
-        payment_request=payment_request,
-        payment=payment,
-        transaction=transaction,
-        actor=actor,
-        event_type=event_type,
-        from_status=from_status,
-        to_status=to_status,
-        description=description,
-        extra_data=extra_data or {},
-    )
-
-
-# =========================================================
-# Payment request creation / listing
-# =========================================================
-
-
-def create_payment_request(
-        store,
-        amount,
-        return_url,
-        customer=None,
-        description="",
-        external_guid=None,
-        flow_type=PaymentFlowType.ONLINE,
-):
-    created_deadline = _now() + timedelta(
-        minutes=CREDIT_AUTH_HOLD_EXPIRY_MINUTES
-    )
-    payment_request = PaymentRequest.objects.create(
-        store=store,
-        amount=amount,
-        customer=customer,
-        status=PaymentRequestStatus.CREATED,
-        description=description,
-        return_url=return_url,
-        external_guid=external_guid,
-        flow_type=flow_type,
-        created_expires_at=created_deadline,
-        expires_at=created_deadline,
-    )
-
-    _create_event(
-        payment_request=payment_request,
-        event_type=PaymentEventType.PAYMENT_REQUEST_CREATED,
-        actor=getattr(customer, "user", None) if customer else None,
-        to_status=payment_request.status,
-        description="Payment request created.",
-        extra_data={
-            "amount": payment_request.amount,
-            "flow_type": payment_request.flow_type,
-            "store_id": payment_request.store_id,
-        },
-    )
-    return payment_request
-
-
-def list_eligible_wallets_for_payment_request(user, payment_request):
-    wallets = Wallet.objects.filter(
-        user=user,
-        owner_type=OwnerType.CUSTOMER,
-    ).order_by("kind")
-
-    eligible_ids = []
-
-    for wallet in wallets:
-        if wallet.kind == WalletKind.CASH:
-            if int(wallet.available_balance or 0) >= int(payment_request.amount):
-                eligible_ids.append(wallet.id)
-        elif wallet.kind == WalletKind.CREDIT:
-            from credit.models.credit_limit import CreditLimit
-
-            credit_limit = CreditLimit.objects.get_user_credit_limit(user)
-            if (
-                    credit_limit
-                    and getattr(credit_limit, "is_active", False)
-                    and getattr(credit_limit, "available_limit", 0)
-                    >= int(payment_request.amount)
-            ):
-                eligible_ids.append(wallet.id)
-
-    return wallets.filter(id__in=eligible_ids)
-
-
-# =========================================================
-# Expire / cancel / rollback lifecycle
-# =========================================================
-
-
-def check_and_expire_payment_request(
-        payment_request: PaymentRequest,
-        *,
-        raise_exception: bool = True,
-) -> bool:
-    payment_request = PaymentRequest.objects.get(pk=payment_request.pk)
-
-    if payment_request.expires_at and payment_request.expires_at < _now():
-        if not _is_terminal_payment_request_status(payment_request.status):
-            expire_payment_request(payment_request)
-
-        if raise_exception:
-            raise ValidationError(
-                detail="درخواست پرداخت منقضی شده است.",
-                code="expired",
-            )
-        return True
-
-    return False
-
-
-def expire_payment_request(payment_request: PaymentRequest):
-    with transaction.atomic():
-        request_obj = PaymentRequest.objects.select_for_update().get(
-            pk=payment_request.pk
-        )
-
-        if request_obj.status == PaymentRequestStatus.EXPIRED:
-            return request_obj
-
-        if request_obj.status in [
-            PaymentRequestStatus.CANCELLED,
-            PaymentRequestStatus.COMPLETED,
-        ]:
-            return request_obj
-
-        from_status = request_obj.status
-        request_obj.mark_expired()
-        rollback_payment(request_obj)
-
-        latest_payment = _get_latest_payment_for_request(request_obj)
-        _create_event(
-            payment_request=request_obj,
-            payment=latest_payment,
-            actor=request_obj.paid_by,
-            event_type=PaymentEventType.PAYMENT_EXPIRED,
-            from_status=from_status,
-            to_status=request_obj.status,
-            description="Payment request expired.",
-        )
-        return request_obj
-
-
-def cancel_payment_request(payment_request: PaymentRequest):
-    with transaction.atomic():
-        request_obj = PaymentRequest.objects.select_for_update().get(
-            pk=payment_request.pk
-        )
-
-        if request_obj.status == PaymentRequestStatus.CANCELLED:
-            return request_obj
-
-        if request_obj.status in [
-            PaymentRequestStatus.EXPIRED,
-            PaymentRequestStatus.COMPLETED,
-        ]:
-            return request_obj
-
-        from_status = request_obj.status
-        request_obj.mark_cancelled()
-        rollback_payment(request_obj)
-
-        latest_payment = _get_latest_payment_for_request(request_obj)
-        _create_event(
-            payment_request=request_obj,
-            payment=latest_payment,
-            actor=request_obj.paid_by,
-            event_type=PaymentEventType.PAYMENT_CANCELLED,
-            from_status=from_status,
-            to_status=request_obj.status,
-            description="Payment request cancelled.",
-        )
-        return request_obj
-
-
-def rollback_payment(payment_request: PaymentRequest):
-    with transaction.atomic():
-        request_obj = PaymentRequest.objects.select_for_update().get(
-            pk=payment_request.pk
-        )
-
-        payment = (
-            Payment.objects.select_for_update()
-            .filter(payment_request=request_obj)
-            .order_by("-created_at", "-id")
-            .first()
-        )
-        if not payment:
-            return None
-
-        if payment.status == PaymentStatus.COMPLETED:
-            return None
-
-        if payment.method == PaymentMethod.CASH:
-            return _rollback_cash_payment(payment)
-
-        if payment.method == PaymentMethod.CREDIT:
-            return _rollback_credit_payment(payment)
-
-        return None
-
-
-# =========================================================
-# Pay / verify public flow
-# =========================================================
 
 
 def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
@@ -299,49 +47,12 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
         )
 
         check_and_expire_payment_request(payment_request)
+        ensure_request_can_be_paid(payment_request)
 
-        _ensure_payment_request_status(
-            payment_request,
-            allowed_statuses={PaymentRequestStatus.CREATED},
-            error_message="پرداخت در این وضعیت قابل انجام نیست.",
-        )
+        customer_wallet = validate_wallet_ownership(user=user, wallet=wallet)
+        ensure_no_active_payment_exists(payment_request)
 
-        customer_wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
-        if customer_wallet.user_id != user.id:
-            raise ValidationError(
-                "کیف پول برای کاربر نیست.",
-                code="wallet_not_owned",
-            )
-
-        existing_payment = (
-            Payment.objects.select_for_update()
-            .filter(
-                payment_request=payment_request,
-                status__in=[
-                    PaymentStatus.CREATED,
-                    PaymentStatus.AUTHORIZED,
-                    PaymentStatus.AWAITING_MERCHANT_CONFIRMATION,
-                    PaymentStatus.COMPLETED,
-                ],
-            )
-            .order_by("-created_at", "-id")
-            .first()
-        )
-        if existing_payment:
-            raise ValidationError(
-                "این درخواست پرداخت قبلاً پردازش شده است.",
-                code="already_processed",
-            )
-
-        if customer_wallet.kind == WalletKind.CASH:
-            payment_method = PaymentMethod.CASH
-        elif customer_wallet.kind == WalletKind.CREDIT:
-            payment_method = PaymentMethod.CREDIT
-        else:
-            raise ValidationError(
-                "نوع کیف پول مجاز نیست.",
-                code="unsupported_wallet",
-            )
+        payment_method = resolve_payment_method(customer_wallet)
 
         payment = Payment.objects.create(
             payment_request=payment_request,
@@ -416,7 +127,7 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
 
         check_and_expire_payment_request(request_obj)
 
-        latest_payment = _get_latest_payment_for_request(request_obj)
+        latest_payment = get_latest_payment_for_request(request_obj)
 
         if request_obj.status == PaymentRequestStatus.COMPLETED:
             raise ValidationError(
@@ -436,7 +147,7 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
                 code="expired",
             )
 
-        _ensure_payment_request_status(
+        ensure_payment_request_status(
             request_obj,
             allowed_statuses={PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION},
             error_message="پرداخت قابل نهایی‌سازی نیست یا قبلاً تایید شده است.",
@@ -462,7 +173,7 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
         if store and getattr(store, "merchant", None):
             actor = getattr(store.merchant, "user", None)
 
-        _create_event(
+        create_event(
             payment_request=request_obj,
             payment=latest_payment,
             actor=actor,
@@ -495,55 +206,35 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
         return payment
 
 
-# =========================================================
-# Batch lifecycle helpers for tasks
-# =========================================================
-
-
-def expire_pending_payment_requests_batch():
-    now = _now()
-    expired_request_ids = list(
-        PaymentRequest.objects.filter(
-            status__in=[
-                PaymentRequestStatus.CREATED,
-                PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION,
-            ],
-            expires_at__lt=now,
-        ).values_list("id", flat=True)
-    )
-
-    for payment_request_id in expired_request_ids:
-        expire_payment_request(
-            PaymentRequest(id=payment_request_id)
+def rollback_payment(payment_request: PaymentRequest):
+    with transaction.atomic():
+        request_obj = PaymentRequest.objects.select_for_update().get(
+            pk=payment_request.pk
         )
 
-
-def cleanup_cancelled_and_expired_requests_batch():
-    stale_request_ids = list(
-        PaymentRequest.objects.filter(
-            status__in=[
-                PaymentRequestStatus.EXPIRED,
-                PaymentRequestStatus.CANCELLED,
-            ]
-        ).values_list("id", flat=True)
-    )
-
-    for payment_request_id in stale_request_ids:
-        rollback_payment(
-            PaymentRequest(id=payment_request_id)
+        payment = (
+            Payment.objects.select_for_update()
+            .filter(payment_request=request_obj)
+            .order_by("-created_at", "-id")
+            .first()
         )
+        if not payment:
+            return None
 
+        if payment.status == PaymentStatus.COMPLETED:
+            return None
 
-# =========================================================
-# Internal payment state helpers
-# =========================================================
+        if payment.method == PaymentMethod.CASH:
+            return _rollback_cash_payment(payment)
+
+        if payment.method == PaymentMethod.CREDIT:
+            return _rollback_credit_payment(payment)
+
+        return None
 
 
 def _authorize_cash_payment(payment: Payment, customer_wallet: Wallet):
-    escrow_wallet = Wallet.objects.select_for_update().get(
-        user__username=ESCROW_USER_NAME,
-        kind=ESCROW_WALLET_KIND,
-    )
+    escrow_wallet = get_escrow_wallet()
 
     if customer_wallet.available_balance < payment.amount:
         raise ValidationError(
@@ -570,7 +261,7 @@ def _authorize_cash_payment(payment: Payment, customer_wallet: Wallet):
     payment.status = PaymentStatus.AUTHORIZED
     payment.save(update_fields=["status"])
 
-    _create_event(
+    create_event(
         payment_request=payment.payment_request,
         payment=payment,
         transaction=escrow_transaction,
@@ -578,12 +269,10 @@ def _authorize_cash_payment(payment: Payment, customer_wallet: Wallet):
         event_type=PaymentEventType.PAYMENT_AUTHORIZED,
         to_status=payment.status,
         description="Cash payment authorized.",
-        extra_data={
-            "amount": payment.amount,
-            "wallet_id": customer_wallet.id,
-            "payment_method": payment.method,
-            "flow_type": payment.flow_type,
-        },
+        extra_data=build_authorized_event_extra(
+            payment=payment,
+            wallet_id=customer_wallet.id,
+        ),
     )
 
 
@@ -602,9 +291,7 @@ def _authorize_credit_payment(payment: Payment):
             code="insufficient_credit",
         )
 
-    authorization_expires_at = _now() + timedelta(
-        minutes=CREDIT_AUTH_HOLD_EXPIRY_MINUTES
-    )
+    authorization_expires_at = credit_auth_hold_expiry()
 
     authorization = CreditAuthorization.objects.create(
         user=payment.payer,
@@ -619,27 +306,23 @@ def _authorize_credit_payment(payment: Payment):
     payment.authorization_expires_at = authorization_expires_at
     payment.save(update_fields=["status", "authorization_expires_at"])
 
-    _create_event(
+    create_event(
         payment_request=payment.payment_request,
         payment=payment,
         actor=payment.payer,
         event_type=PaymentEventType.PAYMENT_AUTHORIZED,
         to_status=payment.status,
         description="Credit payment authorized.",
-        extra_data={
-            "credit_authorization_id": authorization.id,
-            "amount": payment.amount,
-            "payment_method": payment.method,
-            "flow_type": payment.flow_type,
-            "wallet_id": payment.payer_wallet_id,
-        },
+        extra_data=build_authorized_event_extra(
+            payment=payment,
+            wallet_id=payment.payer_wallet_id,
+            extra={"credit_authorization_id": authorization.id},
+        ),
     )
 
 
 def _mark_payment_awaiting_merchant(payment: Payment):
-    merchant_deadline = _now() + timedelta(
-        minutes=MERCHANT_CONFIRM_WINDOW_MINUTES
-    )
+    merchant_deadline = merchant_confirm_expiry()
     payment.status = PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
     payment.merchant_confirm_expires_at = merchant_deadline
     payment.save(update_fields=["status", "merchant_confirm_expires_at"])
@@ -657,7 +340,7 @@ def _mark_request_awaiting_merchant(
 
     payment_request.paid_by = user
     payment_request.paid_wallet = wallet
-    payment_request.paid_at = _now()
+    payment_request.paid_at = now_local()
     payment_request.status = PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
     payment_request.merchant_confirm_expires_at = merchant_deadline
     payment_request.expires_at = merchant_deadline
@@ -672,7 +355,7 @@ def _mark_request_awaiting_merchant(
         ]
     )
 
-    _create_event(
+    create_event(
         payment_request=payment_request,
         payment=payment,
         actor=user,
@@ -694,7 +377,7 @@ def _mark_payment_completed(payment: Payment):
         return
 
     payment.status = PaymentStatus.COMPLETED
-    payment.completed_at = _now()
+    payment.completed_at = now_local()
     payment.save(update_fields=["status", "completed_at"])
 
 
@@ -710,9 +393,9 @@ def _mark_request_completed(
     payment_request.paid_by = user
     payment_request.paid_wallet = wallet
     if not payment_request.paid_at:
-        payment_request.paid_at = _now()
+        payment_request.paid_at = now_local()
     payment_request.status = PaymentRequestStatus.COMPLETED
-    payment_request.completed_at = _now()
+    payment_request.completed_at = now_local()
     payment_request.save(
         update_fields=[
             "paid_by",
@@ -723,7 +406,7 @@ def _mark_request_completed(
         ]
     )
 
-    _create_event(
+    create_event(
         payment_request=payment_request,
         payment=payment,
         actor=user,
@@ -752,18 +435,7 @@ def _settle_cash_payment(payment):
     escrow_wallet = Wallet.objects.select_for_update().get(
         pk=customer_to_escrow_txn.to_wallet_id
     )
-
-    try:
-        merchant_wallet = Wallet.objects.select_for_update().get(
-            user=payment.payment_request.store.merchant.user,
-            kind=WalletKind.MERCHANT_GATEWAY,
-            owner_type=OwnerType.MERCHANT,
-        )
-    except Wallet.DoesNotExist:
-        raise ValidationError(
-            "کیف پول فروشگاه برای تسویه یافت نشد.",
-            code="merchant_wallet_not_found",
-        )
+    merchant_wallet = get_merchant_gateway_wallet(payment)
 
     if escrow_wallet.balance < payment.amount:
         logger.error(
@@ -793,7 +465,7 @@ def _settle_cash_payment(payment):
         related_transaction=customer_to_escrow_txn,
     )
 
-    _create_event(
+    create_event(
         payment_request=payment.payment_request,
         payment=payment,
         transaction=settlement_txn,
@@ -855,7 +527,7 @@ def _settle_credit_payment(payment: Payment):
         description=f"Purchase {payment.payment_request.reference_code}",
     )
 
-    _create_event(
+    create_event(
         payment_request=payment.payment_request,
         payment=payment,
         actor=payment.payer,
@@ -931,14 +603,14 @@ def _rollback_cash_payment(payment: Payment):
 
     if payment.payment_request.status == PaymentRequestStatus.CANCELLED:
         payment.status = PaymentStatus.CANCELLED
-        payment.cancelled_at = _now()
+        payment.cancelled_at = now_local()
         payment.save(update_fields=["status", "cancelled_at"])
     elif payment.payment_request.status == PaymentRequestStatus.EXPIRED:
         payment.status = PaymentStatus.EXPIRED
-        payment.expired_at = _now()
+        payment.expired_at = now_local()
         payment.save(update_fields=["status", "expired_at"])
 
-    _create_event(
+    create_event(
         payment_request=payment.payment_request,
         payment=payment,
         transaction=reversal,
@@ -973,14 +645,14 @@ def _rollback_credit_payment(payment: Payment):
 
     if payment.payment_request.status == PaymentRequestStatus.CANCELLED:
         payment.status = PaymentStatus.CANCELLED
-        payment.cancelled_at = _now()
+        payment.cancelled_at = now_local()
         payment.save(update_fields=["status", "cancelled_at"])
     elif payment.payment_request.status == PaymentRequestStatus.EXPIRED:
         payment.status = PaymentStatus.EXPIRED
-        payment.expired_at = _now()
+        payment.expired_at = now_local()
         payment.save(update_fields=["status", "expired_at"])
 
-    _create_event(
+    create_event(
         payment_request=payment.payment_request,
         payment=payment,
         actor=payment.payer,
