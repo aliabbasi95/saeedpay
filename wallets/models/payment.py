@@ -1,7 +1,9 @@
 # wallets/models/payment.py
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
@@ -11,6 +13,39 @@ from wallets.utils.choices import PaymentFlowType, PaymentMethod, PaymentStatus
 
 
 class Payment(BaseModel):
+    ALLOWED_STATUS_TRANSITIONS = {
+        PaymentStatus.CREATED: {
+            PaymentStatus.AUTHORIZED,
+            PaymentStatus.FAILED,
+            PaymentStatus.CANCELLED,
+            PaymentStatus.EXPIRED,
+        },
+        PaymentStatus.AUTHORIZED: {
+            PaymentStatus.AWAITING_MERCHANT_CONFIRMATION,
+            PaymentStatus.COMPLETED,
+            PaymentStatus.FAILED,
+            PaymentStatus.CANCELLED,
+            PaymentStatus.EXPIRED,
+        },
+        PaymentStatus.AWAITING_MERCHANT_CONFIRMATION: {
+            PaymentStatus.COMPLETED,
+            PaymentStatus.FAILED,
+            PaymentStatus.CANCELLED,
+            PaymentStatus.EXPIRED,
+        },
+        PaymentStatus.COMPLETED: set(),
+        PaymentStatus.CANCELLED: set(),
+        PaymentStatus.EXPIRED: set(),
+        PaymentStatus.FAILED: set(),
+    }
+
+    FINAL_STATUSES = {
+        PaymentStatus.COMPLETED,
+        PaymentStatus.CANCELLED,
+        PaymentStatus.EXPIRED,
+        PaymentStatus.FAILED,
+    }
+
     payment_request = models.ForeignKey(
         "wallets.PaymentRequest",
         on_delete=models.CASCADE,
@@ -87,6 +122,103 @@ class Payment(BaseModel):
         verbose_name=_("دلیل خطا"),
     )
 
+    @staticmethod
+    def _now():
+        return timezone.localtime(timezone.now())
+
+    @property
+    def is_final(self) -> bool:
+        return self.status in self.FINAL_STATUSES
+
+    def _get_allowed_next_statuses(self):
+        return self.ALLOWED_STATUS_TRANSITIONS.get(self.status, set())
+
+    def can_transition_to(self, to_status: str) -> bool:
+        if self.status == to_status:
+            return True
+        return to_status in self._get_allowed_next_statuses()
+
+    def _validate_status_transition(self, to_status: str):
+        if self.status == to_status:
+            return
+
+        if self.status == PaymentStatus.COMPLETED:
+            raise ValidationError(
+                _("This payment has already been completed."),
+                code="already_completed",
+            )
+
+        if to_status in self._get_allowed_next_statuses():
+            return
+
+        raise ValidationError(
+            _("Invalid payment status transition."),
+            code="invalid_status_transition",
+        )
+
+    def _transition_to(
+            self,
+            to_status: str,
+            *,
+            datetime_field: str | None = None,
+            failure_reason: str | None = None,
+            extra_update_fields: list[str] | None = None,
+    ):
+        self._validate_status_transition(to_status)
+
+        if self.status == to_status:
+            return
+
+        update_fields = ["status"]
+
+        self.status = to_status
+
+        if datetime_field:
+            if not getattr(self, datetime_field):
+                setattr(self, datetime_field, self._now())
+            update_fields.append(datetime_field)
+
+        if failure_reason is not None:
+            self.failure_reason = failure_reason
+            update_fields.append("failure_reason")
+
+        if extra_update_fields:
+            update_fields.extend(extra_update_fields)
+
+        # remove duplicates while preserving order
+        update_fields = list(dict.fromkeys(update_fields))
+        self.save(update_fields=update_fields)
+
+    def mark_authorized(self):
+        self._transition_to(PaymentStatus.AUTHORIZED)
+
+    def mark_awaiting_merchant(self):
+        self._transition_to(PaymentStatus.AWAITING_MERCHANT_CONFIRMATION)
+
+    def mark_completed(self):
+        self._transition_to(
+            PaymentStatus.COMPLETED,
+            datetime_field="completed_at",
+        )
+
+    def mark_failed(self, reason: str = ""):
+        self._transition_to(
+            PaymentStatus.FAILED,
+            failure_reason=reason,
+        )
+
+    def mark_cancelled(self):
+        self._transition_to(
+            PaymentStatus.CANCELLED,
+            datetime_field="cancelled_at",
+        )
+
+    def mark_expired(self):
+        self._transition_to(
+            PaymentStatus.EXPIRED,
+            datetime_field="expired_at",
+        )
+
     def save(self, *args, **kwargs):
         if not self.reference_code:
             for _ in range(5):
@@ -96,6 +228,7 @@ class Payment(BaseModel):
                     break
             else:
                 raise Exception("Payment reference code generation failed.")
+
         super().save(*args, **kwargs)
 
     @property
