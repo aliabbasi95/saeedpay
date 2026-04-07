@@ -25,7 +25,6 @@ from wallets.services.payment.payment_shared import (
     get_merchant_gateway_wallet,
     logger,
     merchant_confirm_expiry,
-    now_local,
 )
 from wallets.utils.choices import (
     PaymentEventType,
@@ -50,7 +49,6 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
 
         customer_wallet = validate_wallet_ownership(user=user, wallet=wallet)
         ensure_no_active_payment_exists(payment_request)
-
         payment_method = resolve_payment_method(customer_wallet)
 
         payment = Payment.objects.create(
@@ -135,7 +133,6 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
             )
 
         check_and_expire_payment_request(request_obj)
-
         latest_payment = get_latest_payment_for_request(request_obj)
 
         if request_obj.status == PaymentRequestStatus.COMPLETED:

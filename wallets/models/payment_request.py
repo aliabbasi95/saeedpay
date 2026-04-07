@@ -32,6 +32,12 @@ class PaymentRequest(BaseModel):
         PaymentRequestStatus.EXPIRED: set(),
     }
 
+    TERMINAL_STATUSES = {
+        PaymentRequestStatus.COMPLETED,
+        PaymentRequestStatus.CANCELLED,
+        PaymentRequestStatus.EXPIRED,
+    }
+
     store = models.ForeignKey(
         Store,
         null=True,
@@ -124,15 +130,23 @@ class PaymentRequest(BaseModel):
     def _now():
         return timezone.localtime(timezone.now())
 
+    @property
+    def is_terminal(self) -> bool:
+        return self.status in self.TERMINAL_STATUSES
+
     def _get_allowed_next_statuses(self):
         return self.ALLOWED_STATUS_TRANSITIONS.get(self.status, set())
+
+    def can_transition_to(self, to_status: str) -> bool:
+        if self.status == to_status:
+            return True
+        return to_status in self._get_allowed_next_statuses()
 
     def _validate_status_transition(self, to_status: str):
         if self.status == to_status:
             return
 
-        allowed_statuses = self._get_allowed_next_statuses()
-        if to_status in allowed_statuses:
+        if to_status in self._get_allowed_next_statuses():
             return
 
         raise ValidationError(
@@ -156,8 +170,7 @@ class PaymentRequest(BaseModel):
         self.status = to_status
 
         if datetime_field:
-            current_value = getattr(self, datetime_field, None)
-            if not current_value:
+            if not getattr(self, datetime_field, None):
                 setattr(self, datetime_field, self._now())
             update_fields.append(datetime_field)
 
@@ -282,9 +295,7 @@ class PaymentRequest(BaseModel):
                     self.reference_code = code
                     break
             else:
-                raise Exception(
-                    "Payment request reference code generation failed."
-                )
+                raise Exception("Payment request reference code generation failed.")
 
         super().save(*args, **kwargs)
 

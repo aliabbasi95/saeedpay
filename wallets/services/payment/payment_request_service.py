@@ -83,7 +83,7 @@ def list_eligible_wallets_for_payment_request(user, payment_request):
                     and getattr(credit_limit, "is_active", False)
                     and getattr(credit_limit, "available_limit", 0) >= int(
                 payment_request.amount
-                )
+            )
             ):
                 eligible_ids.append(wallet.id)
 
@@ -182,7 +182,7 @@ def cancel_payment_request(payment_request: PaymentRequest):
 def validate_wallet_ownership(*, user, wallet):
     customer_wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
 
-    if customer_wallet.user_id != user.id:
+    if customer_wallet.user_id != user.id or customer_wallet.owner_type != OwnerType.CUSTOMER:
         raise ValidationError(
             "کیف پول برای کاربر نیست.",
             code="wallet_not_owned",
