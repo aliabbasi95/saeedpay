@@ -1,4 +1,4 @@
-# wallets/services/payment_event.py
+# wallets/services/payment/payment_event.py
 
 from wallets.models import PaymentEvent
 
@@ -15,7 +15,7 @@ def create_payment_event(
         description="",
         extra_data=None,
 ):
-    return PaymentEvent.objects.create(
+    return PaymentEvent.log(
         payment_request=payment_request,
         payment=payment,
         transaction=transaction,

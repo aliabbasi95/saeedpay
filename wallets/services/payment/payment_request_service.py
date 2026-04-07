@@ -33,6 +33,7 @@ def create_payment_request(
         flow_type=PaymentFlowType.ONLINE,
 ):
     created_deadline = credit_auth_hold_expiry()
+
     payment_request = PaymentRequest.objects.create(
         store=store,
         amount=amount,
@@ -80,8 +81,9 @@ def list_eligible_wallets_for_payment_request(user, payment_request):
             if (
                     credit_limit
                     and getattr(credit_limit, "is_active", False)
-                    and getattr(credit_limit, "available_limit", 0)
-                    >= int(payment_request.amount)
+                    and getattr(credit_limit, "available_limit", 0) >= int(
+                payment_request.amount
+                )
             ):
                 eligible_ids.append(wallet.id)
 
@@ -120,10 +122,10 @@ def expire_payment_request(payment_request: PaymentRequest):
         if request_obj.status == PaymentRequestStatus.EXPIRED:
             return request_obj
 
-        if request_obj.status in [
+        if request_obj.status in {
             PaymentRequestStatus.CANCELLED,
             PaymentRequestStatus.COMPLETED,
-        ]:
+        }:
             return request_obj
 
         from_status = request_obj.status
@@ -144,7 +146,7 @@ def expire_payment_request(payment_request: PaymentRequest):
 
 
 def cancel_payment_request(payment_request: PaymentRequest):
-    from wallets.services.payment_processing_service import rollback_payment
+    from wallets.services.payment.payment_processing_service import rollback_payment
 
     with transaction.atomic():
         request_obj = PaymentRequest.objects.select_for_update().get(
@@ -154,10 +156,10 @@ def cancel_payment_request(payment_request: PaymentRequest):
         if request_obj.status == PaymentRequestStatus.CANCELLED:
             return request_obj
 
-        if request_obj.status in [
+        if request_obj.status in {
             PaymentRequestStatus.EXPIRED,
             PaymentRequestStatus.COMPLETED,
-        ]:
+        }:
             return request_obj
 
         from_status = request_obj.status
@@ -179,11 +181,13 @@ def cancel_payment_request(payment_request: PaymentRequest):
 
 def validate_wallet_ownership(*, user, wallet):
     customer_wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
+
     if customer_wallet.user_id != user.id:
         raise ValidationError(
             "کیف پول برای کاربر نیست.",
             code="wallet_not_owned",
         )
+
     return customer_wallet
 
 

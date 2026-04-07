@@ -68,6 +68,32 @@ class PaymentEvent(BaseModel):
         verbose_name=_("داده تکمیلی"),
     )
 
+    @classmethod
+    def log(
+            cls,
+            *,
+            payment_request,
+            event_type,
+            payment=None,
+            transaction=None,
+            actor=None,
+            from_status=None,
+            to_status=None,
+            description="",
+            extra_data=None,
+    ):
+        return cls.objects.create(
+            payment_request=payment_request,
+            payment=payment,
+            transaction=transaction,
+            actor=actor,
+            event_type=event_type,
+            from_status=from_status,
+            to_status=to_status,
+            description=description,
+            extra_data=extra_data or {},
+        )
+
     class Meta:
         verbose_name = _("رویداد پرداخت")
         verbose_name_plural = _("رویدادهای پرداخت")
@@ -88,4 +114,8 @@ class PaymentEvent(BaseModel):
         ]
 
     def __str__(self):
-        return f"{self.event_type} | PR={self.payment_request_id} | PAY={self.payment_id or '-'}"
+        return (
+            f"{self.event_type} | "
+            f"PR={self.payment_request_id} | "
+            f"PAY={self.payment_id or '-'}"
+        )

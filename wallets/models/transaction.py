@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from lib.erp_base.models import BaseModel
 from utils.reference import generate_reference_code
 from wallets.models.wallet import Wallet
-from wallets.utils.choices import TransactionStatus, TransactionPurpose
+from wallets.utils.choices import TransactionPurpose, TransactionStatus
 
 
 class Transaction(BaseModel):
@@ -69,6 +69,51 @@ class Transaction(BaseModel):
     )
     description = models.TextField(blank=True)
 
+    @classmethod
+    def create_success(
+            cls,
+            *,
+            from_wallet,
+            to_wallet,
+            amount,
+            purpose,
+            payment=None,
+            payment_request=None,
+            description="",
+            related_transaction=None,
+    ):
+        return cls.objects.create(
+            from_wallet=from_wallet,
+            to_wallet=to_wallet,
+            amount=amount,
+            purpose=purpose,
+            status=TransactionStatus.SUCCESS,
+            payment=payment,
+            payment_request=payment_request,
+            description=description,
+            related_transaction=related_transaction,
+        )
+
+    @classmethod
+    def latest_success_for_payment(cls, payment, purpose):
+        return (
+            cls.objects.filter(
+                payment=payment,
+                purpose=purpose,
+                status=TransactionStatus.SUCCESS,
+            )
+            .order_by("-created_at", "-id")
+            .first()
+        )
+
+    @classmethod
+    def success_exists_for_payment(cls, payment, purpose):
+        return cls.objects.filter(
+            payment=payment,
+            purpose=purpose,
+            status=TransactionStatus.SUCCESS,
+        ).exists()
+
     def save(self, *args, **kwargs):
         if not self.reference_code:
             for _ in range(5):
@@ -77,9 +122,8 @@ class Transaction(BaseModel):
                     self.reference_code = code
                     break
             else:
-                raise Exception(
-                    "Transaction reference code generation failed."
-                )
+                raise Exception("Transaction reference code generation failed.")
+
         super().save(*args, **kwargs)
 
     def __str__(self):

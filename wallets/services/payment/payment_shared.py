@@ -76,7 +76,7 @@ def create_event(
         description="",
         extra_data=None,
 ):
-    create_payment_event(
+    return create_payment_event(
         payment_request=payment_request,
         payment=payment,
         transaction=transaction,
@@ -92,8 +92,10 @@ def create_event(
 def get_payment_method_from_wallet(wallet: Wallet) -> str:
     if wallet.kind == WalletKind.CASH:
         return PaymentMethod.CASH
+
     if wallet.kind == WalletKind.CREDIT:
         return PaymentMethod.CREDIT
+
     raise ValidationError(
         "نوع کیف پول مجاز نیست.",
         code="unsupported_wallet",
