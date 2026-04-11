@@ -264,6 +264,9 @@ REST_FRAMEWORK = {
         "payment-requests-write": "30/minute",
         "payment-confirm": "10/minute",
 
+        "merchant-pos-payment-read": "120/min",
+        "merchant-pos-payment-write": "60/min",
+
         # ── Wallets / Balances & History ────────────────────────────────────
         "wallets-read": "300/hour",
 

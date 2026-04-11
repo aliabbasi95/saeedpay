@@ -7,6 +7,8 @@ from rest_framework.test import APIClient
 
 from auth_api.models import PhoneOTP
 from credit.models.credit_limit import CreditLimit
+from customers.models import Customer
+from profiles.models import Profile
 from wallets.models import PaymentRequest, Wallet
 from wallets.services.payment import verify_payment_request
 from wallets.utils.choices import (
@@ -65,13 +67,18 @@ class TestPaymentApi:
         response = client.get(url)
         assert response.status_code == 200
         assert response.data["amount"] == 999
+        assert response.data["can_pay"] is True
+        assert response.data["reason"] is None
 
-    def test_payment_request_detail_api_unauthenticated(self, store, customer_user):
+    def test_payment_request_detail_api_unauthenticated_for_qr_is_readable_but_not_payable(
+            self, store
+    ):
         payment_request = PaymentRequest.objects.create(
             store=store,
-            customer=customer_user.customer,
+            customer=None,
             amount=100,
             return_url="https://ret.com",
+            flow_type=PaymentFlowType.QR_POS,
         )
         url = reverse(
             "wallets_public_v1:payment-request-detail",
@@ -80,6 +87,39 @@ class TestPaymentApi:
         client = APIClient()
         response = client.get(url)
         assert response.status_code == 200
+        assert response.data["can_pay"] is False
+        assert response.data["reason"] == "authentication_required"
+        assert response.data["available_wallets"] == []
+
+    def test_payment_request_detail_for_other_customer_is_not_payable(
+            self, store, customer_user, user_factory
+    ):
+        other_user = user_factory("other_customer_for_detail")
+        Profile.objects.create(
+            user=other_user,
+            phone_number="09123456781",
+        )
+        Customer.objects.get_or_create(user=other_user)
+
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=customer_user.customer,
+            amount=100,
+            return_url="https://ret.com",
+        )
+
+        url = reverse(
+            "wallets_public_v1:payment-request-detail",
+            args=[payment_request.reference_code],
+        )
+        client = APIClient()
+        client.force_authenticate(user=other_user)
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert response.data["can_pay"] is False
+        assert response.data["reason"] == "not_allowed"
+        assert response.data["available_wallets"] == []
 
     def test_confirm_and_verify_flow_via_service_verify(
             self, store, customer_user, customer_cash_wallet
@@ -137,7 +177,7 @@ class TestPaymentApi:
         payment_request.refresh_from_db()
         assert payment_request.status == PaymentRequestStatus.COMPLETED
 
-    def test_qr_confirm_finishes_immediately(
+    def test_qr_confirm_finishes_immediately_for_unbound_request(
             self, store, customer_user, customer_cash_wallet
     ):
         Wallet.objects.get_or_create(
@@ -149,7 +189,7 @@ class TestPaymentApi:
 
         payment_request = PaymentRequest.objects.create(
             store=store,
-            customer=customer_user.customer,
+            customer=None,
             amount=1234,
             return_url="https://cb.com",
             flow_type=PaymentFlowType.QR_POS,
@@ -177,6 +217,54 @@ class TestPaymentApi:
 
         payment_request.refresh_from_db()
         assert payment_request.status == PaymentRequestStatus.COMPLETED
+        assert payment_request.paid_by == customer_user
+        assert payment_request.paid_wallet == customer_cash_wallet
+
+    def test_confirm_bound_request_by_other_customer_is_rejected(
+            self,
+            store,
+            customer_user,
+            user_factory,
+    ):
+        other_user = user_factory("other_customer_confirm")
+        Profile.objects.create(
+            user=other_user,
+            phone_number="09123456782",
+        )
+        Customer.objects.get_or_create(user=other_user)
+
+        other_wallet = Wallet.objects.create(
+            user=other_user,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=50_000,
+        )
+
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=customer_user.customer,
+            amount=1234,
+            return_url="https://cb.com",
+        )
+
+        confirm_url = reverse(
+            "wallets_public_v1:payment-request-confirm",
+            args=[payment_request.reference_code],
+        )
+        client = APIClient()
+        client.force_authenticate(user=other_user)
+
+        code = self.create_otp("09123456782")
+        response = client.post(
+            confirm_url,
+            {"wallet_id": other_wallet.id, "code": code},
+        )
+
+        assert response.status_code == 400, response.data
+        assert response.data["code"] == "payment_request_not_allowed"
+
+        payment_request.refresh_from_db()
+        assert payment_request.status == PaymentRequestStatus.CREATED
 
     def test_payment_request_detail_has_available_wallets_for_authenticated_user(
             self, store, customer_user

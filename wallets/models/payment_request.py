@@ -86,8 +86,8 @@ class PaymentRequest(BaseModel):
         verbose_name=_("توضیحات"),
     )
     return_url = models.URLField(
-        blank=False,
-        null=False,
+        blank=True,
+        null=True,
         verbose_name=_("آدرس بازگشت"),
     )
     paid_by = models.ForeignKey(

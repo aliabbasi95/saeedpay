@@ -53,6 +53,7 @@ class TestPaymentCreditFlow:
             customer=customer_user.customer,
             amount=250_000,
             return_url="https://cb.com",
+            external_guid="ORD-CREDIT-VERIFY-1",
         )
 
         payment = pay_payment_request(payment_request, customer_user, credit_wallet)
@@ -92,6 +93,7 @@ class TestPaymentCreditFlow:
             customer=customer_user.customer,
             amount=100_000,
             return_url="https://ok.com",
+            external_guid="ORD-CREDIT-ROLLBACK-1",
         )
 
         payment = pay_payment_request(payment_request, customer_user, credit_wallet)
@@ -121,8 +123,8 @@ class TestPaymentCreditFlow:
             store=store,
             customer=customer_user.customer,
             amount=150_000,
-            return_url="https://ok.com",
             flow_type=PaymentFlowType.QR_POS,
+            actor=store.merchant.user,
         )
 
         payment = pay_payment_request(payment_request, customer_user, credit_wallet)

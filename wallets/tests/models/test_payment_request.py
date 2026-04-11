@@ -33,8 +33,6 @@ class TestPaymentRequestModel:
 
         with patch("wallets.services.payment.rollback_payment") as rollback_mock:
             rollback_mock.return_value = None
-            # این تست legacy است و الان rollback داخل model نیست
-            # پس فقط patch می‌ماند تا اگر جایی import شد، نشکند
             assert rollback_mock.called is False
 
     def test_invalid_transition_from_completed_to_cancelled_raises(self, store):
@@ -133,14 +131,18 @@ class TestPaymentRequestModel:
         pr.refresh_from_db()
         assert pr.reference_code == orig
 
-    def test_missing_required_fields_and_invalid_url(self, store):
-        pr = PaymentRequest(store=store, amount=2000)
+    def test_invalid_url_still_fails_validation(self, store):
+        pr = PaymentRequest(store=store, amount=1234, return_url="not_a_url")
         with pytest.raises(ValidationError):
             pr.full_clean()
 
-        pr2 = PaymentRequest(store=store, amount=1234, return_url="not_a_url")
-        with pytest.raises(ValidationError):
-            pr2.full_clean()
+    def test_return_url_is_optional_at_model_level(self, store):
+        pr = PaymentRequest(
+            store=store,
+            amount=2000,
+            return_url=None,
+        )
+        pr.full_clean()
 
     def test_expires_at_can_be_set(self, store):
         now = timezone.localtime(timezone.now())

@@ -85,8 +85,9 @@ class TestPartnerPaymentRequestApi:
         assert payment_request.customer == customer_user.customer
         assert payment_request.flow_type == PaymentFlowType.ONLINE
         assert payment_request.external_guid == "ORD-1001"
+        assert payment_request.return_url == "https://merchant.example.com/callback"
 
-    def test_create_qr_payment_request_success(
+    def test_create_qr_payment_request_from_partner_api_returns_400(
             self,
             monkeypatch,
             store,
@@ -109,21 +110,15 @@ class TestPartnerPaymentRequestApi:
                 "amount": 78000,
                 "return_url": "https://merchant.example.com/qr-callback",
                 "description": "qr payment request",
+                "external_guid": "POS-1",
                 "national_id": "2222222222",
                 "flow_type": PaymentFlowType.QR_POS,
             },
             format="json",
         )
 
-        assert response.status_code == 201, response.data
-        assert response.data["code"] == "payment_request_created"
-        assert response.data["flow_type"] == PaymentFlowType.QR_POS
-        assert response.data["merchant_confirmation_required"] is False
-
-        payment_request = PaymentRequest.objects.get(
-            reference_code=response.data["payment_reference_code"]
-        )
-        assert payment_request.flow_type == PaymentFlowType.QR_POS
+        assert response.status_code == 400, response.data
+        assert "flow_type" in response.data
 
     def test_create_payment_request_customer_not_found_returns_404(
             self,
@@ -144,6 +139,7 @@ class TestPartnerPaymentRequestApi:
                 "amount": 50000,
                 "return_url": "https://merchant.example.com/callback",
                 "description": "missing customer",
+                "external_guid": "ORD-404",
                 "national_id": "9999999999",
                 "flow_type": PaymentFlowType.ONLINE,
             },
@@ -166,6 +162,7 @@ class TestPartnerPaymentRequestApi:
             customer=customer_user.customer,
             amount=120000,
             return_url="https://merchant.example.com/callback",
+            external_guid="ORD-DETAIL-1",
             description="detail test",
             flow_type=PaymentFlowType.ONLINE,
         )
@@ -202,6 +199,7 @@ class TestPartnerPaymentRequestApi:
             customer=customer_user.customer,
             amount=33000,
             return_url="https://merchant.example.com/callback",
+            external_guid="ORD-EXPIRED-1",
             expires_at=timezone.localtime(timezone.now()) - timezone.timedelta(
                 minutes=5
             ),
@@ -248,6 +246,7 @@ class TestPartnerPaymentRequestApi:
             customer=customer_user.customer,
             amount=45000,
             return_url="https://merchant.example.com/callback",
+            external_guid="ORD-VERIFY-1",
             flow_type=PaymentFlowType.ONLINE,
         )
 
@@ -318,6 +317,7 @@ class TestPartnerPaymentRequestApi:
             customer=customer_user.customer,
             amount=61000,
             return_url="https://merchant.example.com/callback",
+            external_guid="ORD-WRONG-STORE-1",
             flow_type=PaymentFlowType.ONLINE,
         )
         pay_payment_request(

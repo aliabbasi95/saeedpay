@@ -28,6 +28,9 @@ from wallets.services.payment import (
     check_and_expire_payment_request,
     pay_payment_request,
 )
+from wallets.services.payment.payment_request_service import (
+    validate_payment_request_payer_access,
+)
 from wallets.utils.choices import OwnerType
 
 _ALLOWED_ORDERING = {"created_at", "-created_at", "amount", "-amount"}
@@ -40,6 +43,22 @@ def _parse_dt_maybe(value):
     if dt:
         return dt
     return parse_date(value)
+
+
+def _extract_validation_code(exc, default="validation_error"):
+    if hasattr(exc, "get_codes"):
+        codes = exc.get_codes()
+        if isinstance(codes, list) and codes:
+            return codes[0]
+        if isinstance(codes, str):
+            return codes
+        if isinstance(codes, dict):
+            first_value = next(iter(codes.values()), default)
+            if isinstance(first_value, list) and first_value:
+                return first_value[0]
+            if isinstance(first_value, str):
+                return first_value
+    return getattr(exc, "code", default)
 
 
 class PaymentRequestViewSet(
@@ -63,7 +82,7 @@ class PaymentRequestViewSet(
             raise NotAuthenticated("احراز هویت الزامی است.")
 
     def get_queryset(self):
-        if self.action == "retrieve":
+        if self.action in {"retrieve", "confirm"}:
             return (
                 PaymentRequest.objects.select_related("store")
                 .only(
@@ -170,8 +189,12 @@ class PaymentRequestViewSet(
         try:
             check_and_expire_payment_request(payment_request)
             payment_request.refresh_from_db()
+            validate_payment_request_payer_access(
+                payment_request=payment_request,
+                user=request.user,
+            )
         except ValidationError as exc:
-            code = getattr(exc, "code", "validation_error")
+            code = _extract_validation_code(exc)
             http_status = (
                 status.HTTP_410_GONE
                 if code == "expired"
@@ -219,7 +242,7 @@ class PaymentRequestViewSet(
         except ValidationError as exc:
             return payment_error_response(
                 detail=str(exc),
-                code=getattr(exc, "code", "validation_error"),
+                code=_extract_validation_code(exc),
                 http_status=status.HTTP_400_BAD_REQUEST,
                 payment_request=payment_request,
             )

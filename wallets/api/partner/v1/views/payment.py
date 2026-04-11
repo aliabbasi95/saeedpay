@@ -28,6 +28,7 @@ from wallets.services.payment import (
     create_payment_request,
     verify_payment_request,
 )
+from wallets.utils.choices import PaymentFlowType
 from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
 
 
@@ -76,6 +77,13 @@ class PartnerPaymentRequestViewSet(
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        if data["flow_type"] != PaymentFlowType.ONLINE:
+            return payment_error_response(
+                detail="ایجاد درخواست QR POS از این API مجاز نیست.",
+                code="unsupported_flow_type",
+                http_status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             profile = Profile.objects.select_related("user").get(
                 national_id=data["national_id"]
@@ -101,7 +109,7 @@ class PartnerPaymentRequestViewSet(
             return_url=data["return_url"],
             description=data.get("description", ""),
             external_guid=data.get("external_guid"),
-            flow_type=data["flow_type"],
+            flow_type=PaymentFlowType.ONLINE,
         )
 
         payment_url = (

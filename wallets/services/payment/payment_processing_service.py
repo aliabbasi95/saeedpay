@@ -13,6 +13,7 @@ from wallets.services.payment.payment_request_service import (
     ensure_no_active_payment_exists,
     ensure_request_can_be_paid,
     resolve_payment_method,
+    validate_payment_request_payer_access,
     validate_wallet_ownership,
 )
 from wallets.services.payment.payment_shared import (
@@ -46,6 +47,10 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
 
         check_and_expire_payment_request(payment_request)
         ensure_request_can_be_paid(payment_request)
+        validate_payment_request_payer_access(
+            payment_request=payment_request,
+            user=user,
+        )
 
         customer_wallet = validate_wallet_ownership(user=user, wallet=wallet)
         ensure_no_active_payment_exists(payment_request)

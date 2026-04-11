@@ -23,15 +23,55 @@ from wallets.utils.choices import (
 )
 
 
+def _validate_payment_request_creation(
+        *,
+        flow_type,
+        return_url,
+        external_guid,
+):
+    if flow_type == PaymentFlowType.ONLINE:
+        if not return_url:
+            raise ValidationError(
+                "return_url برای پرداخت آنلاین الزامی است.",
+                code="return_url_required",
+            )
+        if not external_guid:
+            raise ValidationError(
+                "external_guid برای پرداخت آنلاین الزامی است.",
+                code="external_guid_required",
+            )
+        return
+
+    if flow_type == PaymentFlowType.QR_POS:
+        if return_url:
+            raise ValidationError(
+                "return_url در پرداخت حضوری QR نباید ارسال شود.",
+                code="return_url_not_allowed",
+            )
+        if external_guid:
+            raise ValidationError(
+                "external_guid در پرداخت حضوری QR نباید ارسال شود.",
+                code="external_guid_not_allowed",
+            )
+        return
+
+
 def create_payment_request(
         store,
         amount,
-        return_url,
+        return_url=None,
         customer=None,
         description="",
         external_guid=None,
         flow_type=PaymentFlowType.ONLINE,
+        actor=None,
 ):
+    _validate_payment_request_creation(
+        flow_type=flow_type,
+        return_url=return_url,
+        external_guid=external_guid,
+    )
+
     created_deadline = credit_auth_hold_expiry()
 
     payment_request = PaymentRequest.objects.create(
@@ -50,7 +90,7 @@ def create_payment_request(
     create_event(
         payment_request=payment_request,
         event_type=PaymentEventType.PAYMENT_REQUEST_CREATED,
-        actor=getattr(customer, "user", None) if customer else None,
+        actor=actor if actor is not None else getattr(customer, "user", None),
         to_status=payment_request.status,
         description="Payment request created.",
         extra_data={
@@ -182,13 +222,30 @@ def cancel_payment_request(payment_request: PaymentRequest):
 def validate_wallet_ownership(*, user, wallet):
     customer_wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
 
-    if customer_wallet.user_id != user.id or customer_wallet.owner_type != OwnerType.CUSTOMER:
+    if (
+            customer_wallet.user_id != user.id
+            or customer_wallet.owner_type != OwnerType.CUSTOMER
+    ):
         raise ValidationError(
             "کیف پول برای کاربر نیست.",
             code="wallet_not_owned",
         )
 
     return customer_wallet
+
+
+def validate_payment_request_payer_access(*, payment_request, user):
+    bound_customer = getattr(payment_request, "customer", None)
+
+    if not bound_customer:
+        return
+
+    user_customer = getattr(user, "customer", None)
+    if not user_customer or user_customer.id != bound_customer.id:
+        raise ValidationError(
+            "این درخواست پرداخت برای شما نیست.",
+            code="payment_request_not_allowed",
+        )
 
 
 def ensure_request_can_be_paid(payment_request):

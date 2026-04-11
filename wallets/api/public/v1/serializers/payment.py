@@ -136,27 +136,68 @@ class PaymentRequestDetailWithWalletsSerializer(PaymentRequestDetailSerializer):
     can_pay = serializers.SerializerMethodField()
     reason = serializers.SerializerMethodField()
 
+    def _get_request_user(self):
+        request = self.context.get("request")
+        return getattr(request, "user", None)
+
+    def _is_authenticated(self, user):
+        return bool(user and user.is_authenticated)
+
+    def _is_payer_allowed(self, obj: PaymentRequest, user) -> bool:
+        if not self._is_authenticated(user):
+            return False
+
+        if not obj.customer_id:
+            return True
+
+        user_customer = getattr(user, "customer", None)
+        return bool(user_customer and user_customer.id == obj.customer_id)
+
     @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_available_wallets(self, obj: PaymentRequest):
-        request = self.context.get("request")
-        user = getattr(request, "user", None)
-        if user and user.is_authenticated:
-            qs = list_eligible_wallets_for_payment_request(user, obj)
-            return WalletSerializer(qs, many=True).data
-        return []
+        user = self._get_request_user()
+        if not self._is_payer_allowed(obj, user):
+            return []
+
+        qs = list_eligible_wallets_for_payment_request(user, obj)
+        return WalletSerializer(qs, many=True).data
 
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_can_pay(self, obj: PaymentRequest) -> bool:
+        user = self._get_request_user()
+
         if obj.status != PaymentRequestStatus.CREATED:
             return False
+
         if obj.expires_at and obj.expires_at < timezone.localtime(timezone.now()):
             return False
-        return True
+
+        if not self._is_authenticated(user):
+            return False
+
+        return self._is_payer_allowed(obj, user)
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_reason(self, obj: PaymentRequest):
+        user = self._get_request_user()
+
         if obj.status == PaymentRequestStatus.EXPIRED:
             return "expired"
+
+        if obj.status != PaymentRequestStatus.CREATED:
+            return "not_payable"
+
+        if obj.expires_at and obj.expires_at < timezone.localtime(timezone.now()):
+            return "expired"
+
+        if not self._is_authenticated(user):
+            return "authentication_required"
+
+        if obj.customer_id:
+            user_customer = getattr(user, "customer", None)
+            if not user_customer or user_customer.id != obj.customer_id:
+                return "not_allowed"
+
         return None
 
     class Meta(PaymentRequestDetailSerializer.Meta):

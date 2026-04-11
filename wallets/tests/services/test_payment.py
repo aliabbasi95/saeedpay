@@ -1,8 +1,10 @@
 # wallets/tests/services/test_payment.py
 
 import pytest
+from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 
+from customers.models import Customer
 from wallets.models import Wallet, PaymentRequest
 from wallets.services.payment import (
     check_and_expire_payment_request,
@@ -54,6 +56,7 @@ class TestPaymentService:
             customer=customer_user.customer,
             amount=1234,
             return_url="https://yourshop.com",
+            external_guid="ORD-1234",
         )
 
         payment = pay_payment_request(payment_request, customer_user, customer_wallet)
@@ -95,10 +98,10 @@ class TestPaymentService:
         )
         payment_request = create_payment_request(
             store=store,
-            customer=customer_user.customer,
+            customer=None,
             amount=2000,
-            return_url="https://qr.com",
             flow_type=PaymentFlowType.QR_POS,
+            actor=store.merchant.user,
         )
 
         payment = pay_payment_request(payment_request, customer_user, customer_wallet)
@@ -108,6 +111,8 @@ class TestPaymentService:
 
         assert payment_request.status == PaymentRequestStatus.COMPLETED
         assert payment.status == PaymentStatus.COMPLETED
+        assert payment_request.paid_by == customer_user
+        assert payment_request.paid_wallet == customer_wallet
         assert payment.transactions.filter(
             purpose=TransactionPurpose.ESCROW_DEBIT
         ).exists()
@@ -116,12 +121,99 @@ class TestPaymentService:
         ).exists()
         assert merchant_wallet.balance >= 2000
 
+    def test_online_payment_without_return_url_fails(
+            self, store, customer_user
+    ):
+        with pytest.raises(ValidationError) as exc:
+            create_payment_request(
+                store=store,
+                customer=customer_user.customer,
+                amount=1000,
+                return_url=None,
+                external_guid="ORD-1",
+                flow_type=PaymentFlowType.ONLINE,
+            )
+
+        assert exc.value.get_codes()[0] == "return_url_required"
+
+    def test_online_payment_without_external_guid_fails(
+            self, store, customer_user
+    ):
+        with pytest.raises(ValidationError) as exc:
+            create_payment_request(
+                store=store,
+                customer=customer_user.customer,
+                amount=1000,
+                return_url="https://cb.com",
+                external_guid=None,
+                flow_type=PaymentFlowType.ONLINE,
+            )
+
+        assert exc.value.get_codes()[0] == "external_guid_required"
+
+    def test_qr_payment_with_return_url_fails(
+            self, store
+    ):
+        with pytest.raises(ValidationError) as exc:
+            create_payment_request(
+                store=store,
+                customer=None,
+                amount=1000,
+                return_url="https://cb.com",
+                flow_type=PaymentFlowType.QR_POS,
+                actor=store.merchant.user,
+            )
+
+        assert exc.value.get_codes()[0] == "return_url_not_allowed"
+
+    def test_qr_payment_with_external_guid_fails(
+            self, store
+    ):
+        with pytest.raises(ValidationError) as exc:
+            create_payment_request(
+                store=store,
+                customer=None,
+                amount=1000,
+                external_guid="POS-1",
+                flow_type=PaymentFlowType.QR_POS,
+                actor=store.merchant.user,
+            )
+
+        assert exc.value.get_codes()[0] == "external_guid_not_allowed"
+
+    def test_bound_request_cannot_be_paid_by_other_customer(
+            self, store, customer_user, ensure_escrow, user_factory
+    ):
+        other_user = user_factory("other_customer_for_service")
+        Customer.objects.get_or_create(user=other_user)
+
+        other_wallet = Wallet.objects.create(
+            user=other_user,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=50_000,
+        )
+
+        payment_request = create_payment_request(
+            store=store,
+            customer=customer_user.customer,
+            amount=100,
+            return_url="https://ok.com",
+            external_guid="ORD-BOUND-1",
+        )
+
+        with pytest.raises(ValidationError) as exc:
+            pay_payment_request(payment_request, other_user, other_wallet)
+
+        assert exc.value.get_codes()[0] == "payment_request_not_allowed"
+
     def test_expired_payment_request(self, store, customer_user):
         payment_request = create_payment_request(
             store=store,
             customer=customer_user.customer,
             amount=500,
             return_url="https://ok.com",
+            external_guid="ORD-EXP-1",
         )
         payment_request.expires_at = payment_request.expires_at.replace(year=2000)
         payment_request.save(update_fields=["expires_at"])
@@ -144,13 +236,12 @@ class TestPaymentService:
             customer=customer_user.customer,
             amount=100,
             return_url="https://ok.com",
+            external_guid="ORD-LOWBAL-1",
         )
         with pytest.raises(ValidationError):
             pay_payment_request(payment_request, customer_user, wallet)
 
     def test_pay_with_wrong_wallet_owner(self, store, customer_user, ensure_escrow):
-        from django.contrib.auth import get_user_model
-
         other = get_user_model().objects.create(username="other")
         wrong_wallet = Wallet.objects.create(
             user=other,
@@ -163,6 +254,7 @@ class TestPaymentService:
             customer=customer_user.customer,
             amount=100,
             return_url="https://ok.com",
+            external_guid="ORD-WRONGWALLET-1",
         )
         with pytest.raises(ValidationError):
             pay_payment_request(payment_request, customer_user, wrong_wallet)
@@ -173,6 +265,7 @@ class TestPaymentService:
             customer=customer_user.customer,
             amount=100,
             return_url="https://ok.com",
+            external_guid="ORD-WRONGSTATUS-1",
         )
         with pytest.raises(ValidationError):
             verify_payment_request(payment_request, store=store)
@@ -192,6 +285,7 @@ class TestPaymentService:
             customer=customer_user.customer,
             amount=10_000,
             return_url="https://callback.example.com",
+            external_guid="ORD-DOUBLEVERIFY-1",
         )
 
         payment = pay_payment_request(
@@ -227,6 +321,7 @@ class TestPaymentService:
             customer=customer_user.customer,
             amount=100,
             return_url="https://ok.com",
+            external_guid="ORD-ROLLBACK-1",
         )
         pay_payment_request(payment_request, customer_user, customer_wallet)
         payment_request.mark_expired()
@@ -257,6 +352,7 @@ class TestPaymentService:
             customer=customer_user.customer,
             amount=1000,
             return_url="https://ok.com",
+            external_guid="ORD-ESCROW-1",
         )
         payment = pay_payment_request(payment_request, customer_user, customer_wallet)
         debit = payment.transactions.get(purpose=TransactionPurpose.ESCROW_DEBIT)
@@ -285,6 +381,7 @@ class TestPaymentNegativePaths:
             customer=customer_user.customer,
             amount=12_345,
             return_url="https://cb.com",
+            external_guid="ORD-NOMERCHANT-1",
         )
         payment = pay_payment_request(payment_request, customer_user, customer_wallet)
 
@@ -307,6 +404,7 @@ class TestPaymentNegativePaths:
             customer=customer_user.customer,
             amount=999,
             return_url="https://ok.com",
+            external_guid="ORD-MISSINGPAY-1",
         )
         payment_request.status = PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
         payment_request.save(update_fields=["status"])

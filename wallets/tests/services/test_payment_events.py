@@ -1,13 +1,15 @@
+# wallets/tests/services/test_payment_events.py
+
 import pytest
 from rest_framework.exceptions import ValidationError
 
 from wallets.models import PaymentEvent, Wallet
 from wallets.services.payment import (
+    check_and_expire_payment_request,
     create_payment_request,
     pay_payment_request,
-    verify_payment_request,
-    check_and_expire_payment_request,
     rollback_payment,
+    verify_payment_request,
 )
 from wallets.utils.choices import (
     OwnerType,
@@ -51,6 +53,7 @@ class TestPaymentEvents:
             customer=customer_user.customer,
             amount=25_000,
             return_url="https://example.com/callback",
+            external_guid="ORD-EVT-1",
         )
 
         events = PaymentEvent.objects.filter(
@@ -68,6 +71,32 @@ class TestPaymentEvents:
         assert event.extra_data["flow_type"] == payment_request.flow_type
         assert event.extra_data["store_id"] == store.id
 
+    def test_create_qr_pos_payment_request_with_merchant_actor_creates_event(
+            self,
+            store,
+            merchant_user,
+    ):
+        payment_request = create_payment_request(
+            store=store,
+            customer=None,
+            amount=18_000,
+            flow_type=PaymentFlowType.QR_POS,
+            actor=merchant_user,
+        )
+
+        event = PaymentEvent.objects.filter(
+            payment_request=payment_request,
+            event_type=PaymentEventType.PAYMENT_REQUEST_CREATED,
+        ).order_by("-created_at", "-id").first()
+
+        assert event is not None
+        assert event.actor == merchant_user
+        assert event.payment is None
+        assert event.to_status == PaymentRequestStatus.CREATED
+        assert event.extra_data["flow_type"] == PaymentFlowType.QR_POS
+        assert event.extra_data["store_id"] == store.id
+        assert event.extra_data["amount"] == payment_request.amount
+
     def test_online_cash_payment_creates_authorized_and_awaiting_events(
             self,
             store,
@@ -81,6 +110,7 @@ class TestPaymentEvents:
             customer=customer_user.customer,
             amount=12_345,
             return_url="https://example.com/callback",
+            external_guid="ORD-EVT-2",
             flow_type=PaymentFlowType.ONLINE,
         )
 
@@ -139,6 +169,7 @@ class TestPaymentEvents:
             customer=customer_user.customer,
             amount=40_000,
             return_url="https://example.com/callback",
+            external_guid="ORD-EVT-3",
             flow_type=PaymentFlowType.ONLINE,
         )
 
@@ -198,6 +229,7 @@ class TestPaymentEvents:
             customer=customer_user.customer,
             amount=5_000,
             return_url="https://example.com/callback",
+            external_guid="ORD-EVT-4",
         )
         payment_request.expires_at = payment_request.expires_at.replace(year=2000)
         payment_request.save(update_fields=["expires_at"])
@@ -229,6 +261,7 @@ class TestPaymentEvents:
             customer=customer_user.customer,
             amount=7_500,
             return_url="https://example.com/callback",
+            external_guid="ORD-EVT-5",
         )
 
         payment = pay_payment_request(

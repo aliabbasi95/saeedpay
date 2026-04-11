@@ -27,6 +27,7 @@ class TestPaymentTasks:
             customer=customer_user.customer,
             amount=10_000,
             return_url="https://cb.com",
+            external_guid="ORD-TASK-EXPIRE-1",
         )
         payment_request_created.expires_at = timezone.now().replace(year=2000)
         payment_request_created.save(update_fields=["expires_at"])
@@ -36,6 +37,7 @@ class TestPaymentTasks:
             customer=customer_user.customer,
             amount=20_000,
             return_url="https://cb.com",
+            external_guid="ORD-TASK-EXPIRE-2",
         )
 
         expire_pending_payment_requests()
@@ -68,6 +70,7 @@ class TestPaymentTasks:
             customer=customer_user.customer,
             amount=12_345,
             return_url="https://cb.com",
+            external_guid="ORD-TASK-CLEANUP-1",
         )
         payment = pay_payment_request(payment_request, customer_user, customer_wallet)
         payment_request.refresh_from_db()
