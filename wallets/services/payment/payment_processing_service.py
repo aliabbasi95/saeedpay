@@ -573,8 +573,12 @@ def _rollback_cash_payment(payment: Payment):
 
     if payment.payment_request.status == PaymentRequestStatus.CANCELLED:
         payment.mark_cancelled()
+        reason_code = "rollback_after_cancel"
     elif payment.payment_request.status == PaymentRequestStatus.EXPIRED:
         payment.mark_expired()
+        reason_code = "rollback_after_expire"
+    else:
+        reason_code = "rollback_generic"
 
     create_event(
         payment_request=payment.payment_request,
@@ -585,8 +589,12 @@ def _rollback_cash_payment(payment: Payment):
         to_status=payment.status,
         description="Cash payment rolled back.",
         extra_data={
+            "reason_code": reason_code,
+            "rollback_type": "cash_reversal",
             "transaction_id": reversal.id,
             "amount": reversal.amount,
+            "payment_status": payment.status,
+            "payment_request_status": payment.payment_request.status,
         },
     )
     return reversal
@@ -611,8 +619,12 @@ def _rollback_credit_payment(payment: Payment):
 
     if payment.payment_request.status == PaymentRequestStatus.CANCELLED:
         payment.mark_cancelled()
+        reason_code = "rollback_after_cancel"
     elif payment.payment_request.status == PaymentRequestStatus.EXPIRED:
         payment.mark_expired()
+        reason_code = "rollback_after_expire"
+    else:
+        reason_code = "credit_authorization_released"
 
     create_event(
         payment_request=payment.payment_request,
@@ -622,8 +634,12 @@ def _rollback_credit_payment(payment: Payment):
         to_status=payment.status,
         description="Credit authorization released / rolled back.",
         extra_data={
+            "reason_code": reason_code,
+            "rollback_type": "credit_release",
             "credit_authorization_id": auth.id,
             "amount": payment.amount,
+            "payment_status": payment.status,
+            "payment_request_status": payment.payment_request.status,
         },
     )
     return auth

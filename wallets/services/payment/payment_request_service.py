@@ -181,6 +181,12 @@ def expire_payment_request(payment_request: PaymentRequest):
             from_status=from_status,
             to_status=request_obj.status,
             description="Payment request expired.",
+            extra_data={
+                "reason_code": "expired_by_deadline",
+                "flow_type": request_obj.flow_type,
+                "store_id": request_obj.store_id,
+                "payment_request_status": request_obj.status,
+            },
         )
         return request_obj
 
@@ -232,8 +238,10 @@ def cancel_payment_request(
             to_status=request_obj.status,
             description="Payment request cancelled.",
             extra_data={
+                "reason_code": "cancelled_by_merchant",
                 "store_id": request_obj.store_id,
                 "flow_type": request_obj.flow_type,
+                "payment_request_status": request_obj.status,
             },
         )
         return request_obj

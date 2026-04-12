@@ -3,7 +3,7 @@
 import pytest
 from django.utils import timezone
 
-from wallets.models import Wallet
+from wallets.models import PaymentEvent, Wallet
 from wallets.services.payment import pay_payment_request
 from wallets.tasks import (
     cleanup_cancelled_and_expired_requests,
@@ -11,6 +11,7 @@ from wallets.tasks import (
 )
 from wallets.utils.choices import (
     OwnerType,
+    PaymentEventType,
     PaymentRequestStatus,
     PaymentStatus,
     WalletKind,
@@ -51,6 +52,12 @@ class TestPaymentTasks:
 
         assert payment_request_created.status == PaymentRequestStatus.EXPIRED
         assert payment_request_fresh.status == PaymentRequestStatus.CREATED
+
+        expire_event = PaymentEvent.objects.filter(
+            payment_request=payment_request_created,
+            event_type=PaymentEventType.PAYMENT_EXPIRED,
+        ).latest("id")
+        assert expire_event.extra_data["reason_code"] == "expired_by_deadline"
 
     def test_expire_awaiting_request_also_rolls_back_cash_payment_without_extra_cleanup(
             self,
@@ -107,6 +114,14 @@ class TestPaymentTasks:
         assert payment_request.status == PaymentRequestStatus.EXPIRED
         assert payment.status == PaymentStatus.EXPIRED
         assert customer_wallet.balance == 50_000
+
+        rollback_event = PaymentEvent.objects.filter(
+            payment_request=payment_request,
+            payment=payment,
+            event_type=PaymentEventType.PAYMENT_ROLLBACK,
+        ).latest("id")
+        assert rollback_event.extra_data["reason_code"] == "rollback_after_expire"
+        assert rollback_event.extra_data["rollback_type"] == "cash_reversal"
 
     def test_cleanup_cancelled_and_expired_requests_is_idempotent_after_expire_batch(
             self,
