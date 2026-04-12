@@ -19,7 +19,11 @@ from wallets.utils.choices import (
 
 @pytest.mark.django_db
 class TestPaymentTasks:
-    def test_expire_created_requests_only_marks_expired(self, store, customer_user):
+    def test_expire_created_requests_only_marks_expired(
+            self,
+            store,
+            customer_user,
+    ):
         from wallets.services.payment import create_payment_request
 
         payment_request_created = create_payment_request(
@@ -44,12 +48,18 @@ class TestPaymentTasks:
 
         payment_request_created.refresh_from_db()
         payment_request_fresh.refresh_from_db()
+
         assert payment_request_created.status == PaymentRequestStatus.EXPIRED
         assert payment_request_fresh.status == PaymentRequestStatus.CREATED
 
-    def test_expire_awaiting_then_cleanup_rolls_back_cash_payment(
-            self, store, customer_user, ensure_escrow
+    def test_expire_awaiting_request_also_rolls_back_cash_payment_without_extra_cleanup(
+            self,
+            store,
+            customer_user,
+            ensure_escrow,
     ):
+        from wallets.services.payment import create_payment_request
+
         customer_wallet = Wallet.objects.create(
             user=customer_user,
             kind=WalletKind.CASH,
@@ -63,8 +73,6 @@ class TestPaymentTasks:
             balance=0,
         )
 
-        from wallets.services.payment import create_payment_request
-
         payment_request = create_payment_request(
             store=store,
             customer=customer_user.customer,
@@ -72,20 +80,78 @@ class TestPaymentTasks:
             return_url="https://cb.com",
             external_guid="ORD-TASK-CLEANUP-1",
         )
-        payment = pay_payment_request(payment_request, customer_user, customer_wallet)
+        payment = pay_payment_request(
+            payment_request,
+            customer_user,
+            customer_wallet,
+        )
+
         payment_request.refresh_from_db()
-        assert payment_request.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        customer_wallet.refresh_from_db()
+
+        assert (
+                payment_request.status
+                == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        )
+        assert customer_wallet.balance == 50_000 - 12_345
 
         payment_request.expires_at = timezone.now().replace(year=2000)
         payment_request.save(update_fields=["expires_at"])
 
         expire_pending_payment_requests()
+
         payment_request.refresh_from_db()
-        assert payment_request.status == PaymentRequestStatus.EXPIRED
-
-        cleanup_cancelled_and_expired_requests()
-
         payment.refresh_from_db()
         customer_wallet.refresh_from_db()
+
+        assert payment_request.status == PaymentRequestStatus.EXPIRED
+        assert payment.status == PaymentStatus.EXPIRED
+        assert customer_wallet.balance == 50_000
+
+    def test_cleanup_cancelled_and_expired_requests_is_idempotent_after_expire_batch(
+            self,
+            store,
+            customer_user,
+            ensure_escrow,
+    ):
+        from wallets.services.payment import create_payment_request
+
+        customer_wallet = Wallet.objects.create(
+            user=customer_user,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=50_000,
+        )
+        Wallet.objects.create(
+            user=store.merchant.user,
+            kind=WalletKind.MERCHANT_GATEWAY,
+            owner_type=OwnerType.MERCHANT,
+            balance=0,
+        )
+
+        payment_request = create_payment_request(
+            store=store,
+            customer=customer_user.customer,
+            amount=10_000,
+            return_url="https://cb.com",
+            external_guid="ORD-TASK-CLEANUP-2",
+        )
+        payment = pay_payment_request(
+            payment_request,
+            customer_user,
+            customer_wallet,
+        )
+
+        payment_request.expires_at = timezone.now().replace(year=2000)
+        payment_request.save(update_fields=["expires_at"])
+
+        expire_pending_payment_requests()
+        cleanup_cancelled_and_expired_requests()
+
+        payment_request.refresh_from_db()
+        payment.refresh_from_db()
+        customer_wallet.refresh_from_db()
+
+        assert payment_request.status == PaymentRequestStatus.EXPIRED
         assert payment.status == PaymentStatus.EXPIRED
         assert customer_wallet.balance == 50_000

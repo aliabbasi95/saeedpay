@@ -26,6 +26,14 @@ def expire_pending_payment_requests_batch():
 
 
 def cleanup_cancelled_and_expired_requests_batch():
+    """
+    Legacy safety-net cleanup.
+
+    Expiration/cancellation services already invoke rollback_payment()
+    as part of the state transition flow. This batch remains intentionally
+    idempotent as a fallback cleanup for stale records that may exist from
+    older flows or interrupted processes.
+    """
     stale_request_ids = list(
         PaymentRequest.objects.filter(
             status__in=[
