@@ -46,14 +46,14 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
         )
 
         check_and_expire_payment_request(payment_request)
-        ensure_request_can_be_paid(payment_request)
         validate_payment_request_payer_access(
             payment_request=payment_request,
             user=user,
         )
+        ensure_no_active_payment_exists(payment_request)
+        ensure_request_can_be_paid(payment_request)
 
         customer_wallet = validate_wallet_ownership(user=user, wallet=wallet)
-        ensure_no_active_payment_exists(payment_request)
         payment_method = resolve_payment_method(customer_wallet)
 
         payment = Payment.objects.create(

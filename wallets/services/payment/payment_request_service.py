@@ -277,25 +277,37 @@ def ensure_request_can_be_paid(payment_request):
 
 
 def ensure_no_active_payment_exists(payment_request):
-    existing_payment = (
+    completed_payment = (
+        payment_request.payments.select_for_update()
+        .filter(status=PaymentStatus.COMPLETED)
+        .order_by("-created_at", "-id")
+        .first()
+    )
+    if completed_payment:
+        raise ValidationError(
+            "این درخواست پرداخت قبلاً نهایی شده است.",
+            code="already_completed",
+        )
+
+    active_payment = (
         payment_request.payments.select_for_update()
         .filter(
             status__in=[
                 PaymentStatus.CREATED,
                 PaymentStatus.AUTHORIZED,
                 PaymentStatus.AWAITING_MERCHANT_CONFIRMATION,
-                PaymentStatus.COMPLETED,
             ],
         )
         .order_by("-created_at", "-id")
         .first()
     )
-    if existing_payment:
+    if active_payment:
         raise ValidationError(
-            "این درخواست پرداخت قبلاً پردازش شده است.",
-            code="already_processed",
+            "این درخواست پرداخت در حال پردازش است.",
+            code="payment_in_progress",
         )
-    return existing_payment
+
+    return None
 
 
 def resolve_payment_method(wallet):

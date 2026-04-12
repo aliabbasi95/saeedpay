@@ -9,11 +9,12 @@ from auth_api.models import PhoneOTP
 from credit.models.credit_limit import CreditLimit
 from customers.models import Customer
 from profiles.models import Profile
-from wallets.models import PaymentRequest, Wallet
+from wallets.models import Payment, PaymentRequest, Wallet
 from wallets.services.payment import verify_payment_request
 from wallets.utils.choices import (
     OwnerType,
     PaymentFlowType,
+    PaymentMethod,
     PaymentRequestStatus,
     PaymentStatus,
     WalletKind,
@@ -23,12 +24,11 @@ from wallets.utils.escrow import ensure_escrow_wallet_exists
 
 @pytest.mark.django_db
 class TestPaymentApi:
-
     def create_otp(self, phone_number):
         otp = PhoneOTP.objects.create(phone_number=phone_number)
         code = otp.generate()
         otp.last_send_date = timezone.localtime()
-        otp.save()
+        otp.save(update_fields=["last_send_date"])
         return code
 
     def setup_credit_limit(self, customer_user, approved=1_000_000):
@@ -50,7 +50,10 @@ class TestPaymentApi:
         return client
 
     def test_payment_request_detail_api_authenticated(
-            self, store, customer_user, customer_cash_wallet
+            self,
+            store,
+            customer_user,
+            customer_cash_wallet,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -58,6 +61,7 @@ class TestPaymentApi:
             amount=999,
             return_url="https://ret.com",
         )
+
         url = reverse(
             "wallets_public_v1:payment-request-detail",
             args=[payment_request.reference_code],
@@ -65,13 +69,15 @@ class TestPaymentApi:
         client = APIClient()
         client.force_authenticate(user=customer_user)
         response = client.get(url)
+
         assert response.status_code == 200
         assert response.data["amount"] == 999
         assert response.data["can_pay"] is True
         assert response.data["reason"] is None
 
     def test_payment_request_detail_api_unauthenticated_for_qr_is_readable_but_not_payable(
-            self, store
+            self,
+            store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -80,19 +86,24 @@ class TestPaymentApi:
             return_url="https://ret.com",
             flow_type=PaymentFlowType.QR_POS,
         )
+
         url = reverse(
             "wallets_public_v1:payment-request-detail",
             args=[payment_request.reference_code],
         )
         client = APIClient()
         response = client.get(url)
+
         assert response.status_code == 200
         assert response.data["can_pay"] is False
         assert response.data["reason"] == "authentication_required"
         assert response.data["available_wallets"] == []
 
     def test_payment_request_detail_for_other_customer_is_not_payable(
-            self, store, customer_user, user_factory
+            self,
+            store,
+            customer_user,
+            user_factory,
     ):
         other_user = user_factory("other_customer_for_detail")
         Profile.objects.create(
@@ -122,7 +133,10 @@ class TestPaymentApi:
         assert response.data["available_wallets"] == []
 
     def test_confirm_and_verify_flow_via_service_verify(
-            self, store, customer_user, customer_cash_wallet
+            self,
+            store,
+            customer_user,
+            customer_cash_wallet,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -144,6 +158,7 @@ class TestPaymentApi:
             confirm_url,
             {"wallet_id": customer_cash_wallet.id, "code": code},
         )
+
         assert response.status_code == 200
         assert response.data["code"] == "payment_confirmed"
         assert response.data["payment_reference_code"] == payment_request.reference_code
@@ -178,7 +193,10 @@ class TestPaymentApi:
         assert payment_request.status == PaymentRequestStatus.COMPLETED
 
     def test_qr_confirm_finishes_immediately_for_unbound_request(
-            self, store, customer_user, customer_cash_wallet
+            self,
+            store,
+            customer_user,
+            customer_cash_wallet,
     ):
         Wallet.objects.get_or_create(
             user=store.merchant.user,
@@ -208,6 +226,7 @@ class TestPaymentApi:
             confirm_url,
             {"wallet_id": customer_cash_wallet.id, "code": code},
         )
+
         assert response.status_code == 200
         assert response.data["code"] == "payment_confirmed"
         assert response.data["next_action"] == "none"
@@ -267,21 +286,24 @@ class TestPaymentApi:
         assert payment_request.status == PaymentRequestStatus.CREATED
 
     def test_payment_request_detail_has_available_wallets_for_authenticated_user(
-            self, store, customer_user
+            self,
+            store,
+            customer_user,
     ):
-        rich = Wallet.objects.create(
+        rich_cash_wallet = Wallet.objects.create(
             user=customer_user,
             kind=WalletKind.CASH,
             owner_type=OwnerType.CUSTOMER,
             balance=50_000,
         )
-        poor_credit = Wallet.objects.create(
+        poor_credit_wallet = Wallet.objects.create(
             user=customer_user,
             kind=WalletKind.CREDIT,
             owner_type=OwnerType.CUSTOMER,
             balance=0,
         )
         self.setup_credit_limit(customer_user, approved=5_000)
+
         payment_request = PaymentRequest.objects.create(
             store=store,
             customer=customer_user.customer,
@@ -296,13 +318,16 @@ class TestPaymentApi:
         client = APIClient()
         client.force_authenticate(user=customer_user)
         response = client.get(url)
+
         assert response.status_code == 200
         ids = {wallet["id"] for wallet in response.data["available_wallets"]}
-        assert rich.id in ids
-        assert poor_credit.id not in ids
+        assert rich_cash_wallet.id in ids
+        assert poor_credit_wallet.id not in ids
 
     def test_payment_request_detail_includes_credit_wallet_when_limit_is_enough(
-            self, store, customer_user
+            self,
+            store,
+            customer_user,
     ):
         Wallet.objects.create(
             user=customer_user,
@@ -330,3 +355,101 @@ class TestPaymentApi:
         assert response.status_code == 200
         wallets = response.data["available_wallets"]
         assert any(wallet["kind"] == WalletKind.CREDIT for wallet in wallets)
+
+    def test_confirm_payment_returns_already_completed_when_completed_payment_exists(
+            self,
+            customer_user,
+            customer_cash_wallet,
+            store,
+            monkeypatch,
+    ):
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=customer_user.customer,
+            amount=50_000,
+            flow_type=PaymentFlowType.ONLINE,
+            status=PaymentRequestStatus.COMPLETED,
+            return_url="https://example.com/return",
+            external_guid="ORD-DONE-1",
+        )
+        Payment.objects.create(
+            payment_request=payment_request,
+            payer=customer_user,
+            payer_wallet=customer_cash_wallet,
+            amount=payment_request.amount,
+            method=PaymentMethod.CASH,
+            flow_type=payment_request.flow_type,
+            status=PaymentStatus.COMPLETED,
+        )
+
+        otp = PhoneOTP.objects.create(phone_number=customer_user.profile.phone_number)
+        monkeypatch.setattr(otp, "verify", lambda code: True)
+        monkeypatch.setattr(PhoneOTP.objects, "get", lambda **kwargs: otp)
+
+        client = APIClient()
+        client.force_authenticate(user=customer_user)
+
+        url = reverse(
+            "wallets_public_v1:payment-request-confirm",
+            args=[payment_request.reference_code],
+        )
+        response = client.post(
+            url,
+            {
+                "wallet_id": customer_cash_wallet.id,
+                "code": "1234",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400, response.data
+        assert response.data["code"] == "already_completed"
+
+    def test_confirm_payment_returns_payment_in_progress_when_active_payment_exists(
+            self,
+            customer_user,
+            customer_cash_wallet,
+            store,
+            monkeypatch,
+    ):
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=customer_user.customer,
+            amount=50_000,
+            flow_type=PaymentFlowType.ONLINE,
+            status=PaymentRequestStatus.CREATED,
+            return_url="https://example.com/return",
+            external_guid="ORD-INPROGRESS-1",
+        )
+        Payment.objects.create(
+            payment_request=payment_request,
+            payer=customer_user,
+            payer_wallet=customer_cash_wallet,
+            amount=payment_request.amount,
+            method=PaymentMethod.CASH,
+            flow_type=payment_request.flow_type,
+            status=PaymentStatus.AUTHORIZED,
+        )
+
+        otp = PhoneOTP.objects.create(phone_number=customer_user.profile.phone_number)
+        monkeypatch.setattr(otp, "verify", lambda code: True)
+        monkeypatch.setattr(PhoneOTP.objects, "get", lambda **kwargs: otp)
+
+        client = APIClient()
+        client.force_authenticate(user=customer_user)
+
+        url = reverse(
+            "wallets_public_v1:payment-request-confirm",
+            args=[payment_request.reference_code],
+        )
+        response = client.post(
+            url,
+            {
+                "wallet_id": customer_cash_wallet.id,
+                "code": "1234",
+            },
+            format="json",
+        )
+
+        assert response.status_code == 400, response.data
+        assert response.data["code"] == "payment_in_progress"
