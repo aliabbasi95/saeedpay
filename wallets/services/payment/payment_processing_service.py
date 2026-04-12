@@ -137,6 +137,12 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
                 code="forbidden_store",
             )
 
+        if request_obj.flow_type != PaymentFlowType.ONLINE:
+            raise ValidationError(
+                "نهایی‌سازی برای این نوع درخواست پرداخت مجاز نیست.",
+                code="unsupported_flow_type",
+            )
+
         check_and_expire_payment_request(request_obj)
         latest_payment = get_latest_payment_for_request(request_obj)
 

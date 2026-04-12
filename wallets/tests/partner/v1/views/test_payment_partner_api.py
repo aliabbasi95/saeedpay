@@ -4,19 +4,21 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from merchants.models import Merchant
 from store.authentication import StoreApiKeyAuthentication
 from store.models import Store
-from wallets.models import PaymentRequest, Wallet
+from wallets.api.partner.v1.views.payment import PartnerPaymentRequestViewSet
+from wallets.models import PaymentRequest
+from wallets.models import Wallet
 from wallets.services.payment import pay_payment_request
 from wallets.utils.choices import (
     OwnerType,
-    PaymentFlowType,
-    PaymentRequestStatus,
     PaymentStatus,
     WalletKind,
 )
+from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
 from wallets.utils.escrow import ensure_escrow_wallet_exists
 
 
@@ -346,3 +348,31 @@ class TestPartnerPaymentRequestApi:
         response = client.post(url, {}, format="json")
 
         assert response.status_code == 404
+
+    def test_verify_qr_pos_payment_request_returns_400(
+            self,
+            merchant_user,
+            store,
+    ):
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=None,
+            amount=87500,
+            flow_type=PaymentFlowType.QR_POS,
+            status=PaymentRequestStatus.CREATED,
+        )
+
+        factory = APIRequestFactory()
+        request = factory.post(
+            f"/fake/payment-requests/{payment_request.reference_code}/verify/",
+            {},
+            format="json",
+        )
+        force_authenticate(request, user=merchant_user)
+        request.store = store
+
+        view = PartnerPaymentRequestViewSet.as_view({"post": "verify"})
+        response = view(request, reference_code=payment_request.reference_code)
+
+        assert response.status_code == 400, response.data
+        assert response.data["code"] == "unsupported_flow_type"

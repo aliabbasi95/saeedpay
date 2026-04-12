@@ -32,6 +32,22 @@ from wallets.utils.choices import PaymentFlowType
 from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
 
 
+def _extract_validation_code(exc, default="validation_error"):
+    if hasattr(exc, "get_codes"):
+        codes = exc.get_codes()
+        if isinstance(codes, list) and codes:
+            return codes[0]
+        if isinstance(codes, str):
+            return codes
+        if isinstance(codes, dict):
+            first_value = next(iter(codes.values()), default)
+            if isinstance(first_value, list) and first_value:
+                return first_value[0]
+            if isinstance(first_value, str):
+                return first_value
+    return getattr(exc, "code", default)
+
+
 @extend_schema(tags=["Wallet · Payment Requests (Partner)"])
 class PartnerPaymentRequestViewSet(
     ScopedThrottleByActionMixin,
@@ -175,7 +191,7 @@ class PartnerPaymentRequestViewSet(
         except ValidationError as exc:
             return payment_error_response(
                 detail=str(exc),
-                code=getattr(exc, "code", "validation_error"),
+                code=_extract_validation_code(exc),
                 http_status=status.HTTP_400_BAD_REQUEST,
                 payment_request=payment_request,
             )
