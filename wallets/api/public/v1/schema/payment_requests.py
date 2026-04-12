@@ -74,3 +74,8 @@ merchant_pos_payment_retrieve_schema = extend_schema(
     summary="جزییات درخواست پرداخت حضوری QR فروشنده",
     responses={200: MerchantPosPaymentRequestDetailSerializer},
 )
+
+merchant_pos_payment_cancel_schema = extend_schema(
+    summary="لغو درخواست پرداخت حضوری QR توسط فروشنده",
+    responses={200: PaymentActionResponseSerializer},
+)

@@ -4,6 +4,8 @@ from django.conf import settings
 from django.http import Http404
 from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -13,8 +15,10 @@ from store.models import Store
 from wallets.api.payment_responses import (
     build_payment_response_payload,
     payment_error_response,
+    payment_success_response,
 )
 from wallets.api.public.v1.schema import (
+    merchant_pos_payment_cancel_schema,
     merchant_pos_payment_create_schema,
     merchant_pos_payment_list_schema,
     merchant_pos_payment_retrieve_schema,
@@ -26,7 +30,8 @@ from wallets.api.public.v1.serializers.payment_pos import (
     MerchantPosPaymentRequestListItemSerializer,
 )
 from wallets.models import PaymentRequest
-from wallets.services.payment import (
+from wallets.services.payment.payment_request_service import (
+    cancel_payment_request,
     check_and_expire_payment_request,
     create_payment_request,
 )
@@ -45,6 +50,22 @@ def _parse_dt_maybe(value):
     return parse_date(value)
 
 
+def _extract_validation_code(exc, default="validation_error"):
+    if hasattr(exc, "get_codes"):
+        codes = exc.get_codes()
+        if isinstance(codes, list) and codes:
+            return codes[0]
+        if isinstance(codes, str):
+            return codes
+        if isinstance(codes, dict):
+            first_value = next(iter(codes.values()), default)
+            if isinstance(first_value, list) and first_value:
+                return first_value[0]
+            if isinstance(first_value, str):
+                return first_value
+    return getattr(exc, "code", default)
+
+
 class MerchantPosPaymentRequestViewSet(
     ScopedThrottleByActionMixin,
     mixins.CreateModelMixin,
@@ -60,6 +81,7 @@ class MerchantPosPaymentRequestViewSet(
         "create": "merchant-pos-payment-write",
         "list": "merchant-pos-payment-read",
         "retrieve": "merchant-pos-payment-read",
+        "cancel": "merchant-pos-payment-write",
     }
 
     def _get_owned_store(self, *, store_id, user):
@@ -204,3 +226,43 @@ class MerchantPosPaymentRequestViewSet(
 
         serializer = self.get_serializer(payment_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @merchant_pos_payment_cancel_schema
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, *args, **kwargs):
+        payment_request = self.get_object()
+
+        try:
+            cancelled_request = cancel_payment_request(
+                payment_request=payment_request,
+                store=payment_request.store,
+                actor=request.user,
+            )
+            cancelled_request.refresh_from_db()
+        except ValidationError as exc:
+            return payment_error_response(
+                detail=str(exc),
+                code=_extract_validation_code(exc),
+                http_status=status.HTTP_400_BAD_REQUEST,
+                payment_request=payment_request,
+            )
+        except Exception as exc:
+            return payment_error_response(
+                detail=str(exc),
+                code="business_rule",
+                http_status=status.HTTP_400_BAD_REQUEST,
+                payment_request=payment_request,
+            )
+
+        payload_response = payment_success_response(
+            detail="درخواست پرداخت حضوری با موفقیت لغو شد.",
+            code="payment_request_cancelled",
+            payment_request=cancelled_request,
+            http_status=status.HTTP_200_OK,
+            next_action="none",
+            merchant_confirmation_required=False,
+        )
+        return Response(
+            payload_response.data,
+            status=payload_response.status_code,
+        )

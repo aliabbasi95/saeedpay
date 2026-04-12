@@ -6,8 +6,12 @@ from rest_framework.test import APIClient
 
 from merchants.models import Merchant
 from store.models import Store
-from wallets.models import PaymentRequest
-from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
+from wallets.models import PaymentEvent, PaymentRequest
+from wallets.utils.choices import (
+    PaymentEventType,
+    PaymentFlowType,
+    PaymentRequestStatus,
+)
 
 
 @pytest.mark.django_db
@@ -236,5 +240,155 @@ class TestMerchantPosPaymentRequestApi:
             },
             format="json",
         )
+
+        assert response.status_code == 403
+
+    def test_cancel_pos_payment_request_success(
+            self,
+            merchant_user,
+            store,
+    ):
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=None,
+            amount=87500,
+            description="pos cancel test",
+            flow_type=PaymentFlowType.QR_POS,
+            status=PaymentRequestStatus.CREATED,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=merchant_user)
+
+        url = reverse(
+            "wallets_public_v1:merchant-pos-payment-request-cancel",
+            args=[payment_request.reference_code],
+        )
+        response = client.post(url, {}, format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["code"] == "payment_request_cancelled"
+        assert response.data["payment_reference_code"] == payment_request.reference_code
+        assert response.data["payment_request_status"] == PaymentRequestStatus.CANCELLED
+        assert response.data["merchant_confirmation_required"] is False
+        assert response.data["next_action"] == "none"
+
+        payment_request.refresh_from_db()
+        assert payment_request.status == PaymentRequestStatus.CANCELLED
+
+        event = PaymentEvent.objects.filter(
+            payment_request=payment_request,
+            event_type=PaymentEventType.PAYMENT_CANCELLED,
+        ).latest("id")
+
+        assert event.actor == merchant_user
+        assert event.from_status == PaymentRequestStatus.CREATED
+        assert event.to_status == PaymentRequestStatus.CANCELLED
+
+    def test_cancel_pos_payment_request_of_other_merchant_returns_404(
+            self,
+            merchant_user,
+            store,
+            user_factory,
+    ):
+        other_user = user_factory("other_merchant_for_pos_cancel")
+        other_merchant = Merchant.objects.create(user=other_user)
+        other_store = Store.objects.create(
+            merchant=other_merchant,
+            name="other-store",
+        )
+        payment_request = PaymentRequest.objects.create(
+            store=other_store,
+            customer=None,
+            amount=87500,
+            flow_type=PaymentFlowType.QR_POS,
+            status=PaymentRequestStatus.CREATED,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=merchant_user)
+
+        url = reverse(
+            "wallets_public_v1:merchant-pos-payment-request-cancel",
+            args=[payment_request.reference_code],
+        )
+        response = client.post(url, {}, format="json")
+
+        assert response.status_code == 404
+
+    def test_cancel_completed_pos_payment_request_returns_400(
+            self,
+            merchant_user,
+            store,
+    ):
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=None,
+            amount=87500,
+            flow_type=PaymentFlowType.QR_POS,
+            status=PaymentRequestStatus.COMPLETED,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=merchant_user)
+
+        url = reverse(
+            "wallets_public_v1:merchant-pos-payment-request-cancel",
+            args=[payment_request.reference_code],
+        )
+        response = client.post(url, {}, format="json")
+
+        assert response.status_code == 400, response.data
+        assert response.data["code"] == "not_cancellable"
+
+        payment_request.refresh_from_db()
+        assert payment_request.status == PaymentRequestStatus.COMPLETED
+
+    def test_cancel_expired_pos_payment_request_returns_400(
+            self,
+            merchant_user,
+            store,
+    ):
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=None,
+            amount=87500,
+            flow_type=PaymentFlowType.QR_POS,
+            status=PaymentRequestStatus.EXPIRED,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=merchant_user)
+
+        url = reverse(
+            "wallets_public_v1:merchant-pos-payment-request-cancel",
+            args=[payment_request.reference_code],
+        )
+        response = client.post(url, {}, format="json")
+
+        assert response.status_code == 400, response.data
+        assert response.data["code"] == "not_cancellable"
+
+    def test_cancel_pos_payment_request_requires_merchant_user(
+            self,
+            customer_user,
+            store,
+    ):
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=None,
+            amount=87500,
+            flow_type=PaymentFlowType.QR_POS,
+            status=PaymentRequestStatus.CREATED,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=customer_user)
+
+        url = reverse(
+            "wallets_public_v1:merchant-pos-payment-request-cancel",
+            args=[payment_request.reference_code],
+        )
+        response = client.post(url, {}, format="json")
 
         assert response.status_code == 403

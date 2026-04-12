@@ -185,13 +185,26 @@ def expire_payment_request(payment_request: PaymentRequest):
         return request_obj
 
 
-def cancel_payment_request(payment_request: PaymentRequest):
+def cancel_payment_request(
+        payment_request: PaymentRequest,
+        *,
+        store=None,
+        actor=None,
+):
     from wallets.services.payment.payment_processing_service import rollback_payment
 
     with transaction.atomic():
-        request_obj = PaymentRequest.objects.select_for_update().get(
-            pk=payment_request.pk
+        request_obj = (
+            PaymentRequest.objects.select_for_update()
+            .select_related("store__merchant__user", "paid_by")
+            .get(pk=payment_request.pk)
         )
+
+        if store is not None and request_obj.store_id != store.id:
+            raise ValidationError(
+                "این درخواست پرداخت متعلق به این فروشگاه نیست.",
+                code="forbidden_store",
+            )
 
         if request_obj.status == PaymentRequestStatus.CANCELLED:
             return request_obj
@@ -200,7 +213,10 @@ def cancel_payment_request(payment_request: PaymentRequest):
             PaymentRequestStatus.EXPIRED,
             PaymentRequestStatus.COMPLETED,
         }:
-            return request_obj
+            raise ValidationError(
+                "این درخواست پرداخت در وضعیت فعلی قابل لغو نیست.",
+                code="not_cancellable",
+            )
 
         from_status = request_obj.status
         request_obj.mark_cancelled()
@@ -210,11 +226,15 @@ def cancel_payment_request(payment_request: PaymentRequest):
         create_event(
             payment_request=request_obj,
             payment=latest_payment,
-            actor=request_obj.paid_by,
+            actor=actor if actor is not None else request_obj.paid_by,
             event_type=PaymentEventType.PAYMENT_CANCELLED,
             from_status=from_status,
             to_status=request_obj.status,
             description="Payment request cancelled.",
+            extra_data={
+                "store_id": request_obj.store_id,
+                "flow_type": request_obj.flow_type,
+            },
         )
         return request_obj
 

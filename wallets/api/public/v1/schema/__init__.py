@@ -7,6 +7,7 @@ from .installment_plan import (
 )
 
 from wallets.api.public.v1.schema.payment_requests import (
+    merchant_pos_payment_cancel_schema,
     merchant_pos_payment_create_schema,
     merchant_pos_payment_list_schema,
     merchant_pos_payment_retrieve_schema,
