@@ -89,6 +89,14 @@ report_viewset_schema = extend_schema_view(
         tags=["Credit · Loan Risk"],
         summary="Retrieve a loan risk report",
         description="Returns a single report (belongs to the current user).",
+        parameters=[
+            OpenApiParameter(
+                name="id",
+                location=OpenApiParameter.PATH,
+                type=OpenApiTypes.INT,
+                description="Loan risk report primary key",
+            ),
+        ],
         responses={200: LoanRiskReportDetailSerializer},
     ),
 )
@@ -118,7 +126,7 @@ report_check_schema = extend_schema(
             name="id",
             location=OpenApiParameter.PATH,
             type=OpenApiTypes.INT,
-            description="Report id",
+            description="Loan risk report primary key",
         ),
     ],
     responses={

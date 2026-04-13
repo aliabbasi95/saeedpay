@@ -62,7 +62,7 @@ class MerchantPosPaymentRequestBaseSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_merchant_confirmation_required(self, obj):
+    def get_merchant_confirmation_required(self, obj: PaymentRequest) -> bool:
         return obj.flow_type == PaymentFlowType.ONLINE
 
     def get_can_cancel(self, obj):

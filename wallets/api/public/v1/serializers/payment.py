@@ -3,7 +3,7 @@
 import re
 
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiTypes, extend_schema_field
+from drf_spectacular.utils import OpenApiTypes, extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from auth_api.models import PhoneOTP
@@ -81,7 +81,7 @@ class PaymentConfirmSerializer(serializers.Serializer):
 
         return data
 
-
+@extend_schema_serializer(component_name="PublicPaymentActionResponse")
 class PaymentActionResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
     code = serializers.CharField()
