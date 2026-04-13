@@ -1,5 +1,6 @@
 # wallets/api/public/v1/serializers/payment_pos.py
 
+from django.utils import timezone
 from rest_framework import serializers
 
 from wallets.models import PaymentRequest
@@ -19,6 +20,10 @@ class MerchantPosPaymentRequestCreateSerializer(serializers.Serializer):
 class MerchantPosPaymentRequestBaseSerializer(serializers.ModelSerializer):
     store_id = serializers.IntegerField(source="store.id", read_only=True)
     store_name = serializers.CharField(source="store.name", read_only=True)
+    status_display = serializers.CharField(
+        source="get_status_display",
+        read_only=True,
+    )
     flow_type_display = serializers.CharField(
         source="get_flow_type_display",
         read_only=True,
@@ -28,6 +33,8 @@ class MerchantPosPaymentRequestBaseSerializer(serializers.ModelSerializer):
     can_cancel = serializers.SerializerMethodField()
     can_recreate = serializers.SerializerMethodField()
     status_action_hint = serializers.SerializerMethodField()
+    is_paid = serializers.SerializerMethodField()
+    is_expired = serializers.SerializerMethodField()
 
     class Meta:
         model = PaymentRequest
@@ -37,16 +44,17 @@ class MerchantPosPaymentRequestBaseSerializer(serializers.ModelSerializer):
             "amount",
             "description",
             "status",
+            "status_display",
             "flow_type",
             "flow_type_display",
             "merchant_confirmation_required",
             "can_cancel",
             "can_recreate",
             "status_action_hint",
+            "is_paid",
+            "is_expired",
             "expires_at",
             "paid_at",
-            "paid_by",
-            "paid_wallet",
             "store_id",
             "store_name",
             "created_at",
@@ -94,6 +102,18 @@ class MerchantPosPaymentRequestBaseSerializer(serializers.ModelSerializer):
 
         return None
 
+    def get_is_paid(self, obj):
+        return obj.status == PaymentRequestStatus.COMPLETED
+
+    def get_is_expired(self, obj):
+        if obj.status == PaymentRequestStatus.EXPIRED:
+            return True
+
+        if obj.expires_at is None:
+            return False
+
+        return obj.expires_at < timezone.localtime(timezone.now())
+
 
 class MerchantPosPaymentRequestListItemSerializer(
     MerchantPosPaymentRequestBaseSerializer
@@ -105,12 +125,15 @@ class MerchantPosPaymentRequestListItemSerializer(
             "amount",
             "description",
             "status",
+            "status_display",
             "flow_type",
             "flow_type_display",
             "merchant_confirmation_required",
             "can_cancel",
             "can_recreate",
             "status_action_hint",
+            "is_paid",
+            "is_expired",
             "expires_at",
             "paid_at",
             "store_id",

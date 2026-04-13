@@ -6,11 +6,13 @@ from rest_framework.test import APIClient
 
 from merchants.models import Merchant
 from store.models import Store
-from wallets.models import PaymentEvent, PaymentRequest
+from wallets.models import PaymentEvent, PaymentRequest, Wallet
 from wallets.utils.choices import (
+    OwnerType,
     PaymentEventType,
     PaymentFlowType,
     PaymentRequestStatus,
+    WalletKind,
 )
 
 
@@ -133,15 +135,30 @@ class TestMerchantPosPaymentRequestApi:
         assert response.data["flow_type"] == PaymentFlowType.QR_POS
         assert response.data["store_id"] == store.id
         assert response.data["store_name"] == store.name
+        assert response.data["status_display"] == payment_request.get_status_display()
         assert response.data["can_cancel"] is True
         assert response.data["can_recreate"] is False
         assert response.data["status_action_hint"] == "waiting_for_customer_scan"
+        assert response.data["is_paid"] is False
+        assert response.data["is_expired"] is False
+        assert "paid_by" not in response.data
+        assert "paid_by_display" not in response.data
+        assert "paid_wallet" not in response.data
+        assert "paid_wallet_kind" not in response.data
+        assert "paid_wallet_kind_display" not in response.data
 
-    def test_retrieve_completed_pos_payment_request_exposes_recreate_policy(
+    def test_retrieve_completed_pos_payment_request_exposes_recreate_policy_without_payer_data(
             self,
             merchant_user,
             store,
+            customer_user,
     ):
+        paid_wallet = Wallet.objects.create(
+            user=customer_user,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=100_000,
+        )
         payment_request = PaymentRequest.objects.create(
             store=store,
             customer=None,
@@ -149,6 +166,8 @@ class TestMerchantPosPaymentRequestApi:
             description="completed pos sale",
             flow_type=PaymentFlowType.QR_POS,
             status=PaymentRequestStatus.COMPLETED,
+            paid_by=customer_user,
+            paid_wallet=paid_wallet,
         )
 
         client = APIClient()
@@ -161,9 +180,16 @@ class TestMerchantPosPaymentRequestApi:
         response = client.get(url)
 
         assert response.status_code == 200, response.data
+        assert response.data["status_display"] == payment_request.get_status_display()
         assert response.data["can_cancel"] is False
         assert response.data["can_recreate"] is True
         assert response.data["status_action_hint"] == "create_new_qr"
+        assert response.data["is_paid"] is True
+        assert "paid_by" not in response.data
+        assert "paid_by_display" not in response.data
+        assert "paid_wallet" not in response.data
+        assert "paid_wallet_kind" not in response.data
+        assert "paid_wallet_kind_display" not in response.data
 
     def test_retrieve_cancelled_pos_payment_request_exposes_recreate_policy(
             self,
@@ -192,6 +218,7 @@ class TestMerchantPosPaymentRequestApi:
         assert response.data["can_cancel"] is False
         assert response.data["can_recreate"] is True
         assert response.data["status_action_hint"] == "create_new_qr"
+        assert response.data["is_paid"] is False
 
     def test_retrieve_expired_pos_payment_request_exposes_recreate_policy(
             self,
@@ -220,6 +247,7 @@ class TestMerchantPosPaymentRequestApi:
         assert response.data["can_cancel"] is False
         assert response.data["can_recreate"] is True
         assert response.data["status_action_hint"] == "create_new_qr"
+        assert response.data["is_expired"] is True
 
     def test_retrieve_pos_payment_request_of_other_merchant_returns_404(
             self,
