@@ -3,7 +3,7 @@
 from rest_framework import serializers
 
 from wallets.models import PaymentRequest
-from wallets.utils.choices import PaymentFlowType
+from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
 
 
 class MerchantPosPaymentRequestCreateSerializer(serializers.Serializer):
@@ -25,6 +25,9 @@ class MerchantPosPaymentRequestBaseSerializer(serializers.ModelSerializer):
     )
     merchant_confirmation_required = serializers.SerializerMethodField()
     qr_payload = serializers.CharField(source="reference_code", read_only=True)
+    can_cancel = serializers.SerializerMethodField()
+    can_recreate = serializers.SerializerMethodField()
+    status_action_hint = serializers.SerializerMethodField()
 
     class Meta:
         model = PaymentRequest
@@ -37,6 +40,9 @@ class MerchantPosPaymentRequestBaseSerializer(serializers.ModelSerializer):
             "flow_type",
             "flow_type_display",
             "merchant_confirmation_required",
+            "can_cancel",
+            "can_recreate",
+            "status_action_hint",
             "expires_at",
             "paid_at",
             "paid_by",
@@ -50,6 +56,43 @@ class MerchantPosPaymentRequestBaseSerializer(serializers.ModelSerializer):
 
     def get_merchant_confirmation_required(self, obj):
         return obj.flow_type == PaymentFlowType.ONLINE
+
+    def get_can_cancel(self, obj):
+        return (
+                obj.flow_type == PaymentFlowType.QR_POS
+                and obj.status == PaymentRequestStatus.CREATED
+        )
+
+    def get_can_recreate(self, obj):
+        return (
+                obj.flow_type == PaymentFlowType.QR_POS
+                and obj.status in {
+                    PaymentRequestStatus.COMPLETED,
+                    PaymentRequestStatus.CANCELLED,
+                    PaymentRequestStatus.EXPIRED,
+                }
+        )
+
+    def get_status_action_hint(self, obj):
+        if obj.flow_type != PaymentFlowType.QR_POS:
+            return None
+
+        if obj.status == PaymentRequestStatus.CREATED:
+            return "waiting_for_customer_scan"
+
+        if obj.status == PaymentRequestStatus.COMPLETED:
+            return "create_new_qr"
+
+        if obj.status == PaymentRequestStatus.CANCELLED:
+            return "create_new_qr"
+
+        if obj.status == PaymentRequestStatus.EXPIRED:
+            return "create_new_qr"
+
+        if obj.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION:
+            return "awaiting_store_confirmation"
+
+        return None
 
 
 class MerchantPosPaymentRequestListItemSerializer(
@@ -65,6 +108,9 @@ class MerchantPosPaymentRequestListItemSerializer(
             "flow_type",
             "flow_type_display",
             "merchant_confirmation_required",
+            "can_cancel",
+            "can_recreate",
+            "status_action_hint",
             "expires_at",
             "paid_at",
             "store_id",

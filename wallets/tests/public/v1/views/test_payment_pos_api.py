@@ -133,6 +133,93 @@ class TestMerchantPosPaymentRequestApi:
         assert response.data["flow_type"] == PaymentFlowType.QR_POS
         assert response.data["store_id"] == store.id
         assert response.data["store_name"] == store.name
+        assert response.data["can_cancel"] is True
+        assert response.data["can_recreate"] is False
+        assert response.data["status_action_hint"] == "waiting_for_customer_scan"
+
+    def test_retrieve_completed_pos_payment_request_exposes_recreate_policy(
+            self,
+            merchant_user,
+            store,
+    ):
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=None,
+            amount=87500,
+            description="completed pos sale",
+            flow_type=PaymentFlowType.QR_POS,
+            status=PaymentRequestStatus.COMPLETED,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=merchant_user)
+
+        url = reverse(
+            "wallets_public_v1:merchant-pos-payment-request-detail",
+            args=[payment_request.reference_code],
+        )
+        response = client.get(url)
+
+        assert response.status_code == 200, response.data
+        assert response.data["can_cancel"] is False
+        assert response.data["can_recreate"] is True
+        assert response.data["status_action_hint"] == "create_new_qr"
+
+    def test_retrieve_cancelled_pos_payment_request_exposes_recreate_policy(
+            self,
+            merchant_user,
+            store,
+    ):
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=None,
+            amount=87500,
+            description="cancelled pos sale",
+            flow_type=PaymentFlowType.QR_POS,
+            status=PaymentRequestStatus.CANCELLED,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=merchant_user)
+
+        url = reverse(
+            "wallets_public_v1:merchant-pos-payment-request-detail",
+            args=[payment_request.reference_code],
+        )
+        response = client.get(url)
+
+        assert response.status_code == 200, response.data
+        assert response.data["can_cancel"] is False
+        assert response.data["can_recreate"] is True
+        assert response.data["status_action_hint"] == "create_new_qr"
+
+    def test_retrieve_expired_pos_payment_request_exposes_recreate_policy(
+            self,
+            merchant_user,
+            store,
+    ):
+        payment_request = PaymentRequest.objects.create(
+            store=store,
+            customer=None,
+            amount=87500,
+            description="expired pos sale",
+            flow_type=PaymentFlowType.QR_POS,
+            status=PaymentRequestStatus.EXPIRED,
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=merchant_user)
+
+        url = reverse(
+            "wallets_public_v1:merchant-pos-payment-request-detail",
+            args=[payment_request.reference_code],
+        )
+        response = client.get(url)
+
+        assert response.status_code == 200, response.data
+        assert response.data["can_cancel"] is False
+        assert response.data["can_recreate"] is True
+        assert response.data["status_action_hint"] == "create_new_qr"
 
     def test_retrieve_pos_payment_request_of_other_merchant_returns_404(
             self,
