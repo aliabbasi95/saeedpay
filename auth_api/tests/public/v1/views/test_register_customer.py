@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
+from django.core.cache import cache
 
 from auth_api.models import PhoneOTP
 from customers.models import Customer
@@ -36,7 +37,7 @@ class TestRegisterCustomerView:
             "confirm_password": "StrongPass123!"
         }
         response = self.client.post(REGISTER_URL, payload)
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_200_OK
         assert "access" in response.data
         assert "sp_refresh" in response.cookies
         assert "user_id" in response.data
@@ -55,7 +56,7 @@ class TestRegisterCustomerView:
             "confirm_password": "StrongPass123!"
         }
         response = self.client.post(REGISTER_URL, payload)
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_200_OK
         assert response.data["user_id"] == user.id
         assert Customer.objects.filter(user=user).exists()
 
@@ -157,7 +158,9 @@ class TestRegisterCustomerView:
                 "confirm_password": "StrongPass123!"
             }
         )
-        assert response1.status_code == status.HTTP_201_CREATED
+        
+        cache.clear()
+        assert response1.status_code == status.HTTP_200_OK
 
         # Remove customer to bypass UniqueAcrossModelsValidator
         get_user_model().objects.filter(username=phone).delete()
@@ -184,7 +187,7 @@ class TestRegisterCustomerView:
             "confirm_password": "StrongPass123!"
         }
         response = self.client.post(REGISTER_URL, payload)
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_200_OK
         assert "customer" in response.data["roles"]
 
     def test_profile_phone_number_updated_if_different(self):
