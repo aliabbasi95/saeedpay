@@ -379,6 +379,11 @@ SPECTACULAR_SETTINGS = {
         }
     },
     "PREPROCESSING_HOOKS": ["saeedpay.settings.spectacular_preprocess_hook"],
+    "ENUM_NAME_OVERRIDES": {
+        "PaymentStatusEnum": "wallets.models.payment.PaymentStatus",
+        "PaymentRequestStatusEnum": "wallets.models.payment_request.PaymentRequestStatus",
+        "LoanRiskReportStatusEnum": "credit.utils.choices.LoanReportStatus",
+    },
 }
 
 # Redis
