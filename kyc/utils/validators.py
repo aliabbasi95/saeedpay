@@ -67,7 +67,7 @@ def validate_phone_number(phone: str) -> bool:
         return True
     
     # Check if it starts with +98 and has 13 digits total
-    if len(clean_phone) == 13 and clean_phone.startswith('98'):
+    if len(clean_phone) == 12 and clean_phone.startswith('98'):
         return True
     
     return False
