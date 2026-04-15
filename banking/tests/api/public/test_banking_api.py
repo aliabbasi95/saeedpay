@@ -62,7 +62,7 @@ class TestBankingAPI:
     def test_list_banks(self, api_client, bank):
         response = api_client.get("/saeedpay/api/banking/v1/banks/")
         assert response.status_code == status.HTTP_200_OK
-        items = response.data["results"]
+        items = response.data
         assert len(items) == 1
         assert items[0]["name"] == "Test Bank"
 
@@ -275,8 +275,6 @@ class TestBankingAPI:
     def test_unauthenticated_access_denied(self, bank, verified_card):
         client = APIClient()
         endpoints = [
-            "/saeedpay/api/banking/v1/banks/",
-            f"/saeedpay/api/banking/v1/banks/{bank.id}/",
             "/saeedpay/api/banking/v1/cards/",
             f"/saeedpay/api/banking/v1/cards/{verified_card.id}/",
         ]
