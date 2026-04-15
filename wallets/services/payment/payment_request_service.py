@@ -201,8 +201,8 @@ def cancel_payment_request(
 
     with transaction.atomic():
         request_obj = (
-            PaymentRequest.objects.select_for_update()
-            .select_related("store__merchant__user", "paid_by")
+            PaymentRequest.objects
+            .select_for_update()
             .get(pk=payment_request.pk)
         )
 

@@ -40,8 +40,8 @@ from wallets.utils.choices import (
 def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
     with transaction.atomic():
         payment_request = (
-            PaymentRequest.objects.select_for_update()
-            .select_related("store__merchant__user", "customer__user")
+            PaymentRequest.objects
+            .select_for_update()
             .get(pk=request_obj.pk)
         )
 
@@ -126,8 +126,8 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
 def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Payment:
     with transaction.atomic():
         request_obj = (
-            PaymentRequest.objects.select_for_update()
-            .select_related("store__merchant__user")
+            PaymentRequest.objects
+            .select_for_update()
             .get(pk=payment_request.pk)
         )
 
