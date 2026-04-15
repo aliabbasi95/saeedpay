@@ -36,7 +36,11 @@ class TestTicketSerializers:
     def test_ticket_create_serializer_requires_auth(self, rf, category):
         req = rf.post("/")  # no user
         ser = TicketCreateSerializer(
-            data={"title": "t", "priority": TicketPriority.NORMAL, "category_id": category.id},
+            data={
+                "title": "t",
+                "priority": TicketPriority.NORMAL,
+                "category_id": category.id,
+            },
             context={"request": req},
         )
         assert not ser.is_valid()
@@ -49,7 +53,11 @@ class TestTicketSerializers:
         req = rf.post("/")
         req.user = user
         ser = TicketCreateSerializer(
-            data={"title": "x", "priority": TicketPriority.HIGH, "category_id": category.id},
+            data={
+                "title": "x",
+                "priority": TicketPriority.HIGH,
+                "category_id": category.id,
+            },
             context={"request": req},
         )
         assert not ser.is_valid()
@@ -59,11 +67,15 @@ class TestTicketSerializers:
         req = rf.post("/")
         req.user = user
         ser = TicketCreateSerializer(
-            data={"title": "t", "priority": TicketPriority.LOW, "category_id": category.id},
+            data={
+                "title": "t",
+                "priority": TicketPriority.LOW,
+                "category_id": category.id,
+            },
             context={"request": req},
         )
         assert ser.is_valid(), ser.errors
-        obj = ser.save(user=user)
+        obj = ser.save()
         assert isinstance(obj, Ticket)
         assert obj.user == user
         assert obj.status == TicketStatus.OPEN
@@ -71,12 +83,18 @@ class TestTicketSerializers:
     def test_message_serializer_sender_and_reply_validation(self, rf, user):
         t1 = Ticket.objects.create(user=user, title="t")
         t2 = Ticket.objects.create(user=user, title="t2")
-        other_msg = TicketMessage.objects.create(ticket=t1, sender=TicketMessage.Sender.USER, content="x")
+        other_msg = TicketMessage.objects.create(
+            ticket=t1, sender=TicketMessage.Sender.USER, content="x"
+        )
 
         req = rf.post("/")
         req.user = user
         ser = TicketMessageCreateSerializer(
-            data={"sender": TicketMessage.Sender.STAFF, "content": "bad", "reply_to": other_msg.id},
+            data={
+                "sender": TicketMessage.Sender.STAFF,
+                "content": "bad",
+                "reply_to": other_msg.id,
+            },
             context={"request": req, "ticket": t2},
         )
         assert not ser.is_valid()
@@ -113,7 +131,9 @@ class TestTicketSerializers:
         assert "files" in ser.errors
 
         # Oversized
-        big = SimpleUploadedFile("big.pdf", b"0" * (5 * 1024 * 1024 + 1), content_type="application/pdf")
+        big = SimpleUploadedFile(
+            "big.pdf", b"0" * (5 * 1024 * 1024 + 1), content_type="application/pdf"
+        )
         ser2 = TicketMessageCreateSerializer(
             data={"sender": TicketMessage.Sender.USER, "content": "x", "files": [big]},
             context={"request": req, "ticket": ticket},
@@ -137,7 +157,11 @@ class TestTicketSerializers:
         f1 = SimpleUploadedFile("a.txt", b"a", content_type="text/plain")
         f2 = SimpleUploadedFile("b.txt", b"b", content_type="text/plain")
         ser = TicketMessageCreateSerializer(
-            data={"sender": TicketMessage.Sender.USER, "content": "ok", "files": [f1, f2]},
+            data={
+                "sender": TicketMessage.Sender.USER,
+                "content": "ok",
+                "files": [f1, f2],
+            },
             context={"request": req, "ticket": ticket},
         )
         assert ser.is_valid(), ser.errors

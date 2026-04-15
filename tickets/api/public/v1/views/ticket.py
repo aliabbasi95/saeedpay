@@ -5,40 +5,44 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.mixins import (
-    CreateModelMixin, ListModelMixin,
+    CreateModelMixin,
+    ListModelMixin,
     RetrieveModelMixin,
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from lib.cas_auth.erp.pagination import CustomPagination
-from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from tickets.api.public.v1.schema import (
-    ticket_viewset_schema,
     messages_list_schema,
-    add_message_schema,
+    ticket_viewset_schema,
 )
 from tickets.api.public.v1.serializers import (
-    TicketSerializer,
     TicketCreateSerializer,
-    TicketMessageSerializer,
     TicketMessageCreateSerializer,
+    TicketMessageSerializer,
+    TicketSerializer,
 )
 from tickets.filters import TicketFilter
 from tickets.models import Ticket, TicketMessage
+from lib.cas_auth.erp.pagination import CustomPagination
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 
 @ticket_viewset_schema
 class TicketViewSet(
     ScopedThrottleByActionMixin,
-    CreateModelMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    GenericViewSet,
 ):
     """
     list:     User's tickets (filter + ordering).
     retrieve: Single ticket (only owner).
     create:   Create new ticket (first message optional via `description`).
     """
+
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = TicketFilter
@@ -68,22 +72,21 @@ class TicketViewSet(
         return TicketSerializer
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save()
 
     @messages_list_schema
-    @action(detail=True, methods=["get"], url_path="messages")
+    @action(detail=True, methods=["get", "post"], url_path="messages")
     def messages(self, request, pk=None):
         ticket = self.get_object()
-        qs = TicketMessage.objects.filter(ticket=ticket).order_by("id")
-        paginator = CustomPagination()
-        page = paginator.paginate_queryset(qs, request, view=self)
-        serializer = TicketMessageSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
 
-    @add_message_schema
-    @action(detail=True, methods=["post"], url_path="messages")
-    def add_message(self, request, pk=None):
-        ticket = self.get_object()
+        if request.method == "GET":
+            qs = TicketMessage.objects.filter(ticket=ticket).order_by("id")
+            paginator = CustomPagination()
+            page = paginator.paginate_queryset(qs, request, view=self)
+            serializer = TicketMessageSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        # POST
         ser = TicketMessageCreateSerializer(
             data=request.data, context={"request": request, "ticket": ticket}
         )
@@ -91,5 +94,5 @@ class TicketViewSet(
         message = ser.save()
         return Response(
             TicketMessageSerializer(message).data,
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )
