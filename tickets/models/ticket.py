@@ -5,7 +5,8 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
-from tickets.utils.choices import TicketStatus, TicketPriority
+from tickets.utils.choices import TicketPriority, TicketStatus
+
 from .category import TicketCategory
 
 
@@ -17,7 +18,7 @@ class Ticket(BaseModel):
         get_user_model(),
         on_delete=models.CASCADE,
         related_name="tickets",
-        verbose_name=_("کاربر")
+        verbose_name=_("کاربر"),
     )
     assigned_staff = models.ForeignKey(
         get_user_model(),
@@ -33,23 +34,20 @@ class Ticket(BaseModel):
         null=True,
         blank=True,
         related_name="tickets",
-        verbose_name=_("دسته‌بندی")
+        verbose_name=_("دسته‌بندی"),
     )
-    title = models.CharField(
-        max_length=200,
-        verbose_name=_("عنوان")
-    )
+    title = models.CharField(max_length=200, verbose_name=_("عنوان"))
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
         default=Status.OPEN,
-        verbose_name=_("وضعیت")
+        verbose_name=_("وضعیت"),
     )
     priority = models.CharField(
         max_length=10,
         choices=Priority.choices,
         default=Priority.NORMAL,
-        verbose_name=_("اولویت")
+        verbose_name=_("اولویت"),
     )
 
     class Meta:

@@ -3,8 +3,9 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from lib.erp_base.models import BaseModel, BaseAttachment
+from lib.erp_base.models import BaseAttachment, BaseModel
 from tickets.utils.choices import TicketMessageSender
+
 from .ticket import Ticket
 
 
@@ -15,12 +16,10 @@ class TicketMessage(BaseModel):
         Ticket,
         on_delete=models.CASCADE,
         related_name="messages",
-        verbose_name=_("تیکت")
+        verbose_name=_("تیکت"),
     )
     sender = models.CharField(
-        max_length=8,
-        choices=Sender.choices,
-        verbose_name=_("فرستنده")
+        max_length=8, choices=Sender.choices, verbose_name=_("فرستنده")
     )
     content = models.TextField(verbose_name=_("متن پیام"))
     reply_to = models.ForeignKey(
@@ -29,7 +28,7 @@ class TicketMessage(BaseModel):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="replies",
-        verbose_name=_("پاسخ به")
+        verbose_name=_("پاسخ به"),
     )
 
     def __str__(self):
@@ -49,7 +48,7 @@ class TicketMessageAttachment(BaseAttachment):
         TicketMessage,
         on_delete=models.CASCADE,
         related_name="attachments",
-        verbose_name=_("پیام")
+        verbose_name=_("پیام"),
     )
 
     class Meta:

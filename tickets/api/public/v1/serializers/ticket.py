@@ -7,8 +7,10 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from tickets.models import (
-    Ticket, TicketMessage, TicketMessageAttachment,
+    Ticket,
     TicketCategory,
+    TicketMessage,
+    TicketMessageAttachment,
 )
 
 ALLOWED_MIME_TYPES = {
@@ -76,9 +78,7 @@ class TicketCreateSerializer(serializers.ModelSerializer):
             Ticket.Status.WAITING_ON_USER,
             Ticket.Status.REOPENED,
         ]
-        open_count = Ticket.objects.filter(
-            user=user, status__in=open_statuses
-        ).count()
+        open_count = Ticket.objects.filter(user=user, status__in=open_statuses).count()
         if open_count >= 15:
             raise serializers.ValidationError(
                 {"non_field_errors": [_("شما بیش از ۱۵ تیکت باز دارید.")]}
@@ -146,9 +146,7 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
         if not files:
             return files
         if len(files) > MAX_ATTACHMENT_COUNT:
-            raise serializers.ValidationError(
-                _("حداکثر ۲ فایل می‌توانید ارسال کنید.")
-            )
+            raise serializers.ValidationError(_("حداکثر ۲ فایل می‌توانید ارسال کنید."))
         for f in files:
             if getattr(f, "size", 0) > MAX_ATTACHMENT_SIZE:
                 raise serializers.ValidationError(
@@ -167,9 +165,7 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
         user = getattr(request, "user", None)
 
         if not ticket:
-            raise serializers.ValidationError(
-                {"ticket": _("تیکت نامعتبر است.")}
-            )
+            raise serializers.ValidationError({"ticket": _("تیکت نامعتبر است.")})
 
         reply_to = attrs.get("reply_to")
         if reply_to and reply_to.ticket_id != ticket.id:
@@ -194,10 +190,7 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
                 )
         else:
             raise serializers.ValidationError(
-                {
-                    "non_field_errors": [
-                        _("فقط صاحب تیکت می‌تواند پیام ارسال کند.")]
-                }
+                {"non_field_errors": [_("فقط صاحب تیکت می‌تواند پیام ارسال کند.")]}
             )
 
         return attrs

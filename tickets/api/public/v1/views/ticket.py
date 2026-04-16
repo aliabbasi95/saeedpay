@@ -13,6 +13,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from lib.cas_auth.erp.pagination import CustomPagination
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from tickets.api.public.v1.schema import (
     messages_list_schema,
     ticket_viewset_schema,
@@ -25,8 +27,6 @@ from tickets.api.public.v1.serializers import (
 )
 from tickets.filters import TicketFilter
 from tickets.models import Ticket, TicketMessage
-from lib.cas_auth.erp.pagination import CustomPagination
-from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 
 @ticket_viewset_schema

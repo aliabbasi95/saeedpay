@@ -1,5 +1,6 @@
 # tickets/management/commands/create_ticket_categories.py
 from django.core.management.base import BaseCommand
+
 from tickets.models import TicketCategory
 
 
@@ -12,44 +13,44 @@ class Command(BaseCommand):
                 "name": "مشکلات فنی",
                 "description": "مشکلات مربوط به عملکرد سیستم و اپلیکیشن",
                 "icon": "🔧",
-                "color": "blue"
+                "color": "blue",
             },
             {
                 "name": "صورتحساب و پرداخت",
                 "description": "سوالات مربوط به صورتحساب و روش‌های پرداخت",
                 "icon": "💳",
-                "color": "green"
+                "color": "green",
             },
             {
                 "name": "حساب کاربری",
                 "description": "مشکلات مربوط به ثبت‌نام، ورود و تنظیمات حساب",
                 "icon": "👤",
-                "color": "purple"
+                "color": "purple",
             },
             {
                 "name": "تراکنش‌های مالی",
                 "description": "مشکلات مربوط به انتقال وجه و تراکنش‌ها",
                 "icon": "💰",
-                "color": "yellow"
+                "color": "yellow",
             },
             {
                 "name": "کیف پول",
                 "description": "سوالات مربوط به کیف پول و موجودی",
                 "icon": "💼",
-                "color": "orange"
+                "color": "orange",
             },
             {
                 "name": "فروشگاه",
                 "description": "مشکلات مربوط به فروشگاه و درگاه پرداخت",
                 "icon": "🏪",
-                "color": "red"
+                "color": "red",
             },
             {
                 "name": "سوالات عمومی",
                 "description": "سوالات عمومی و سایر موارد",
                 "icon": "❓",
-                "color": "gray"
-            }
+                "color": "gray",
+            },
         ]
 
         created_count = 0
@@ -60,18 +61,20 @@ class Command(BaseCommand):
                     "description": category_data["description"],
                     "icon": category_data["icon"],
                     "color": category_data["color"],
-                }
+                },
             )
             if created:
                 created_count += 1
                 self.stdout.write(
-                    self.style.SUCCESS(f'Created category: {category.name}')
+                    self.style.SUCCESS(f"Created category: {category.name}")
                 )
             else:
                 self.stdout.write(
-                    self.style.WARNING(f'Category already exists: {category.name}')
+                    self.style.WARNING(f"Category already exists: {category.name}")
                 )
 
         self.stdout.write(
-            self.style.SUCCESS(f'Successfully created {created_count} ticket categories')
+            self.style.SUCCESS(
+                f"Successfully created {created_count} ticket categories"
+            )
         )

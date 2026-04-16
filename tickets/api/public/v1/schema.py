@@ -1,12 +1,15 @@
 # tickets/api/public/v1/schema.py
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
-    extend_schema, extend_schema_view,
-    OpenApiParameter, OpenApiExample, OpenApiResponse,
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
 )
 
 from tickets.api.public.v1.serializers import TicketMessageSerializer
-from tickets.utils.choices import TicketStatus, TicketPriority
+from tickets.utils.choices import TicketPriority, TicketStatus
 
 # ---------- ViewSet (list/create/retrieve) ----------
 ticket_viewset_schema = extend_schema_view(
@@ -16,24 +19,28 @@ ticket_viewset_schema = extend_schema_view(
         description="لیست تیکت‌های کاربر جاری با فیلتر/مرتب‌سازی.",
         parameters=[
             OpenApiParameter(
-                name="status", type=OpenApiTypes.STR,
+                name="status",
+                type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
                 description="فیلتر بر اساس وضعیت",
                 enum=[s.value for s in TicketStatus],
             ),
             OpenApiParameter(
-                name="priority", type=OpenApiTypes.STR,
+                name="priority",
+                type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
                 description="فیلتر بر اساس اولویت",
                 enum=[p.value for p in TicketPriority],
             ),
             OpenApiParameter(
-                name="category", type=OpenApiTypes.INT,
+                name="category",
+                type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 description="شناسه دسته‌بندی",
             ),
             OpenApiParameter(
-                name="ordering", type=OpenApiTypes.STR,
+                name="ordering",
+                type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
                 description="مثال: -created_at | priority",
             ),
@@ -42,13 +49,17 @@ ticket_viewset_schema = extend_schema_view(
         examples=[
             OpenApiExample(
                 "نمونه پاسخ",
-                value=[{
-                    "id": 12, "title": "Login issue", "status": "open",
-                    "priority": "high",
-                    "category": {"id": 1, "name": "Technical"},
-                    "created_at": "2025-01-15T10:30:00Z",
-                    "updated_at": "2025-01-15T10:30:00Z",
-                }],
+                value=[
+                    {
+                        "id": 12,
+                        "title": "Login issue",
+                        "status": "open",
+                        "priority": "high",
+                        "category": {"id": 1, "name": "Technical"},
+                        "created_at": "2025-01-15T10:30:00Z",
+                        "updated_at": "2025-01-15T10:30:00Z",
+                    }
+                ],
                 response_only=True,
             )
         ],
@@ -66,8 +77,10 @@ ticket_viewset_schema = extend_schema_view(
             OpenApiExample(
                 "نمونه درخواست",
                 value={
-                    "title": "مشکل پرداخت", "description": "پرداخت ناموفق شد",
-                    "priority": "normal", "category_id": 2
+                    "title": "مشکل پرداخت",
+                    "description": "پرداخت ناموفق شد",
+                    "priority": "normal",
+                    "category_id": 2,
                 },
                 request_only=True,
             )
@@ -79,7 +92,7 @@ ticket_viewset_schema = extend_schema_view(
         description="جزئیات یک تیکت (فقط مالک).",
         responses={
             200: OpenApiResponse(description="OK"),
-            404: OpenApiResponse(description="Not found")
+            404: OpenApiResponse(description="Not found"),
         },
     ),
 )
@@ -93,14 +106,16 @@ messages_list_schema = extend_schema(
         200: OpenApiResponse(
             response=TicketMessageSerializer(many=True),
             description="OK",
-            examples=[OpenApiExample(
-                "نمونه صفحه",
-                value={
-                    "count": 1, "results": [
-                        {"id": 1, "content": "سلام", "sender": "user"}]
-                },
-                response_only=True,
-            )],
+            examples=[
+                OpenApiExample(
+                    "نمونه صفحه",
+                    value={
+                        "count": 1,
+                        "results": [{"id": 1, "content": "سلام", "sender": "user"}],
+                    },
+                    response_only=True,
+                )
+            ],
         )
     },
 )
@@ -118,28 +133,28 @@ add_message_schema = extend_schema(
                 "reply_to": {"type": "integer"},
                 "files": {
                     "type": "array",
-                    "items": {"type": "string", "format": "binary"}
+                    "items": {"type": "string", "format": "binary"},
                 },
             },
             "required": ["content"],
         }
     },
     responses={
-        201: OpenApiResponse(
-            response=TicketMessageSerializer, description="Created"
-        ),
+        201: OpenApiResponse(response=TicketMessageSerializer, description="Created"),
         400: OpenApiResponse(description="Validation error"),
         404: OpenApiResponse(description="Ticket not found"),
     },
     examples=[
         OpenApiExample(
-            "موفق", value={
-                "id": 2, "content": "مشکل پابرجاست", "sender": "user"
-            }, response_only=True
+            "موفق",
+            value={"id": 2, "content": "مشکل پابرجاست", "sender": "user"},
+            response_only=True,
         ),
         OpenApiExample(
-            "خطا - تعداد فایل", value={"files": ["حداکثر 2 فایل مجاز است"]},
-            response_only=True, status_codes=["400"]
+            "خطا - تعداد فایل",
+            value={"files": ["حداکثر 2 فایل مجاز است"]},
+            response_only=True,
+            status_codes=["400"],
         ),
     ],
 )
