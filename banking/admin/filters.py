@@ -12,9 +12,7 @@ class HasShebaFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() == "yes":
-            return queryset.exclude(sheba__isnull=True).exclude(
-                sheba__exact=""
-            )
+            return queryset.exclude(sheba__isnull=True).exclude(sheba__exact="")
         if self.value() == "no":
             return queryset.filter(
                 models.Q(sheba__isnull=True) | models.Q(sheba__exact="")

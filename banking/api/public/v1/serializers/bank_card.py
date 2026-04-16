@@ -43,15 +43,11 @@ class BankCardCreateSerializer(serializers.ModelSerializer):
         if not bank_card_service.is_luhn_valid(value):
             raise serializers.ValidationError(_("شماره کارت نامعتبر است."))
         # Check for duplicate card for this user (any status)
-        if user and BankCard.objects.filter(
-                user=user, card_number=value
-        ).exists():
-            raise serializers.ValidationError(
-                _("شما قبلاً این کارت را ثبت کرده‌اید.")
-            )
+        if user and BankCard.objects.filter(user=user, card_number=value).exists():
+            raise serializers.ValidationError(_("شما قبلاً این کارت را ثبت کرده‌اید."))
         # Check for globally verified card
         if BankCard.objects.filter(
-                card_number=value, status=BankCardStatus.VERIFIED
+            card_number=value, status=BankCardStatus.VERIFIED
         ).exists():
             raise serializers.ValidationError(
                 _("این شماره کارت قبلاً توسط کاربر دیگری تأیید شده است.")
@@ -59,8 +55,7 @@ class BankCardCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        validated_data[
-            "card_number"] = bank_card_service.normalize_card_number(
+        validated_data["card_number"] = bank_card_service.normalize_card_number(
             validated_data["card_number"]
         )
         validated_data["status"] = BankCardStatus.PENDING
@@ -91,15 +86,17 @@ class BankCardUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("شماره کارت نامعتبر است."))
 
         user = self.context["request"].user
-        if BankCard.objects.filter(user=user, card_number=value).exclude(
-                pk=self.instance.pk
-        ).exists():
-            raise serializers.ValidationError(
-                _("شما قبلاً این کارت را ثبت کرده‌اید.")
-            )
-        if BankCard.objects.filter(
-                card_number=value, status=BankCardStatus.VERIFIED
-        ).exclude(user=user).exists():
+        if (
+            BankCard.objects.filter(user=user, card_number=value)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise serializers.ValidationError(_("شما قبلاً این کارت را ثبت کرده‌اید."))
+        if (
+            BankCard.objects.filter(card_number=value, status=BankCardStatus.VERIFIED)
+            .exclude(user=user)
+            .exists()
+        ):
             raise serializers.ValidationError(
                 _("این شماره کارت قبلاً توسط کاربر دیگری تأیید شده است.")
             )

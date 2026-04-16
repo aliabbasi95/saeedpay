@@ -1,9 +1,10 @@
 from django.core.management.base import BaseCommand
+
 from banking.models import Bank
 
 
 class Command(BaseCommand):
-    help = 'Create initial banks for the banking system'
+    help = "Create initial banks for the banking system"
 
     def handle(self, *args, **options):
         banks_data = [
@@ -32,22 +33,19 @@ class Command(BaseCommand):
         created_count = 0
         for bank_data in banks_data:
             bank, created = Bank.objects.get_or_create(
-                name=bank_data["name"],
-                defaults={"color": bank_data["color"]}
+                name=bank_data["name"], defaults={"color": bank_data["color"]}
             )
             if created:
                 created_count += 1
-                self.stdout.write(
-                    self.style.SUCCESS(f'Created bank: {bank.name}')
-                )
+                self.stdout.write(self.style.SUCCESS(f"Created bank: {bank.name}"))
             else:
                 self.stdout.write(
-                    self.style.WARNING(f'Bank already exists: {bank.name}')
+                    self.style.WARNING(f"Bank already exists: {bank.name}")
                 )
 
         self.stdout.write(
             self.style.SUCCESS(
-                f'Setup complete. Created {created_count} new banks. '
-                f'Total banks: {Bank.objects.count()}'
+                f"Setup complete. Created {created_count} new banks. "
+                f"Total banks: {Bank.objects.count()}"
             )
         )

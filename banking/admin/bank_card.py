@@ -5,10 +5,11 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.admin import BaseAdmin
-from .filters import HasShebaFilter
+
 from ..models import BankCard
 from ..services import bank_card_service
 from ..utils.choices import BankCardStatus
+from .filters import HasShebaFilter
 
 
 @admin.register(BankCard)
@@ -24,7 +25,11 @@ class BankCardAdmin(BaseAdmin):
         "jalali_creation_date_time",
     )
     list_filter = (
-        "status", "is_default", "is_active", "bank", HasShebaFilter,
+        "status",
+        "is_default",
+        "is_active",
+        "bank",
+        HasShebaFilter,
     )
     search_fields = (
         "card_number",
@@ -42,13 +47,24 @@ class BankCardAdmin(BaseAdmin):
     autocomplete_fields = ("user", "bank")
 
     fieldsets = (
-        (_("اطلاعات کارت"), {
-            "fields": ("user", "bank", "status", "is_active", "is_default"),
-        }),
-        (_("جزئیات"), {
-            "fields": ("card_number", "last4_readonly", "card_holder_name",
-                       "sheba", "last_used"),
-        }),
+        (
+            _("اطلاعات کارت"),
+            {
+                "fields": ("user", "bank", "status", "is_active", "is_default"),
+            },
+        ),
+        (
+            _("جزئیات"),
+            {
+                "fields": (
+                    "card_number",
+                    "last4_readonly",
+                    "card_holder_name",
+                    "sheba",
+                    "last_used",
+                ),
+            },
+        ),
     )
 
     actions = ("action_set_default", "action_soft_delete")
@@ -104,7 +120,8 @@ class BankCardAdmin(BaseAdmin):
         return format_html(
             '<span style="display:inline-block;padding:2px 8px;border-radius:12px;'
             'color:#fff;background:{};font-size:12px;">{}</span>',
-            color, label
+            color,
+            label,
         )
 
     status_badge.short_description = _("وضعیت")
@@ -112,24 +129,23 @@ class BankCardAdmin(BaseAdmin):
     def action_set_default(self, request, queryset):
         if queryset.count() != 1:
             self.message_user(
-                request, _(
-                    "برای این عملیات دقیقاً یک کارت را انتخاب کنید."
-                ), level=messages.WARNING
+                request,
+                _("برای این عملیات دقیقاً یک کارت را انتخاب کنید."),
+                level=messages.WARNING,
             )
             return
         card = queryset.first()
         if card.status != BankCardStatus.VERIFIED:
             self.message_user(
-                request, _(
-                    "فقط کارت‌های تأیید‌شده می‌توانند پیش‌فرض شوند."
-                ), level=messages.ERROR
+                request,
+                _("فقط کارت‌های تأیید‌شده می‌توانند پیش‌فرض شوند."),
+                level=messages.ERROR,
             )
             return
         # استفاده از سرویس برای رعایت قید یکتا و صفر کردن بقیه کارت‌ها
         bank_card_service.set_as_default(card.user, card.id)
         self.message_user(
-            request, _("کارت انتخابی به عنوان پیش‌فرض ثبت شد."),
-            level=messages.SUCCESS
+            request, _("کارت انتخابی به عنوان پیش‌فرض ثبت شد."), level=messages.SUCCESS
         )
 
     action_set_default.short_description = _("قرار دادن به‌عنوان کارت پیش‌فرض")
@@ -140,8 +156,9 @@ class BankCardAdmin(BaseAdmin):
             bank_card_service.soft_delete_card(card)
             count += 1
         self.message_user(
-            request, _("%(count)d کارت غیرفعال شد.") % {"count": count},
-            level=messages.SUCCESS
+            request,
+            _("%(count)d کارت غیرفعال شد.") % {"count": count},
+            level=messages.SUCCESS,
         )
 
     action_soft_delete.short_description = _("حذف نرم (غیرفعال‌سازی)")

@@ -61,9 +61,7 @@ def _mock_validation(card_id: str) -> None:
 
         # Double-check status in case it changed during the delay
         if card.status != BankCardStatus.PENDING:
-            logger.info(
-                f"Card {card.id} status changed during validation, aborting"
-            )
+            logger.info(f"Card {card.id} status changed during validation, aborting")
             return
 
         if is_verified:
@@ -78,9 +76,7 @@ def _mock_approve_card(card_id: str) -> None:
     # Pick a random bank
     banks = list(Bank.objects.all())
     if not banks:
-        logger.warning(
-            "No banks available in database, creating a default one"
-        )
+        logger.warning("No banks available in database, creating a default one")
         bank = Bank.objects.create(name="بانک نمونه", color="#1976D2")
     else:
         bank = random.choice(banks)

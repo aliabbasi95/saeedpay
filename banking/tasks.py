@@ -7,8 +7,10 @@ from django.apps import apps
 from django.db import transaction
 from django.utils import timezone
 
+from banking.services.card_validator import (  # noqa: F401 # Re-export for test patching
+    validate_pending_card,
+)
 from banking.utils.choices import BankCardStatus
-from banking.services.card_validator import validate_pending_card  # Re-export for test patching
 
 logger = logging.getLogger(__name__)
 
@@ -36,13 +38,10 @@ class CardValidationTask(Task):
                     )
         except BankCard.DoesNotExist:
             logger.error(
-                f"Card {card_id} not found while attempting to mark as "
-                f"rejected."
+                f"Card {card_id} not found while attempting to mark as " f"rejected."
             )
         except Exception as e:
-            logger.error(
-                f"Failed to mark card {card_id} as rejected: {str(e)}"
-            )
+            logger.error(f"Failed to mark card {card_id} as rejected: {str(e)}")
 
 
 def _validate_card_task_logic(task_instance, card_id: str):
@@ -51,17 +50,14 @@ def _validate_card_task_logic(task_instance, card_id: str):
         card = BankCard.objects.get(id=card_id)
 
         if card.status != BankCardStatus.PENDING:
-            logger.info(
-                f"Card {card_id} is no longer pending, skipping validation"
-            )
+            logger.info(f"Card {card_id} is no longer pending, skipping validation")
             return True
 
         from banking.tasks import validate_pending_card
+
         validate_pending_card(card_id)
 
-        logger.info(
-            f"Card validation logic completed successfully for card {card_id}"
-        )
+        logger.info(f"Card validation logic completed successfully for card {card_id}")
         return True
 
     except BankCard.DoesNotExist:
@@ -78,7 +74,7 @@ def _validate_card_task_logic(task_instance, card_id: str):
             f"{task_instance.max_retries})"
         )
         raise task_instance.retry(
-            exc=exc, countdown=60 * (2 ** task_instance.request.retries)
+            exc=exc, countdown=60 * (2**task_instance.request.retries)
         )
 
 
@@ -95,15 +91,15 @@ def validate_card_task(self, card_id: str):
 @shared_task
 def reenqueue_stale_pending_cards(limit=200, older_than_minutes=1):
     BankCard = apps.get_model("banking", "BankCard")
-    cutoff = timezone.localtime(timezone.now()) - timedelta(
-        minutes=older_than_minutes
+    cutoff = timezone.localtime(timezone.now()) - timedelta(minutes=older_than_minutes)
+    qs = (
+        BankCard.objects.filter(
+            status=BankCardStatus.PENDING, is_active=True, updated_at__lt=cutoff
+        )
+        .order_by("updated_at")
+        .values_list("id", flat=True)[:limit]
     )
-    qs = (BankCard.objects
-    .filter(
-        status=BankCardStatus.PENDING, is_active=True, updated_at__lt=cutoff
-    )
-    .order_by("updated_at")
-    .values_list("id", flat=True)[:limit])
-    from banking.tasks import validate_card_task, CardValidationTask
+    from banking.tasks import validate_card_task
+
     for card_id in qs:
         validate_card_task.delay(str(card_id))

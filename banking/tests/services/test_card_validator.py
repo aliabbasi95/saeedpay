@@ -1,22 +1,22 @@
 # banking/tests/services/test_card_validator.py
 
-import pytest
 import logging
 import time
 from unittest.mock import patch
+
+import pytest
 from django.contrib.auth import get_user_model
-from django.conf import settings
 from django.test import override_settings
 
 from banking.models import Bank, BankCard
-from banking.utils.choices import BankCardStatus
 from banking.services.card_validator import (
-    validate_pending_card,
-    _mock_validation,
-    _production_validation,
     _mock_approve_card,
     _mock_reject_card,
+    _mock_validation,
+    _production_validation,
+    validate_pending_card,
 )
+from banking.utils.choices import BankCardStatus
 
 User = get_user_model()
 
@@ -79,8 +79,7 @@ class TestCardValidator:
         with caplog.at_level(logging.INFO):
             _production_validation(pending_card.id)
         assert (
-            f"Production validation started for card {pending_card.id}"
-            in caplog.text
+            f"Production validation started for card {pending_card.id}" in caplog.text
         )
 
     def test_mock_validation_sleeps_correctly(self, pending_card):
@@ -132,7 +131,6 @@ class TestCardValidator:
         assert pending_card.bank is None
         assert pending_card.card_holder_name == ""
         assert pending_card.sheba == ""
-
 
     def test_mock_validation_creates_bank_if_none_exist(self, pending_card):
         """Test that mock validation creates a default bank if none exist."""

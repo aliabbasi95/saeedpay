@@ -2,16 +2,18 @@
 
 from django.db import transaction
 
-from banking.utils.choices import BankCardStatus
 from banking.tasks import validate_card_task
+from banking.utils.choices import BankCardStatus
 
 
 def normalize_card_number(number: str) -> str:
     return "".join(ch for ch in number if ch.isdigit())
 
+
 def enqueue_validation_if_pending(old_status, card):
     if card.status == BankCardStatus.PENDING and old_status != BankCardStatus.PENDING:
         transaction.on_commit(lambda: validate_card_task.delay(str(card.id)))
+
 
 def is_luhn_valid(card_number: str) -> bool:
     card_number = normalize_card_number(card_number)
@@ -43,10 +45,9 @@ def normalize_sheba(sheba: str) -> str:
 
 def set_as_default(user, card_id):
     from banking.models import BankCard
+
     with transaction.atomic():
-        BankCard.objects.filter(user=user, is_default=True).update(
-            is_default=False
-        )
+        BankCard.objects.filter(user=user, is_default=True).update(is_default=False)
         card = BankCard.objects.get(id=card_id, user=user)
         card.is_default = True
         card.save(update_fields=["is_default"])
