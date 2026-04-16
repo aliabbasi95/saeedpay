@@ -49,10 +49,7 @@ class TestTokenRefreshAPI:
         assert resp.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_refresh_with_inactive_user(self):
-        user = get_user_model().objects.create(
-            username="09120000004",
-            is_active=False
-        )
+        user = get_user_model().objects.create(username="09120000004", is_active=False)
         refresh = CustomRefreshToken.for_user(user)
         self.client.cookies["sp_refresh"] = str(refresh)
         response = self.client.post(REFRESH_URL)

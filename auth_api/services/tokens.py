@@ -1,6 +1,6 @@
 # auth_api/services/tokens.py
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Tuple
 
 from django.conf import settings
@@ -11,10 +11,10 @@ from auth_api.tokens import CustomRefreshToken
 
 
 def rotate_refresh_cookie(
-        request,
-        *,
-        max_session_lifetime: timedelta,
-        cookie_name: str = None,
+    request,
+    *,
+    max_session_lifetime: timedelta,
+    cookie_name: str = None,
 ) -> Tuple[str, str]:
     """
     Validate current refresh cookie, enforce max session lifetime, blacklist it,
@@ -24,9 +24,7 @@ def rotate_refresh_cookie(
         ValueError: when token is missing/invalid/expired or user not allowed.
         Exception:  for any unexpected error (caller should map to 400).
     """
-    cookie_name = cookie_name or getattr(
-        settings, "REFRESH_COOKIE_NAME", "sp_refresh"
-    )
+    cookie_name = cookie_name or getattr(settings, "REFRESH_COOKIE_NAME", "sp_refresh")
     refresh_str = request.COOKIES.get(cookie_name)
     if not refresh_str:
         raise ValueError("رفرش‌توکن در کوکی یافت نشد.")
@@ -48,9 +46,7 @@ def rotate_refresh_cookie(
         if orig_iat is None:
             raise _err("اطلاعات شروع نشست موجود نیست.")
         session_start = datetime.fromtimestamp(orig_iat, tz=timezone.utc)
-        if datetime.now(
-                tz=timezone.utc
-        ) - session_start > max_session_lifetime:
+        if datetime.now(tz=timezone.utc) - session_start > max_session_lifetime:
             raise _err("طول عمر نشست تمام شده است. دوباره وارد شوید.")
 
         # 3) resolve user

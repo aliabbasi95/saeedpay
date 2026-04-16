@@ -20,24 +20,19 @@ class TestLoginSerializer:
     def test_valid_credentials(self):
         user = self.create_user("09123456789", "TestPass123!")
         serializer = LoginSerializer(
-            data={
-                "phone_number": "09123456789",
-                "password": "TestPass123!"
-            }
+            data={"phone_number": "09123456789", "password": "TestPass123!"}
         )
         assert serializer.is_valid()
         assert serializer.validated_data == {
-            "phone_number": "09123456789", "password": "TestPass123!"
+            "phone_number": "09123456789",
+            "password": "TestPass123!",
         }
         assert serializer.user == user
 
     def test_wrong_password(self):
         self.create_user("09123456789", "CorrectPass")
         serializer = LoginSerializer(
-            data={
-                "phone_number": "09123456789",
-                "password": "WrongPass"
-            }
+            data={"phone_number": "09123456789", "password": "WrongPass"}
         )
         with pytest.raises(ValidationError) as exc:
             serializer.is_valid(raise_exception=True)
@@ -45,10 +40,7 @@ class TestLoginSerializer:
 
     def test_nonexistent_user(self):
         serializer = LoginSerializer(
-            data={
-                "phone_number": "09999999999",
-                "password": "Pass123!"
-            }
+            data={"phone_number": "09999999999", "password": "Pass123!"}
         )
         with pytest.raises(ValidationError) as exc:
             serializer.is_valid(raise_exception=True)
@@ -57,10 +49,7 @@ class TestLoginSerializer:
     def test_inactive_user(self):
         self.create_user("09121234567", "TestPass123!", is_active=False)
         serializer = LoginSerializer(
-            data={
-                "phone_number": "09121234567",
-                "password": "TestPass123!"
-            }
+            data={"phone_number": "09121234567", "password": "TestPass123!"}
         )
         with pytest.raises(ValidationError) as exc:
             serializer.is_valid(raise_exception=True)
@@ -81,7 +70,7 @@ class TestLoginSerializer:
             "phone_number",
             "roles",
             "first_name",
-            "last_name"
+            "last_name",
         }
 
         assert "access" not in output and "refresh" not in output

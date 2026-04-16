@@ -5,21 +5,17 @@ from django.core.validators import RegexValidator
 from rest_framework import serializers
 
 from auth_api.models import PhoneOTP
-from lib.erp_base.serializers.persian_error_message import \
-    PersianValidationErrorMessages
+from lib.erp_base.serializers.persian_error_message import (
+    PersianValidationErrorMessages,
+)
 
 
-class ResetPasswordSerializer(
-    PersianValidationErrorMessages, serializers.Serializer
-):
+class ResetPasswordSerializer(PersianValidationErrorMessages, serializers.Serializer):
     phone_number = serializers.CharField(
         max_length=11,
         validators=[
-            RegexValidator(
-                regex=r"^09\d{9}$",
-                message="شماره تلفن معتبر نیست."
-            ),
-        ]
+            RegexValidator(regex=r"^09\d{9}$", message="شماره تلفن معتبر نیست."),
+        ],
     )
     code = serializers.CharField()
     new_password = serializers.CharField(write_only=True)

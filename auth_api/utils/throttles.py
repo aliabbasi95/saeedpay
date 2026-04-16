@@ -1,7 +1,8 @@
 # auth_api/utils/throttles.py
 
-from rest_framework.throttling import SimpleRateThrottle
 import re
+
+from rest_framework.throttling import SimpleRateThrottle
 
 
 def normalize_phone(phone: str) -> str:

@@ -2,6 +2,7 @@
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -9,17 +10,17 @@ from rest_framework.test import APIClient
 from auth_api.models import PhoneOTP
 from merchants.models import Merchant
 from profiles.models import Profile
-from django.core.cache import cache
 
 REGISTER_MERCHANT_URL = "/saeedpay/api/auth/public/v1/register/merchant/"
+
 
 @pytest.fixture(autouse=True)
 def clear_cache():
     cache.clear()
 
+
 @pytest.mark.django_db
 class TestRegisterMerchantView:
-
     @pytest.fixture(autouse=True)
     def setup(self):
         self.client = APIClient()
@@ -179,8 +180,9 @@ class TestRegisterMerchantView:
             "phone_number": "09121112233",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
+        assert res.status_code == status.HTTP_200_OK
         profile = Profile.objects.get(user=user)
         assert profile.phone_number == "09121112233"

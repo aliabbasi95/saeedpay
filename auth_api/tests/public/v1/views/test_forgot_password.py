@@ -12,7 +12,6 @@ FORGOT_PASSWORD_URL = "/saeedpay/api/auth/public/v1/send-otp/"
 
 @pytest.mark.django_db
 class TestForgotPasswordView(APITestCase):
-
     def setUp(self):
         self.client = APIClient()
         self.user = get_user_model().objects.create(
@@ -90,4 +89,4 @@ class TestForgotPasswordView(APITestCase):
         response = self.client.post(FORGOT_PASSWORD_URL, payload)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "کد تایید شما ارسال شده است." in str(response.data) 
+        assert "کد تایید شما ارسال شده است." in str(response.data)

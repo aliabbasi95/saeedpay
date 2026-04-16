@@ -15,16 +15,12 @@ RESET_PASSWORD_URL = "/saeedpay/api/auth/public/v1/reset-password/"
 
 @pytest.mark.django_db
 class TestResetPasswordView(APITestCase):
-
     def setUp(self):
         self.client = APIClient()
         cache.clear()
-        settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"][
-            "otp_by_phone"] = "1000/hour"
+        settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["otp_by_phone"] = "1000/hour"
 
-        self.user = get_user_model().objects.create(
-            username="09123456789"
-        )
+        self.user = get_user_model().objects.create(username="09123456789")
         self.user.set_password("old_password")
         self.user.save()
         self.phone_number = "09123456789"

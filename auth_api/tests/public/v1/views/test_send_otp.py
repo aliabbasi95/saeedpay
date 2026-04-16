@@ -17,7 +17,6 @@ PHONE_OTP_SEND_PATH = "auth_api.models.PhoneOTP.send"
 
 @pytest.mark.django_db
 class TestSendOTPView:
-
     @pytest.fixture(autouse=True)
     def setup(self):
         self.client = APIClient()
@@ -224,7 +223,6 @@ class TestSendOtpThrottlingTests:
 
         with freeze_time("2024-01-01 12:00:00") as frozen_time:
             with patch(PHONE_OTP_SEND_PATH, return_value=True):
-
                 # Exhaust throttle
                 for _ in range(requests_allowed):
                     response = self.client.post(SEND_OTP_URL, {"phone_number": phone})
