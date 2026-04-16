@@ -12,13 +12,9 @@ from profiles.utils.choices import AuthenticationStage
 
 
 class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
-    phone_number = serializers.CharField(
-        max_length=11, min_length=11, required=False
-    )
+    phone_number = serializers.CharField(max_length=11, min_length=11, required=False)
     email = serializers.EmailField(required=False, allow_blank=True)
-    national_id = serializers.CharField(
-        max_length=10, min_length=10, required=False
-    )
+    national_id = serializers.CharField(max_length=10, min_length=10, required=False)
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
     birth_date = serializers.CharField(required=False)
@@ -71,7 +67,7 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
             "last_name",
             "national_id",
             "birth_date",
-            "email"
+            "email",
         }
         provided_basic_fields = basic_profile_fields.intersection(data.keys())
         phone_update_attempted = phone_number is not None
@@ -80,7 +76,8 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
             raise serializers.ValidationError(
                 {
                     "non_field_errors": (
-                        "نمی‌توانید همزمان شماره تلفن و سایر فیلدهای پروفایل را به‌روزرسانی کنید. لطفاً یکی را انتخاب کنید.")
+                        "نمی‌توانید همزمان شماره تلفن و سایر فیلدهای پروفایل را به‌روزرسانی کنید. لطفاً یکی را انتخاب کنید."
+                    )
                 }
             )
 
@@ -88,7 +85,8 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
             raise serializers.ValidationError(
                 {
                     "non_field_errors": (
-                        "لطفاً حداقل یک فیلد مجاز ارسال کنید یا phone_number با otp_code.")
+                        "لطفاً حداقل یک فیلد مجاز ارسال کنید یا phone_number با otp_code."
+                    )
                 }
             )
 
@@ -108,19 +106,19 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
             )
         if instance.phone_national_id_match_status == "processing":
             raise serializers.ValidationError(
-                {
-                    "non_field_errors": [
-                        "در حال بررسی مالکیت شماره/کدملی هستید."]
-                }
+                {"non_field_errors": ["در حال بررسی مالکیت شماره/کدملی هستید."]}
             )
 
         validated_data.pop("otp_code", None)
 
-        national_id_updated = "national_id" in validated_data and \
-                              validated_data[
-                                  "national_id"] != instance.national_id
-        phone_updated = "phone_number" in validated_data and validated_data[
-            "phone_number"] != instance.phone_number
+        national_id_updated = (
+            "national_id" in validated_data
+            and validated_data["national_id"] != instance.national_id
+        )
+        phone_updated = (
+            "phone_number" in validated_data
+            and validated_data["phone_number"] != instance.phone_number
+        )
 
         if national_id_updated and instance.auth_stage in [
             AuthenticationStage.IDENTITY_VERIFIED,
@@ -135,9 +133,7 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
             AuthenticationStage.VIDEO_VERIFIED,
         ]:
             raise serializers.ValidationError(
-                {
-                    "phone_number": "بعد از احراز هویت، تغییر شماره تلفن مجاز نیست."
-                }
+                {"phone_number": "بعد از احراز هویت، تغییر شماره تلفن مجاز نیست."}
             )
 
         for attr, value in validated_data.items():

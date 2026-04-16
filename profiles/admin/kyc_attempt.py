@@ -14,15 +14,15 @@ from django.utils.safestring import mark_safe
 
 from profiles.models.kyc_attempt import ProfileKYCAttempt
 from profiles.tasks import (
-    verify_identity_phone_national_id,
     check_profile_video_auth_result,
     reset_profile_video_auth,
+    verify_identity_phone_national_id,
 )
 from profiles.utils.choices import (
     AttemptStatus,
-    KYCStatus,
-    AuthenticationStage,
     AttemptType,
+    AuthenticationStage,
+    KYCStatus,
 )
 
 
@@ -32,7 +32,8 @@ def _badge(text: str, color: str) -> str:
     return format_html(
         '<span style="display:inline-block;padding:2px 8px;border-radius:10px;'
         'font-size:12px;color:#fff;background:{};">{}</span>',
-        color, text
+        color,
+        text,
     )
 
 
@@ -74,9 +75,7 @@ def _pretty_json(obj: dict | None) -> str:
 
 def _admin_link_to_profile(profile_id: int) -> str:
     url = reverse("admin:profiles_profile_change", args=[profile_id])
-    return format_html(
-        '<a href="{}" target="_blank">Profile #{}</a>', url, profile_id
-    )
+    return format_html('<a href="{}" target="_blank">Profile #{}</a>', url, profile_id)
 
 
 # ---------------- Custom filters ----------------
@@ -89,13 +88,9 @@ class HasExternalIDFilter(admin.SimpleListFilter):
 
     def queryset(self, request, qs):
         if self.value() == "yes":
-            return qs.exclude(external_id__isnull=True).exclude(
-                external_id__exact=""
-            )
+            return qs.exclude(external_id__isnull=True).exclude(external_id__exact="")
         if self.value() == "no":
-            return qs.filter(
-                Q(external_id__isnull=True) | Q(external_id__exact="")
-            )
+            return qs.filter(Q(external_id__isnull=True) | Q(external_id__exact=""))
         return qs
 
 
@@ -112,9 +107,7 @@ class HasErrorFilter(admin.SimpleListFilter):
                 error_message__exact=""
             )
         if self.value() == "no":
-            return qs.filter(
-                Q(error_message__isnull=True) | Q(error_message__exact="")
-            )
+            return qs.filter(Q(error_message__isnull=True) | Q(error_message__exact=""))
         return qs
 
 
@@ -123,16 +116,17 @@ class StaleProcessingFilter(admin.SimpleListFilter):
     parameter_name = "stale_proc"
 
     def lookups(self, request, model_admin):
-        return (("15", "قدیمی‌تر از ۱۵ دقیقه"), ("60", "قدیمی‌تر از ۱ ساعت"),
-                ("240", "قدیمی‌تر از ۴ ساعت"))
+        return (
+            ("15", "قدیمی‌تر از ۱۵ دقیقه"),
+            ("60", "قدیمی‌تر از ۱ ساعت"),
+            ("240", "قدیمی‌تر از ۴ ساعت"),
+        )
 
     def queryset(self, request, qs):
         if not self.value():
             return qs
         cutoff = timezone.now() - timedelta(minutes=int(self.value()))
-        return qs.filter(
-            status=AttemptStatus.PROCESSING, started_at__lt=cutoff
-        )
+        return qs.filter(status=AttemptStatus.PROCESSING, started_at__lt=cutoff)
 
 
 # ---------------- ModelAdmin ----------------
@@ -194,30 +188,29 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
-        ("مشخصات تلاش", {
-            "fields": (
-                ("id", "attempt_type", "status"),
-                ("profile", "external_id", "retry_count"),
-                ("started_at", "finished_at"),
-                ("duration_readonly",),
-            )
-        }),
-        ("HTTP / خطا", {
-            "fields": (("http_status", "error_code"), "error_message")
-        }),
-        ("Payloadها", {
-            "classes": ("collapse",),
-            "fields": ("request_pretty", "response_pretty")
-        }),
-        ("نمای کلی پروفایل مرتبط", {
-            "fields": ("profile_snapshot",)
-        }),
+        (
+            "مشخصات تلاش",
+            {
+                "fields": (
+                    ("id", "attempt_type", "status"),
+                    ("profile", "external_id", "retry_count"),
+                    ("started_at", "finished_at"),
+                    ("duration_readonly",),
+                )
+            },
+        ),
+        ("HTTP / خطا", {"fields": (("http_status", "error_code"), "error_message")}),
+        (
+            "Payloadها",
+            {"classes": ("collapse",), "fields": ("request_pretty", "response_pretty")},
+        ),
+        ("نمای کلی پروفایل مرتبط", {"fields": ("profile_snapshot",)}),
     )
 
     actions = (
         "action_requeue_shahkar",
         "action_poll_video_result",
-        "action_reset_video"
+        "action_reset_video",
     )
 
     # ---- list_display helpers
@@ -266,9 +259,7 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
         )
 
     # ---- actions
-    @admin.action(
-        description="ارسال دوباره استعلام شاهکار (برای موارد انتخاب‌شده)"
-    )
+    @admin.action(description="ارسال دوباره استعلام شاهکار (برای موارد انتخاب‌شده)")
     def action_requeue_shahkar(self, request, queryset):
         count = 0
         for att in queryset:
@@ -278,8 +269,12 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
             count += 1
         self.message_user(
             request,
-            f"{count} تسک شاهکار دوباره صف شد." if count else "مورد معتبری برای شاهکار در انتخاب وجود ندارد.",
-            level=messages.SUCCESS if count else messages.WARNING
+            (
+                f"{count} تسک شاهکار دوباره صف شد."
+                if count
+                else "مورد معتبری برای شاهکار در انتخاب وجود ندارد."
+            ),
+            level=messages.SUCCESS if count else messages.WARNING,
         )
 
     @admin.action(description="پول کردن نتیجهٔ ویدئو (برای موارد انتخاب‌شده)")
@@ -292,19 +287,22 @@ class ProfileKYCAttemptAdmin(admin.ModelAdmin):
             count += 1
         self.message_user(
             request,
-            f"پول نتیجه برای {count} مورد صف شد." if count else "موردی از نوع VIDEO_RESULT در انتخاب نیست.",
-            level=messages.SUCCESS if count else messages.WARNING
+            (
+                f"پول نتیجه برای {count} مورد صف شد."
+                if count
+                else "موردی از نوع VIDEO_RESULT در انتخاب نیست."
+            ),
+            level=messages.SUCCESS if count else messages.WARNING,
         )
 
     @admin.action(description="ریست احراز هویت ویدئویی پروفایل‌های مرتبط")
     def action_reset_video(self, request, queryset):
         count = 0
         for att in queryset:
-            reset_profile_video_auth.delay(
-                att.profile_id, reason="admin_action"
-            )
+            reset_profile_video_auth.delay(att.profile_id, reason="admin_action")
             count += 1
         self.message_user(
-            request, f"ریست ویدئویی برای {count} پروفایل زمان‌بندی شد.",
-            level=messages.SUCCESS
+            request,
+            f"ریست ویدئویی برای {count} پروفایل زمان‌بندی شد.",
+            level=messages.SUCCESS,
         )
