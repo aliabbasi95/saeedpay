@@ -1,38 +1,36 @@
 # store/api/public/v1/views/store.py
 
-from drf_spectacular.utils import extend_schema
-from drf_spectacular.utils import extend_schema_view
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.mixins import (
     CreateModelMixin,
+    DestroyModelMixin,
     ListModelMixin,
     RetrieveModelMixin,
     UpdateModelMixin,
-    DestroyModelMixin,
 )
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from merchants.permissions import IsMerchant
 from store.api.public.v1.schema import (
-    store_list_schema,
-    store_create_schema,
-    store_retrieve_schema,
-    store_delete_schema,
     public_store_list_schema,
     public_store_retrieve_schema,
-    store_update_put_schema,
+    store_create_schema,
+    store_delete_schema,
+    store_list_schema,
     store_partial_update_schema,
+    store_retrieve_schema,
+    store_update_put_schema,
 )
-from store.api.public.v1.serializers import \
-    StoreApiKeyRegenerateResponseSerializer
 from store.api.public.v1.serializers import (
-    StoreSerializer,
-    StoreCreateSerializer,
     PublicStoreSerializer,
+    StoreApiKeyRegenerateResponseSerializer,
+    StoreCreateSerializer,
+    StoreSerializer,
 )
 from store.models import Store
 from store.services.apikey import regenerate_store_api_key
@@ -85,9 +83,7 @@ class StoreViewSet(
     def perform_update(self, serializer):
         instance = self.get_object()
         if instance.status > 1:
-            raise PermissionDenied(
-                "ویرایش فروشگاه پس از تأیید امکان‌پذیر نیست."
-            )
+            raise PermissionDenied("ویرایش فروشگاه پس از تأیید امکان‌پذیر نیست.")
         instance.store_reviewer_verification = 0
         serializer.save()
 
@@ -103,8 +99,7 @@ class StoreViewSet(
         new_key = regenerate_store_api_key(store)
         payload = {"api_key": new_key}
         return Response(
-            StoreApiKeyRegenerateResponseSerializer(payload).data,
-            status=201
+            StoreApiKeyRegenerateResponseSerializer(payload).data, status=201
         )
 
 
@@ -113,10 +108,7 @@ class StoreViewSet(
     retrieve=public_store_retrieve_schema,
 )
 class PublicStoreViewSet(
-    ScopedThrottleByActionMixin,
-    ListModelMixin,
-    RetrieveModelMixin,
-    GenericViewSet
+    ScopedThrottleByActionMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet
 ):
     permission_classes = [AllowAny]
     serializer_class = PublicStoreSerializer

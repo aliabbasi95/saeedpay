@@ -14,23 +14,18 @@ class StoreUser(BaseModel):
         Store,
         on_delete=models.CASCADE,
         related_name="store_users",
-        verbose_name=_("فروشگاه")
+        verbose_name=_("فروشگاه"),
     )
     user = models.ForeignKey(
         get_user_model(),
         on_delete=models.CASCADE,
         related_name="store_roles",
-        verbose_name=_("کاربر")
+        verbose_name=_("کاربر"),
     )
     role = models.CharField(
-        max_length=20,
-        choices=StoreUserRole.choices,
-        verbose_name=_("نقش")
+        max_length=20, choices=StoreUserRole.choices, verbose_name=_("نقش")
     )
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name=_("فعال؟")
-    )
+    is_active = models.BooleanField(default=True, verbose_name=_("فعال؟"))
 
     class Meta:
         unique_together = ("store", "user")

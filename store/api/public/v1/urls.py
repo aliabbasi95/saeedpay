@@ -1,10 +1,10 @@
 # store/api/public/v1/urls.py
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from store.api.public.v1.views import (
-    StoreViewSet,
     PublicStoreViewSet,
+    StoreViewSet,
 )
 
 app_name = "store_public_v1"

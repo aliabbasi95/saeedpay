@@ -1,8 +1,7 @@
-from django.contrib import admin
-from django.utils.html import format_html
-from django.urls import path
+from django.contrib import admin, messages
 from django.shortcuts import redirect
-from django.contrib import messages
+from django.urls import path
+from django.utils.html import format_html
 
 from store.models import StoreApiKey
 
@@ -33,6 +32,7 @@ class StoreApiKeyAdmin(admin.ModelAdmin):
         return format_html(
             f'<a class="button" href="{obj.id}/regenerate/">🔁 بازتولید کلید</a>'
         )
+
     regenerate_button.short_description = "عملیات"
 
     def get_urls(self):
@@ -53,7 +53,11 @@ class StoreApiKeyAdmin(admin.ModelAdmin):
         try:
             obj = StoreApiKey.objects.get(pk=pk)
             new_key = obj.regenerate()
-            self.message_user(request, f"کلید جدید تولید شد:\n{new_key}", messages.SUCCESS)
+            self.message_user(
+                request, f"کلید جدید تولید شد:\n{new_key}", messages.SUCCESS
+            )
         except Exception as e:
-            self.message_user(request, f"خطا در بازتولید کلید: {str(e)}", messages.ERROR)
+            self.message_user(
+                request, f"خطا در بازتولید کلید: {str(e)}", messages.ERROR
+            )
         return redirect("..")

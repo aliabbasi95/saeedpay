@@ -40,13 +40,11 @@ class StoreSerializer(serializers.ModelSerializer):
         from django.db.models import Avg
 
         # Get approved comments for this store
-        approved_comments = obj.comments.filter(
-            is_approved=True, article__isnull=True
-        )
+        approved_comments = obj.comments.filter(is_approved=True, article__isnull=True)
 
         if approved_comments.exists():
             # Calculate average rating (1-5 scale) and convert to percentage
-            avg_rating = approved_comments.aggregate(avg=Avg('rating'))['avg']
+            avg_rating = approved_comments.aggregate(avg=Avg("rating"))["avg"]
             return round((avg_rating / 5.0) * 100, 1)  # Convert to percentage
         else:
             # Default to 75% for stores with no comments
@@ -110,13 +108,11 @@ class PublicStoreSerializer(serializers.ModelSerializer):
         from django.db.models import Avg
 
         # Get approved comments for this store
-        approved_comments = obj.comments.filter(
-            is_approved=True, article__isnull=True
-        )
+        approved_comments = obj.comments.filter(is_approved=True, article__isnull=True)
 
         if approved_comments.exists():
             # Calculate average rating (1-5 scale) and convert to percentage
-            avg_rating = approved_comments.aggregate(avg=Avg('rating'))['avg']
+            avg_rating = approved_comments.aggregate(avg=Avg("rating"))["avg"]
             return round((avg_rating / 5.0) * 100, 1)  # Convert to percentage
         else:
             # Default to 75% for stores with no comments

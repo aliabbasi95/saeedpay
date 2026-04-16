@@ -11,25 +11,13 @@ from store.models import Store
 
 class StoreApiKey(models.Model):
     store = models.OneToOneField(
-        Store,
-        on_delete=models.CASCADE,
-        related_name="api_key",
-        verbose_name="فروشگاه"
+        Store, on_delete=models.CASCADE, related_name="api_key", verbose_name="فروشگاه"
     )
     key_hash = models.CharField(
-        max_length=128,
-        unique=True,
-        db_index=True,
-        verbose_name="هش کلید"
+        max_length=128, unique=True, db_index=True, verbose_name="هش کلید"
     )
-    last_regenerated_at = models.DateTimeField(
-        null=True,
-        blank=True
-    )
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name="فعال"
-    )
+    last_regenerated_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
 
     @classmethod
     def generate_key_and_hash(cls):
@@ -46,6 +34,4 @@ class StoreApiKey(models.Model):
         return key
 
     def check_key(self, raw_key: str):
-        return self.key_hash == hashlib.sha256(
-            raw_key.encode("utf-8")
-        ).hexdigest()
+        return self.key_hash == hashlib.sha256(raw_key.encode("utf-8")).hexdigest()
