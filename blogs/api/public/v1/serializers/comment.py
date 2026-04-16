@@ -4,10 +4,8 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from blogs.models import Article
-from blogs.models import Comment
+from blogs.models import Article, Comment
 from store.models import Store
-from utils.recaptcha import ReCaptchaField
 
 User = get_user_model()
 
@@ -79,6 +77,7 @@ class CommentListSerializer(serializers.ModelSerializer):
     """
     Serializer for listing root comments with a limited set of direct replies.
     """
+
     author = CommentAuthorSerializer(read_only=True)
     replies = serializers.SerializerMethodField()
     reply_count = serializers.SerializerMethodField()
@@ -106,9 +105,7 @@ class CommentListSerializer(serializers.ModelSerializer):
         """
         if obj.reply_to is None:
             replies = obj.get_replies()[:5]
-            return CommentSerializer(
-                replies, many=True, context=self.context
-            ).data
+            return CommentSerializer(replies, many=True, context=self.context).data
         return []
 
     @extend_schema_field(serializers.IntegerField)

@@ -2,7 +2,7 @@
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -43,13 +43,13 @@ class Comment(BaseModel):
     )
 
     store = models.ForeignKey(
-        'store.Store',
+        "store.Store",
         on_delete=models.CASCADE,
-        related_name='comments',
+        related_name="comments",
         null=True,
         blank=True,
         verbose_name=_("فروشگاه"),
-        help_text=_("فروشگاه مرتبط با نظر - می‌تواند خالی باشد")
+        help_text=_("فروشگاه مرتبط با نظر - می‌تواند خالی باشد"),
     )
 
     author = models.ForeignKey(
@@ -91,17 +91,13 @@ class Comment(BaseModel):
     spam_score = models.FloatField(
         default=0.0,
         verbose_name=_("امتیاز اسپم"),
-        help_text=_("امتیاز تشخیص اسپم (0.0 تا 1.0)")
+        help_text=_("امتیاز تشخیص اسپم (0.0 تا 1.0)"),
     )
 
     # User interaction
-    like_count = models.PositiveIntegerField(
-        default=0,
-        verbose_name=_("تعداد لایک")
-    )
+    like_count = models.PositiveIntegerField(default=0, verbose_name=_("تعداد لایک"))
     dislike_count = models.PositiveIntegerField(
-        default=0,
-        verbose_name=_("تعداد دیسلایک")
+        default=0, verbose_name=_("تعداد دیسلایک")
     )
 
     objects = CommentManager()
@@ -111,15 +107,15 @@ class Comment(BaseModel):
         verbose_name_plural = _("نظرات")
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=['article'], name='comment_article_idx'),
-            models.Index(fields=['store'], name='comment_store_idx'),
+            models.Index(fields=["article"], name="comment_article_idx"),
+            models.Index(fields=["store"], name="comment_store_idx"),
         ]
         constraints = [
             models.CheckConstraint(
-                check=~(models.Q(article__isnull=False) & models.Q(
-                    store__isnull=False
-                )),
-                name='comment_not_both_article_and_store'
+                check=~(
+                    models.Q(article__isnull=False) & models.Q(store__isnull=False)
+                ),
+                name="comment_not_both_article_and_store",
             )
         ]
 
@@ -131,11 +127,7 @@ class Comment(BaseModel):
         # Validate that comment is linked to either article or store, but not both
         if self.article and self.store:
             raise ValidationError(
-                {
-                    '__all__': _(
-                        "نظر نمی‌تواند همزمان به مقاله و فروشگاه مرتبط باشد"
-                    )
-                }
+                {"__all__": _("نظر نمی‌تواند همزمان به مقاله و فروشگاه مرتبط باشد")}
             )
 
         # Ensure reply_to has the same article/store for thread consistency
@@ -154,9 +146,7 @@ class Comment(BaseModel):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        author_name = self.author.username if self.author else _(
-            "کاربر ناشناس"
-        )
+        author_name = self.author.username if self.author else _("کاربر ناشناس")
         if self.article:
             return f"نظر {author_name} در {self.article.title}"
         elif self.store:
@@ -173,11 +163,11 @@ class Comment(BaseModel):
     def content_type(self):
         """Return the type of content this comment is linked to"""
         if self.article:
-            return 'article'
+            return "article"
         elif self.store:
-            return 'store'
+            return "store"
         else:
-            return 'orphaned'
+            return "orphaned"
 
     @property
     def reply_count(self):
@@ -223,8 +213,8 @@ class Comment(BaseModel):
         """
         if self.reply_to:
             return self.reply_to.get_thread_comments()
-        return Comment.objects.filter(
-            models.Q(pk=self.pk) | models.Q(reply_to=self.pk)
-        ).filter(
-            is_approved=True
-        ).order_by("created_at")
+        return (
+            Comment.objects.filter(models.Q(pk=self.pk) | models.Q(reply_to=self.pk))
+            .filter(is_approved=True)
+            .order_by("created_at")
+        )

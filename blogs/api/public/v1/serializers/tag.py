@@ -7,7 +7,7 @@ from blogs.models import Tag
 
 class TagSerializer(serializers.ModelSerializer):
     article_count = serializers.IntegerField(read_only=True)
-    
+
     class Meta:
         model = Tag
         fields = [
@@ -17,7 +17,7 @@ class TagSerializer(serializers.ModelSerializer):
             "description",
             "color",
             "is_active",
-            "article_count"
+            "article_count",
         ]
 
 
@@ -26,9 +26,4 @@ class TagListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "color"
-        ]
+        fields = ["id", "name", "slug", "color"]

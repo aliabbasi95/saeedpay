@@ -12,6 +12,7 @@ class NumberInFilter(filters.BaseInFilter, filters.NumberFilter):
     Filter for passing multiple numeric values, e.g. ?tags=1&tags=2
     Generates an `__in` lookup behind the scenes.
     """
+
     pass
 
 
@@ -28,35 +29,33 @@ class ArticleFilter(filters.FilterSet):
     tags = NumberInFilter(
         field_name="tags",
         lookup_expr="in",
-        help_text=_("فیلتر بر اساس برچسب‌ها (می‌توانید چند مقدار ارسال کنید)")
+        help_text=_("فیلتر بر اساس برچسب‌ها (می‌توانید چند مقدار ارسال کنید)"),
     )
 
     is_featured = filters.BooleanFilter(
-        field_name="is_featured",
-        help_text=_("فیلتر مقالات ویژه")
+        field_name="is_featured", help_text=_("فیلتر مقالات ویژه")
     )
 
     status = filters.ChoiceFilter(
         field_name="status",
         choices=ArticleStatus.choices,
-        help_text=_("فیلتر بر اساس وضعیت")
+        help_text=_("فیلتر بر اساس وضعیت"),
     )
 
     author = filters.NumberFilter(
-        field_name="author_id",
-        help_text=_("فیلتر بر اساس نویسنده")
+        field_name="author_id", help_text=_("فیلتر بر اساس نویسنده")
     )
 
     published_after = filters.DateTimeFilter(
         field_name="published_at",
         lookup_expr="gte",
-        help_text=_("مقالات منتشر شده بعد از تاریخ مشخص")
+        help_text=_("مقالات منتشر شده بعد از تاریخ مشخص"),
     )
 
     published_before = filters.DateTimeFilter(
         field_name="published_at",
         lookup_expr="lte",
-        help_text=_("مقالات منتشر شده قبل از تاریخ مشخص")
+        help_text=_("مقالات منتشر شده قبل از تاریخ مشخص"),
     )
 
     class Meta:

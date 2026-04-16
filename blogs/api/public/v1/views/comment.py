@@ -1,28 +1,29 @@
 # blogs/api/public/v1/views/comment.py
 
-from django.db.models import Q, F
+from django.db.models import F, Q
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, status
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import (
+    AllowAny,
+    IsAuthenticated,
     IsAuthenticatedOrReadOnly,
-    IsAuthenticated, AllowAny,
 )
 from rest_framework.response import Response
 
 from blogs.api.public.v1.permissions import IsOwnerOrStaff
 from blogs.api.public.v1.schema import (
-    comment_viewset_schema,
-    comment_like_schema,
     comment_dislike_schema,
+    comment_like_schema,
+    comment_viewset_schema,
     my_comments_schema,
     orphaned_comments_schema,
 )
 from blogs.api.public.v1.serializers import (
+    CommentCreateSerializer,
     CommentListSerializer,
     CommentSerializer,
-    CommentCreateSerializer,
     CommentUpdateSerializer,
 )
 from blogs.models import Comment
@@ -36,13 +37,14 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     - List supports filtering by article and reply_to.
     - Updates/deletes restricted to owner or staff.
     """
+
     permission_classes = [IsAuthenticatedOrReadOnly]
     recaptcha_actions = {"create"}
     recaptcha_action_name = "comment"
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = {'article': ['exact'], 'store': ['exact']}
-    ordering_fields = ['created_at', 'like_count']
-    ordering = ['-created_at']
+    filterset_fields = {"article": ["exact"], "store": ["exact"]}
+    ordering_fields = ["created_at", "like_count"]
+    ordering = ["-created_at"]
 
     throttle_scope_map = {
         "default": "comments",
@@ -54,10 +56,9 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     }
 
     def get_queryset(self):
-        qs = (
-            Comment.objects.select_related("author", "article", "reply_to")
-            .prefetch_related("replies")
-        )
+        qs = Comment.objects.select_related(
+            "author", "article", "reply_to"
+        ).prefetch_related("replies")
 
         # Visible to everyone: approved comments
         # Authenticated users also see their own (any status)
@@ -68,7 +69,7 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
             qs = qs.filter(is_approved=True)
 
         # For list action, only return root comments (replies are included via serializer)
-        if self.action == 'list':
+        if self.action == "list":
             qs = qs.filter(reply_to__isnull=True)
 
         return qs
@@ -108,7 +109,7 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
         if not request.user.is_authenticated:
             return Response(
                 {"detail": "Authentication required"},
-                status=status.HTTP_401_UNAUTHORIZED
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
         queryset = Comment.objects.filter(author=request.user).select_related(
@@ -133,17 +134,21 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
         Get comments that are not linked to any article or store (both fields are null).
         Supports ordering by created_at, like_count, and dislike_count.
         """
-        queryset = self.get_queryset().filter(
-            article__isnull=True, store__isnull=True
-        )
+        queryset = self.get_queryset().filter(article__isnull=True, store__isnull=True)
 
         # Apply ordering
-        ordering = request.query_params.get('ordering', '-created_at')
-        if ordering in ['created_at', '-created_at', 'like_count',
-                        '-like_count', 'dislike_count', '-dislike_count']:
+        ordering = request.query_params.get("ordering", "-created_at")
+        if ordering in [
+            "created_at",
+            "-created_at",
+            "like_count",
+            "-like_count",
+            "dislike_count",
+            "-dislike_count",
+        ]:
             queryset = queryset.order_by(ordering)
         else:
-            queryset = queryset.order_by('-created_at')
+            queryset = queryset.order_by("-created_at")
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -162,14 +167,13 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     def like(self, request, pk=None):
         """Atomically increment like_count for a comment."""
         comment = self.get_object()
-        Comment.objects.filter(pk=comment.pk).update(
-            like_count=F("like_count") + 1
-        )
+        Comment.objects.filter(pk=comment.pk).update(like_count=F("like_count") + 1)
         comment.refresh_from_db(fields=["like_count", "dislike_count"])
         return Response(
             {
-                "id": comment.pk, "like_count": comment.like_count,
-                "dislike_count": comment.dislike_count
+                "id": comment.pk,
+                "like_count": comment.like_count,
+                "dislike_count": comment.dislike_count,
             }
         )
 
@@ -184,7 +188,8 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
         comment.refresh_from_db(fields=["like_count", "dislike_count"])
         return Response(
             {
-                "id": comment.pk, "like_count": comment.like_count,
-                "dislike_count": comment.dislike_count
+                "id": comment.pk,
+                "like_count": comment.like_count,
+                "dislike_count": comment.dislike_count,
             }
         )

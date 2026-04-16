@@ -1,19 +1,20 @@
 # blogs/api/public/v1/views/tag.py
 
+from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
-from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import AllowAny
 
 from blogs.api.public.v1.schema import tag_viewset_schema
-from blogs.api.public.v1.serializers import TagSerializer, TagListSerializer
+from blogs.api.public.v1.serializers import TagListSerializer, TagSerializer
 from blogs.models import Tag
-from django.db.models import Count, Q
 
 
 @tag_viewset_schema
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only Tag API."""
+
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     search_fields = ["name", "description"]
@@ -23,8 +24,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return (
-            Tag.objects
-            .filter(is_active=True)
+            Tag.objects.filter(is_active=True)
             .annotate(
                 article_count=Count(
                     "articles",

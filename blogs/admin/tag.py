@@ -13,13 +13,14 @@ class TagAdmin(BaseAdmin):
     """
     Lightweight Tag admin with color chip and readonly counters.
     """
+
     list_display = [
         "name",
         "slug",
         "color_display",
         "article_count",
         "is_active",
-        "jalali_creation_date_time"
+        "jalali_creation_date_time",
     ]
     list_filter = ["is_active", "created_at"]
     search_fields = ["name", "slug", "description"]
@@ -27,18 +28,23 @@ class TagAdmin(BaseAdmin):
     readonly_fields = [
         "article_count",
         "jalali_creation_date_time",
-        "jalali_update_date_time"
+        "jalali_update_date_time",
     ]
     list_per_page = 50
 
     fieldsets = (
-        (_("اطلاعات اصلی"),
-         {"fields": ("name", "slug", "description", "color", "is_active")}),
+        (
+            _("اطلاعات اصلی"),
+            {"fields": ("name", "slug", "description", "color", "is_active")},
+        ),
         (_("آمار"), {"fields": ("article_count",), "classes": ("collapse",)}),
-        (_("زمان‌بندی"), {
-            "fields": ("jalali_creation_date_time", "jalali_update_date_time"),
-            "classes": ("collapse",)
-        }),
+        (
+            _("زمان‌بندی"),
+            {
+                "fields": ("jalali_creation_date_time", "jalali_update_date_time"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
     @admin.display(description=_("رنگ"))

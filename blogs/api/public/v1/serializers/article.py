@@ -2,10 +2,11 @@
 
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
-from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 
 from blogs.models import Article, ArticleSection
+
 from .tag import TagListSerializer
 
 User = get_user_model()
@@ -31,7 +32,7 @@ class AuthorSerializer(serializers.ModelSerializer):
             profile = None
         if profile and getattr(profile, "full_name", None):
             return profile.full_name
-        return (getattr(obj, "get_full_name", lambda: "")() or obj.username)
+        return getattr(obj, "get_full_name", lambda: "")() or obj.username
 
 
 class ArticleSectionSerializer(serializers.ModelSerializer):
@@ -40,8 +41,7 @@ class ArticleSectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ArticleSection
-        fields = ["id", "section_type", "content", "image", "image_alt",
-                  "order"]
+        fields = ["id", "section_type", "content", "image", "image_alt", "order"]
 
     def validate(self, data):
         """
@@ -74,12 +74,20 @@ class ArticleSectionSerializer(serializers.ModelSerializer):
 
 class ArticleListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for listing articles."""
+
     author = AuthorSerializer(read_only=True)
 
     class Meta:
         model = Article
-        fields = ["id", "title", "slug", "author", "excerpt", "featured_image",
-                  "published_at"]
+        fields = [
+            "id",
+            "title",
+            "slug",
+            "author",
+            "excerpt",
+            "featured_image",
+            "published_at",
+        ]
 
 
 class ArticleDetailSerializer(serializers.ModelSerializer):
@@ -87,6 +95,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
     Detailed serializer for a single article.
     Uses prefetch'ed relations supplied by the view for efficiency.
     """
+
     author = AuthorSerializer(read_only=True)
     tags = TagListSerializer(many=True, read_only=True)
     sections = serializers.SerializerMethodField()
@@ -95,7 +104,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
     comment_count = serializers.SerializerMethodField()
     jalali_creation_date_time = serializers.CharField(read_only=True)
     jalali_update_date_time = serializers.CharField(read_only=True)
-    
+
     class Meta:
         model = Article
         fields = [
@@ -118,9 +127,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
             "comments",
         ]
 
-    @extend_schema_field(
-        serializers.ListField(child=serializers.DictField())
-    )
+    @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_sections(self, obj):
         """
         Return sections ordered by 'order'.
@@ -134,16 +141,13 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
         """Return article HTML built from sections."""
         return obj.render_content()
 
-    @extend_schema_field(
-        serializers.ListField(child=serializers.DictField())
-    )
+    @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_comments(self, obj):
         """
         Return approved root-level comments with limited nested replies.
         Prefetch should be configured in the view.
         """
-        from blogs.api.public.v1.serializers.comment import \
-            CommentListSerializer
+        from blogs.api.public.v1.serializers.comment import CommentListSerializer
 
         approved_roots = obj.comments.filter(
             is_approved=True, reply_to__isnull=True

@@ -9,9 +9,7 @@ from lib.erp_base.models import BaseModel
 
 
 class Tag(BaseModel):
-    name = models.CharField(
-        max_length=100, unique=True, verbose_name=_("نام برچسب")
-    )
+    name = models.CharField(max_length=100, unique=True, verbose_name=_("نام برچسب"))
     slug = models.SlugField(
         max_length=100,
         unique=True,
@@ -19,9 +17,7 @@ class Tag(BaseModel):
         verbose_name=_("نامک"),
         help_text=_("Left blank to auto-generate from name."),
     )
-    description = models.TextField(
-        blank=True, null=True, verbose_name=_("توضیحات")
-    )
+    description = models.TextField(blank=True, null=True, verbose_name=_("توضیحات"))
     color = models.CharField(
         max_length=7,
         default="#007bff",
@@ -38,8 +34,7 @@ class Tag(BaseModel):
         """
         return (
             self.articles.filter(
-                status="published",
-                published_at__lte=timezone.localtime(timezone.now())
+                status="published", published_at__lte=timezone.localtime(timezone.now())
             )
             .distinct()
             .count()

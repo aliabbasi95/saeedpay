@@ -1,6 +1,6 @@
 # blogs/models/article.py
 from django.contrib.auth import get_user_model
-from django.db import models, IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models import F, Max
 from django.urls import reverse
 from django.utils import timezone
@@ -15,8 +15,7 @@ class ArticleManager(models.Manager):
     def published(self):
         """Return only published articles whose publication time has passed."""
         return self.filter(
-            status="published",
-            published_at__lte=timezone.localtime(timezone.now())
+            status="published", published_at__lte=timezone.localtime(timezone.now())
         )
 
     def draft(self):
@@ -47,10 +46,7 @@ class Article(BaseModel):
     )
 
     excerpt = models.TextField(
-        max_length=500,
-        blank=True,
-        null=True,
-        verbose_name=_("خلاصه")
+        max_length=500, blank=True, null=True, verbose_name=_("خلاصه")
     )
 
     featured_image = models.ImageField(
@@ -68,27 +64,16 @@ class Article(BaseModel):
     )
 
     tags = models.ManyToManyField(
-        "Tag",
-        blank=True,
-        related_name="articles",
-        verbose_name=_("برچسب‌ها")
+        "Tag", blank=True, related_name="articles", verbose_name=_("برچسب‌ها")
     )
 
-    is_featured = models.BooleanField(
-        default=False,
-        verbose_name=_("مقاله ویژه")
-    )
+    is_featured = models.BooleanField(default=False, verbose_name=_("مقاله ویژه"))
 
     published_at = models.DateTimeField(
-        blank=True,
-        null=True,
-        verbose_name=_("زمان انتشار")
+        blank=True, null=True, verbose_name=_("زمان انتشار")
     )
 
-    view_count = models.PositiveIntegerField(
-        default=0,
-        verbose_name=_("تعداد بازدید")
-    )
+    view_count = models.PositiveIntegerField(default=0, verbose_name=_("تعداد بازدید"))
 
     objects = ArticleManager()
 
@@ -98,12 +83,10 @@ class Article(BaseModel):
         ordering = ["-is_featured", "-published_at", "-created_at"]
         indexes = [
             models.Index(
-                fields=["status", "published_at"],
-                name="article_status_pub_idx"
+                fields=["status", "published_at"], name="article_status_pub_idx"
             ),
             models.Index(
-                fields=["is_featured", "published_at"],
-                name="article_feat_pub_idx"
+                fields=["is_featured", "published_at"], name="article_feat_pub_idx"
             ),
         ]
 
@@ -127,10 +110,11 @@ class Article(BaseModel):
                     with transaction.atomic():
                         self.slug = candidate
                         # If published & no timestamp, set it before initial save
-                        if self.status == ArticleStatus.PUBLISHED and not self.published_at:
-                            self.published_at = timezone.localtime(
-                                timezone.now()
-                                )
+                        if (
+                            self.status == ArticleStatus.PUBLISHED
+                            and not self.published_at
+                        ):
+                            self.published_at = timezone.localtime(timezone.now())
                         return super().save(*args, **kwargs)
                 except IntegrityError:
                     suffix += 1
@@ -149,9 +133,9 @@ class Article(BaseModel):
     def is_published(self):
         """True if status is published and time has passed."""
         return (
-                self.status == ArticleStatus.PUBLISHED
-                and self.published_at is not None
-                and self.published_at <= timezone.localtime(timezone.now())
+            self.status == ArticleStatus.PUBLISHED
+            and self.published_at is not None
+            and self.published_at <= timezone.localtime(timezone.now())
         )
 
     @property
@@ -164,9 +148,7 @@ class Article(BaseModel):
         Atomically increment view_count without updating updated_at timestamp.
         Use queryset update to avoid race conditions.
         """
-        Article.objects.filter(pk=self.pk).update(
-            view_count=F("view_count") + 1
-        )
+        Article.objects.filter(pk=self.pk).update(view_count=F("view_count") + 1)
         # Keep in-memory object in sync (optional)
         self.view_count += 1
 
@@ -183,17 +165,16 @@ class Article(BaseModel):
 
 class ArticleSection(BaseModel):
     """Model for structured article content sections."""
+
     article = models.ForeignKey(
         Article,
         on_delete=models.CASCADE,
         related_name="sections",
-        verbose_name=_("مقاله")
+        verbose_name=_("مقاله"),
     )
 
     section_type = models.CharField(
-        max_length=20,
-        choices=SectionType.choices,
-        verbose_name=_("نوع بخش")
+        max_length=20, choices=SectionType.choices, verbose_name=_("نوع بخش")
     )
 
     content = models.TextField(
@@ -212,21 +193,18 @@ class ArticleSection(BaseModel):
     )
 
     image_alt = models.CharField(
-        max_length=200, blank=True, null=True,
-        verbose_name=_("متن جایگزین تصویر")
+        max_length=200, blank=True, null=True, verbose_name=_("متن جایگزین تصویر")
     )
 
-    order = models.PositiveIntegerField(
-        default=0, verbose_name=_("ترتیب نمایش")
-    )
+    order = models.PositiveIntegerField(default=0, verbose_name=_("ترتیب نمایش"))
 
     class Meta:
         verbose_name = _("بخش مقاله")
         verbose_name_plural = _("بخش‌های مقاله")
         ordering = ["article", "order"]
-        indexes = [models.Index(
-            fields=["article", "order"], name="article_section_order_idx"
-        )]
+        indexes = [
+            models.Index(fields=["article", "order"], name="article_section_order_idx")
+        ]
         constraints = [
             # Ensure each (article, order) is unique
             models.UniqueConstraint(
@@ -235,7 +213,9 @@ class ArticleSection(BaseModel):
         ]
 
     def __str__(self):
-        return f"{self.article.title} - {self.get_section_type_display()} ({self.order})"
+        return (
+            f"{self.article.title} - {self.get_section_type_display()} ({self.order})"
+        )
 
     def save(self, *args, **kwargs):
         """
@@ -245,10 +225,10 @@ class ArticleSection(BaseModel):
         if self.order == 0 and self.article_id:
             for _ in range(3):
                 last = (
-                        ArticleSection.objects.filter(article=self.article)
-                        .aggregate(m=Max("order"))
-                        .get("m")
-                        or 0
+                    ArticleSection.objects.filter(article=self.article)
+                    .aggregate(m=Max("order"))
+                    .get("m")
+                    or 0
                 )
                 self.order = last + 1
                 try:
@@ -275,14 +255,20 @@ class ArticleSection(BaseModel):
         Render section as minimal HTML snippet.
         NOTE: If content originates from untrusted users, sanitize before rendering.
         """
-        if self.section_type in [SectionType.H1, SectionType.H2,
-                                 SectionType.H3, SectionType.H4]:
+        if self.section_type in [
+            SectionType.H1,
+            SectionType.H2,
+            SectionType.H3,
+            SectionType.H4,
+        ]:
             return f"<{self.section_type}>{self.content}</{self.section_type}>"
         elif self.section_type == SectionType.PARAGRAPH:
             return f"<p>{self.content}</p>"
         elif self.section_type == SectionType.IMAGE and self.image:
             alt_text = self.image_alt or ""
-            return f'<img src="{self.image.url}" alt="{alt_text}" class="article-image" />'
+            return (
+                f'<img src="{self.image.url}" alt="{alt_text}" class="article-image" />'
+            )
         elif self.section_type == SectionType.CITE:
             return f"<blockquote>{self.content}</blockquote>"
         return ""

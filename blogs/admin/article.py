@@ -33,14 +33,10 @@ class ArticleSectionForm(forms.ModelForm):
             if not image:
                 self.add_error("image", _("تصویر برای بخش تصویری الزامی است"))
             if content:
-                self.add_error(
-                    "content", _("بخش تصویری نباید محتوای متنی داشته باشد")
-                )
+                self.add_error("content", _("بخش تصویری نباید محتوای متنی داشته باشد"))
         else:
             if not content:
-                self.add_error(
-                    "content", _("محتوا برای این نوع بخش الزامی است")
-                )
+                self.add_error("content", _("محتوا برای این نوع بخش الزامی است"))
             if image:
                 self.add_error("image", _("بخش متنی نباید تصویر داشته باشد"))
         return cleaned
@@ -50,11 +46,11 @@ class ArticleSectionInline(admin.TabularInline):
     """
     Inline for managing sections. Keeps ordering stable and provides image preview.
     """
+
     model = ArticleSection
     form = ArticleSectionForm
     extra = 0
-    fields = ("section_type", "content", "image", "image_alt", "order",
-              "image_preview")
+    fields = ("section_type", "content", "image", "image_alt", "order", "image_preview")
     readonly_fields = ("image_preview",)
     ordering = ("order",)
 
@@ -65,9 +61,7 @@ class ArticleSectionInline(admin.TabularInline):
             field.widget.attrs.update({"rows": 3})
         elif db_field.name == "order":
             field.widget.attrs.update({"style": "width: 60px;"})
-            field.help_text = _(
-                "ترتیب نمایش (اگر 0 باشد، به‌صورت خودکار تعیین می‌شود)"
-            )
+            field.help_text = _("ترتیب نمایش (اگر 0 باشد، به‌صورت خودکار تعیین می‌شود)")
         return field
 
     def get_queryset(self, request):
@@ -75,8 +69,11 @@ class ArticleSectionInline(admin.TabularInline):
         return super().get_queryset(request).order_by("order")
 
     class Media:
-        js = ("admin/js/jquery.init.js", "admin/js/inlines.js",
-              "admin/js/article_section_ordering.js")
+        js = (
+            "admin/js/jquery.init.js",
+            "admin/js/inlines.js",
+            "admin/js/article_section_ordering.js",
+        )
         css = {"all": ("admin/css/changelists.css",)}
 
     @admin.display(description=_("پیش‌نمایش تصویر"))
@@ -97,6 +94,7 @@ class ArticleAdmin(BaseAdmin):
     - Safe bulk actions for publish/draft/feature/unfeature/archive.
     - Autocomplete for tags to handle large vocabularies (lighter than filter_horizontal).
     """
+
     list_display = [
         "title",
         "author",
@@ -107,19 +105,39 @@ class ArticleAdmin(BaseAdmin):
         "published_at",
         "jalali_creation_date_time",
     ]
-    list_filter = ["status", "is_featured", "author", "tags", "published_at",
-                   "created_at"]
-    search_fields = ["title", "excerpt", "author__username",
-                     "author__first_name", "author__last_name"]
+    list_filter = [
+        "status",
+        "is_featured",
+        "author",
+        "tags",
+        "published_at",
+        "created_at",
+    ]
+    search_fields = [
+        "title",
+        "excerpt",
+        "author__username",
+        "author__first_name",
+        "author__last_name",
+    ]
     prepopulated_fields = {"slug": ("title",)}
-    readonly_fields = ["view_count", "jalali_creation_date_time",
-                       "jalali_update_date_time", "featured_image_preview"]
+    readonly_fields = [
+        "view_count",
+        "jalali_creation_date_time",
+        "jalali_update_date_time",
+        "featured_image_preview",
+    ]
     # Prefer autocomplete for scalability. (Do not combine with filter_horizontal for same field)
     autocomplete_fields = ["tags"]
     date_hierarchy = "published_at"
     list_select_related = ("author",)
-    actions = ["make_published", "make_draft", "make_featured",
-               "remove_featured", "make_archived"]
+    actions = [
+        "make_published",
+        "make_draft",
+        "make_featured",
+        "remove_featured",
+        "make_archived",
+    ]
     inlines = [ArticleSectionInline]
     list_per_page = 50
 
@@ -127,8 +145,9 @@ class ArticleAdmin(BaseAdmin):
         models.TextField: {
             "widget": Textarea(
                 attrs={
-                    "rows": 15, "cols": 80,
-                    "style": "font-family: monospace; font-size: 14px;"
+                    "rows": 15,
+                    "cols": 80,
+                    "style": "font-family: monospace; font-size: 14px;",
                 }
             )
         },
@@ -136,17 +155,25 @@ class ArticleAdmin(BaseAdmin):
 
     fieldsets = (
         (_("محتوا اصلی"), {"fields": ("title", "slug", "excerpt")}),
-        (_("تصویر شاخص"), {
-            "fields": ("featured_image", "featured_image_preview"),
-            "classes": ("collapse",)
-        }),
-        (_("تنظیمات انتشار"),
-         {"fields": ("status", "published_at", "is_featured", "tags")}),
+        (
+            _("تصویر شاخص"),
+            {
+                "fields": ("featured_image", "featured_image_preview"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            _("تنظیمات انتشار"),
+            {"fields": ("status", "published_at", "is_featured", "tags")},
+        ),
         (_("آمار"), {"fields": ("view_count",), "classes": ("collapse",)}),
-        (_("زمان‌بندی"), {
-            "fields": ("jalali_creation_date_time", "jalali_update_date_time"),
-            "classes": ("collapse",)
-        }),
+        (
+            _("زمان‌بندی"),
+            {
+                "fields": ("jalali_creation_date_time", "jalali_update_date_time"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
     def get_queryset(self, request):
