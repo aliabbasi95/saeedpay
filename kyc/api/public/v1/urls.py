@@ -1,6 +1,6 @@
 # kyc/api/public/v1/urls.py
 
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import IdentityVerificationViewSet, VideoVerificationViewSet
@@ -11,9 +11,7 @@ router = DefaultRouter()
 router.register(
     "verify-identity", IdentityVerificationViewSet, basename="verify-identity"
 )
-router.register(
-    "video", VideoVerificationViewSet, basename="video-verification"
-)
+router.register("video", VideoVerificationViewSet, basename="video-verification")
 
 urlpatterns = [
     path("", include(router.urls)),

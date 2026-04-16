@@ -1,6 +1,5 @@
 # kyc/tests/services/test_identity_auth_service.py
 
-import os
 from unittest.mock import Mock, patch
 
 from django.core.cache import cache

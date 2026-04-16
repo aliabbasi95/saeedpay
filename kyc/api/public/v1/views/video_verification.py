@@ -3,18 +3,19 @@
 import os
 import tempfile
 
-from kyc.api.public.v1.schema import (
-    SUBMIT_VIDEO_SCHEMA,
-    POLL_VIDEO_SCHEMA,
-)
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from kyc.api.public.v1.permissions import IsIdentityVerified
+from kyc.api.public.v1.schema import (
+    POLL_VIDEO_SCHEMA,
+    SUBMIT_VIDEO_SCHEMA,
+)
 from kyc.api.public.v1.serializers.video_verification import (
-    VideoVerificationSubmitSerializer, VideoVerificationPollSerializer,
+    VideoVerificationPollSerializer,
+    VideoVerificationSubmitSerializer,
 )
 from kyc.services import get_identity_auth_service
 
@@ -28,9 +29,10 @@ class VideoVerificationViewSet(viewsets.GenericViewSet):
 
     @SUBMIT_VIDEO_SCHEMA
     @action(
-        detail=False, methods=["post"],
+        detail=False,
+        methods=["post"],
         permission_classes=[IsAuthenticated, IsIdentityVerified],
-        url_path="submit"
+        url_path="submit",
     )
     def submit(self, request):
         serializer = VideoVerificationSubmitSerializer(data=request.data)
@@ -39,8 +41,9 @@ class VideoVerificationViewSet(viewsets.GenericViewSet):
                 {
                     "success": False,
                     "message": "Validation error",
-                    "errors": serializer.errors
-                }, status=status.HTTP_400_BAD_REQUEST
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         auth_service = get_identity_auth_service()
@@ -48,19 +51,15 @@ class VideoVerificationViewSet(viewsets.GenericViewSet):
         video_file = request.FILES.get("selfie_video")
         if not video_file:
             return Response(
-                {
-                    "success": False,
-                    "message": "Selfie video file is required"
-                }, status=status.HTTP_400_BAD_REQUEST
+                {"success": False, "message": "Selfie video file is required"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         tmp_file_path = None
         try:
             # safe temp-save
             suffix = os.path.splitext(getattr(video_file, "name", "upload"))[1]
-            with tempfile.NamedTemporaryFile(
-                    delete=False, suffix=suffix
-            ) as tmp:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
                 for chunk in video_file.chunks():
                     tmp.write(chunk)
                 tmp_file_path = tmp.name
@@ -80,8 +79,9 @@ class VideoVerificationViewSet(viewsets.GenericViewSet):
                     {
                         "success": True,
                         "message": "Video verification submitted successfully",
-                        "data": result.get("data", {})
-                    }, status=status.HTTP_200_OK
+                        "data": result.get("data", {}),
+                    },
+                    status=status.HTTP_200_OK,
                 )
 
             return Response(
@@ -89,8 +89,9 @@ class VideoVerificationViewSet(viewsets.GenericViewSet):
                     "success": False,
                     "message": "Video verification submission failed",
                     "error": result.get("error"),
-                    "status": result.get("status")
-                }, status=status.HTTP_400_BAD_REQUEST
+                    "status": result.get("status"),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         finally:
@@ -102,8 +103,10 @@ class VideoVerificationViewSet(viewsets.GenericViewSet):
 
     @POLL_VIDEO_SCHEMA
     @action(
-        detail=False, methods=["post"], permission_classes=[IsAuthenticated],
-        url_path="poll"
+        detail=False,
+        methods=["post"],
+        permission_classes=[IsAuthenticated],
+        url_path="poll",
     )
     def poll(self, request):
         serializer = VideoVerificationPollSerializer(data=request.data)
@@ -112,8 +115,9 @@ class VideoVerificationViewSet(viewsets.GenericViewSet):
                 {
                     "success": False,
                     "message": "Validation error",
-                    "errors": serializer.errors
-                }, status=status.HTTP_400_BAD_REQUEST
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         auth_service = get_identity_auth_service()
@@ -131,8 +135,9 @@ class VideoVerificationViewSet(viewsets.GenericViewSet):
                         "liveness": result.get("liveness"),
                         "spoofing": result.get("spoofing"),
                         "raw": result.get("raw"),
-                    }
-                }, status=status.HTTP_200_OK
+                    },
+                },
+                status=status.HTTP_200_OK,
             )
 
         return Response(
@@ -140,6 +145,7 @@ class VideoVerificationViewSet(viewsets.GenericViewSet):
                 "success": False,
                 "message": "Could not retrieve video verification result",
                 "error": result.get("error"),
-                "status": result.get("status")
-            }, status=status.HTTP_400_BAD_REQUEST
+                "status": result.get("status"),
+            },
+            status=status.HTTP_400_BAD_REQUEST,
         )

@@ -1,7 +1,7 @@
-from django.urls import path, include
+from django.urls import include, path
 
-app_name = 'kyc'
+app_name = "kyc"
 
 urlpatterns = [
-    path('public/', include('kyc.api.public.urls')),
+    path("public/", include("kyc.api.public.urls")),
 ]

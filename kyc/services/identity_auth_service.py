@@ -12,8 +12,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from .loan_validation_service import LoanValidationService
-from .video_identity_verification_service import \
-    VideoIdentityVerificationService
+from .video_identity_verification_service import VideoIdentityVerificationService
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +28,7 @@ class IdentityAuthService:
         self.username = getattr(settings, "KIAHOOSHAN_USERNAME", "")
         self.password = getattr(settings, "KIAHOOSHAN_PASSWORD", "")
         self.org_name = getattr(settings, "KIAHOOSHAN_ORGNAME", "")
-        self.org_national_code = getattr(
-            settings, "KIAHOOSHAN_ORGNATIONALCODE", ""
-        )
+        self.org_national_code = getattr(settings, "KIAHOOSHAN_ORGNATIONALCODE", "")
         self.timeout = getattr(settings, "KYC_IDENTITY_TIMEOUT", 30)
         self.token_skew_seconds = getattr(
             settings, "KYC_IDENTITY_TOKEN_SKEW_SECONDS", 30
@@ -61,43 +58,34 @@ class IdentityAuthService:
         return f"{self.cache_key_prefix}{key_suffix}"
 
     def _cache_token_with_exp(
-            self, key_suffix: str, token: str, default_ttl: int
+        self, key_suffix: str, token: str, default_ttl: int
     ) -> None:
         if not token:
             return
         ttl = default_ttl
         try:
             decoded = jwt.decode(
-                token, options={
-                    "verify_signature": False, "verify_exp": False
-                }
+                token, options={"verify_signature": False, "verify_exp": False}
             )
             exp_ts = decoded.get("exp")
             if exp_ts:
                 now_ts = int(time.time())
-                ttl = max(
-                    int(exp_ts) - now_ts - int(self.token_skew_seconds), 0
-                )
+                ttl = max(int(exp_ts) - now_ts - int(self.token_skew_seconds), 0)
         except Exception:
             pass
-        cache.set(
-            self._get_cache_key(key_suffix), token, timeout=ttl or default_ttl
-        )
+        cache.set(self._get_cache_key(key_suffix), token, timeout=ttl or default_ttl)
 
     def _is_token_valid(self, token: str, token_type: str = "access") -> bool:
         if not token:
             return False
         try:
             decoded = jwt.decode(
-                token, options={
-                    "verify_signature": False, "verify_exp": False
-                }
+                token, options={"verify_signature": False, "verify_exp": False}
             )
             exp_timestamp = decoded.get("exp")
             if exp_timestamp:
                 now_ts = int(time.time())
-                return int(exp_timestamp) > (
-                        now_ts + int(self.token_skew_seconds))
+                return int(exp_timestamp) > (now_ts + int(self.token_skew_seconds))
             return True
         except jwt.InvalidTokenError as e:
             logger.warning(f"Invalid {token_type} token: {e}")
@@ -111,9 +99,7 @@ class IdentityAuthService:
     # ---------------- token requests ---------------- #
 
     def _handle_token_http_error(self, e, context: str):
-        status = e.response.status_code if getattr(
-            e, "response", None
-        ) else None
+        status = e.response.status_code if getattr(e, "response", None) else None
         body = e.response.text if getattr(e, "response", None) else ""
         logger.error(f"{context} failed: HTTP {status}. Response: {body}")
 
@@ -125,9 +111,7 @@ class IdentityAuthService:
             resp.raise_for_status()
             data = resp.json()
             access_token = data.get("accessToken") or data.get("access_token")
-            refresh_token = data.get("refreshToken") or data.get(
-                "refresh_token"
-            )
+            refresh_token = data.get("refreshToken") or data.get("refresh_token")
             if access_token:
                 self._cache_token_with_exp(
                     "access_token", access_token, default_ttl=3600
@@ -155,8 +139,13 @@ class IdentityAuthService:
 
     def _authenticate(self) -> Tuple[Optional[str], Optional[str]]:
         if not all(
-                [self.base_url, self.username, self.password, self.org_name,
-                 self.org_national_code]
+            [
+                self.base_url,
+                self.username,
+                self.password,
+                self.org_name,
+                self.org_national_code,
+            ]
         ):
             logger.error("KYC Identity service not properly configured")
             return None, None
@@ -169,20 +158,17 @@ class IdentityAuthService:
         }
         return self._request_token(auth_url, payload, {}, "Token request")
 
-    def _refresh_token(self, refresh_token: str, access_token: str = None) -> \
-            Tuple[Optional[str], Optional[str]]:
+    def _refresh_token(
+        self, refresh_token: str, access_token: str = None
+    ) -> Tuple[Optional[str], Optional[str]]:
         if not refresh_token or not self.base_url:
             return None, None
-        refresh_url = urljoin(
-            self.base_url.rstrip("/") + "/", "api/ums/token/refresh"
-        )
+        refresh_url = urljoin(self.base_url.rstrip("/") + "/", "api/ums/token/refresh")
         payload = {"refreshToken": refresh_token}
         headers = {}
         if access_token:
             headers["Authorization"] = f"Bearer {access_token}"
-        return self._request_token(
-            refresh_url, payload, headers, "Token refresh"
-        )
+        return self._request_token(refresh_url, payload, headers, "Token refresh")
 
     def get_valid_tokens(self) -> Tuple[Optional[str], Optional[str]]:
         access_token = cache.get(self._get_cache_key("access_token"))
@@ -202,20 +188,15 @@ class IdentityAuthService:
                         refresh_token, access_token
                     )
                     if new_access_token:
-                        return new_access_token, (
-                                new_refresh_token or refresh_token)
+                        return new_access_token, (new_refresh_token or refresh_token)
                 finally:
                     cache.delete(lock_key)
             else:
                 # wait briefly for other worker to refresh
                 for _ in range(3):
                     time.sleep(0.25)
-                    access_token = cache.get(
-                        self._get_cache_key("access_token")
-                    )
-                    if access_token and self._is_token_valid(
-                            access_token, "access"
-                    ):
+                    access_token = cache.get(self._get_cache_key("access_token"))
+                    if access_token and self._is_token_valid(access_token, "access"):
                         return access_token, cache.get(
                             self._get_cache_key("refresh_token")
                         )
@@ -225,9 +206,7 @@ class IdentityAuthService:
         got_auth_lock = cache.add(auth_lock_key, str(time.time()), timeout=10)
         if got_auth_lock:
             try:
-                logger.info(
-                    "Refresh failed or no valid tokens, re-authenticating"
-                )
+                logger.info("Refresh failed or no valid tokens, re-authenticating")
                 return self._authenticate()
             finally:
                 cache.delete(auth_lock_key)
@@ -235,12 +214,8 @@ class IdentityAuthService:
             for _ in range(3):
                 time.sleep(0.25)
                 access_token = cache.get(self._get_cache_key("access_token"))
-                if access_token and self._is_token_valid(
-                        access_token, "access"
-                ):
-                    return access_token, cache.get(
-                        self._get_cache_key("refresh_token")
-                    )
+                if access_token and self._is_token_valid(access_token, "access"):
+                    return access_token, cache.get(self._get_cache_key("refresh_token"))
 
         return None, None
 
@@ -250,8 +225,9 @@ class IdentityAuthService:
         access_token, refresh_token = self.get_valid_tokens()
         if not access_token:
             return {
-                "success": False, "error": "Authentication failed",
-                "error_code": "AUTH_FAILED"
+                "success": False,
+                "error": "Authentication failed",
+                "error_code": "AUTH_FAILED",
             }
 
         verify_url = f"{self.base_url.rstrip('/')}/verify/identity"
@@ -259,22 +235,21 @@ class IdentityAuthService:
         def _make_verification_request(token):
             headers = {"Authorization": f"Bearer {token}"}
             return self._session.post(
-                verify_url, json=user_data, timeout=self.timeout,
-                headers=headers
+                verify_url, json=user_data, timeout=self.timeout, headers=headers
             )
 
         try:
             response = _make_verification_request(access_token)
 
-            if response.status_code == 401 and refresh_token and self._is_token_valid(
-                    refresh_token, "refresh"
+            if (
+                response.status_code == 401
+                and refresh_token
+                and self._is_token_valid(refresh_token, "refresh")
             ):
                 logger.info(
                     "Access token unauthorized (401). Attempting token refresh and retrying verification."
                 )
-                new_access_token, _ = self._refresh_token(
-                    refresh_token, access_token
-                )
+                new_access_token, _ = self._refresh_token(refresh_token, access_token)
                 if new_access_token:
                     response = _make_verification_request(new_access_token)
 
@@ -282,13 +257,11 @@ class IdentityAuthService:
                 try:
                     resp_json = response.json()
                 except JSONDecodeError:
-                    logger.error(
-                        "Invalid JSON in verification success response"
-                    )
+                    logger.error("Invalid JSON in verification success response")
                     return {
                         "success": False,
                         "error": "Invalid JSON in success response",
-                        "error_code": "INVALID_JSON"
+                        "error_code": "INVALID_JSON",
                     }
                 return {"success": True, "data": resp_json}
             else:
@@ -304,40 +277,37 @@ class IdentityAuthService:
                     "status": response.status_code,
                 }
         except (requests.exceptions.RequestException, JSONDecodeError) as e:
-            logger.error(
-                f"Identity verification request failed after retries: {e}"
-            )
+            logger.error(f"Identity verification request failed after retries: {e}")
             return {
                 "success": False,
                 "error": f"Verification request failed: {str(e)}",
-                "error_code": "VERIFICATION_FAILED"
+                "error_code": "VERIFICATION_FAILED",
             }
         except Exception as e:
             logger.error(f"Unexpected error during identity verification: {e}")
             return {
                 "success": False,
                 "error": "Unexpected error during identity verification",
-                "error_code": "UNEXPECTED_ERROR"
+                "error_code": "UNEXPECTED_ERROR",
             }
 
     def verify_idcard_video(
-            self,
-            national_code,
-            birth_date,
-            selfie_video_path,
-            rand_action,
-            matching_thr=None,
-            liveness_thr=None,
+        self,
+        national_code,
+        birth_date,
+        selfie_video_path,
+        rand_action,
+        matching_thr=None,
+        liveness_thr=None,
     ):
         """Proxy for video-based identity verification using a valid access token."""
         access_token, _ = self.get_valid_tokens()
         if not access_token:
-            logger.error(
-                "Failed to obtain access token for video verification"
-            )
+            logger.error("Failed to obtain access token for video verification")
             return {
-                "success": False, "error": "Authentication failed",
-                "error_code": "AUTH_FAILED"
+                "success": False,
+                "error": "Authentication failed",
+                "error_code": "AUTH_FAILED",
             }
 
         return self.video_verification.verify_idcard_video(
@@ -358,38 +328,30 @@ class IdentityAuthService:
                 "Failed to obtain access token for fetching verification result"
             )
             return {
-                "success": False, "error": "Authentication failed",
-                "error_code": "AUTH_FAILED"
+                "success": False,
+                "error": "Authentication failed",
+                "error_code": "AUTH_FAILED",
             }
 
-        return self.video_verification.get_verification_result(
-            unique_id, access_token
-        )
+        return self.video_verification.get_verification_result(unique_id, access_token)
 
-    def verify_mobile_national_id(
-            self, national_code: str, mobile_number: str
-    ) -> Dict:
+    def verify_mobile_national_id(self, national_code: str, mobile_number: str) -> Dict:
         """
         Verify mobile number and national code matching using Shahkar API.
         Returns: dict with 'success' and 'is_matched' on success; rich error info on failure.
         """
         access_token, _ = self.get_valid_tokens()
         if not access_token:
-            logger.error(
-                "Failed to obtain access token for Shahkar verification"
-            )
+            logger.error("Failed to obtain access token for Shahkar verification")
             return {
-                "success": False, "error": "Authentication failed",
-                "error_code": "AUTH_FAILED"
+                "success": False,
+                "error": "Authentication failed",
+                "error_code": "AUTH_FAILED",
             }
 
-        verify_url = urljoin(
-            self.base_url.rstrip("/") + "/", "api/inq/shahkar/verify"
-        )
+        verify_url = urljoin(self.base_url.rstrip("/") + "/", "api/inq/shahkar/verify")
         headers = {"Authorization": f"Bearer {access_token}"}
-        payload = {
-            "nationalCode": national_code, "mobileNumber": mobile_number
-        }
+        payload = {"nationalCode": national_code, "mobileNumber": mobile_number}
 
         try:
             response = self._session.post(
@@ -411,13 +373,11 @@ class IdentityAuthService:
                         "raw": resp_json,
                     }
                 except Exception as e:
-                    logger.error(
-                        f"Invalid JSON in Shahkar success response: {e}"
-                    )
+                    logger.error(f"Invalid JSON in Shahkar success response: {e}")
                     return {
                         "success": False,
                         "error": "Invalid JSON in success response",
-                        "error_code": "INVALID_JSON"
+                        "error_code": "INVALID_JSON",
                     }
 
             elif response.status_code == 400:
@@ -433,7 +393,11 @@ class IdentityAuthService:
                     return {
                         "success": False,
                         "error": error_message,
-                        "error_code": f"VALIDATION_ERROR_{error_code}" if error_code else "VALIDATION_ERROR",
+                        "error_code": (
+                            f"VALIDATION_ERROR_{error_code}"
+                            if error_code
+                            else "VALIDATION_ERROR"
+                        ),
                         "status": 400,
                         "is_validation_error": True,
                         "raw": resp_json,
@@ -442,8 +406,11 @@ class IdentityAuthService:
                     logger.error(f"Failed to parse 400 error response: {e}")
                     return {
                         "success": False,
-                        "error": response.text[
-                            :500] if response.text else "Validation failed",
+                        "error": (
+                            response.text[:500]
+                            if response.text
+                            else "Validation failed"
+                        ),
                         "error_code": "VALIDATION_ERROR",
                         "status": 400,
                         "is_validation_error": True,
@@ -465,14 +432,14 @@ class IdentityAuthService:
             return {
                 "success": False,
                 "error": f"Verification request failed: {str(e)}",
-                "error_code": "VERIFICATION_FAILED"
+                "error_code": "VERIFICATION_FAILED",
             }
         except Exception as e:
             logger.error(f"Unexpected error during Shahkar verification: {e}")
             return {
                 "success": False,
                 "error": "Unexpected error during verification",
-                "error_code": "UNEXPECTED_ERROR"
+                "error_code": "UNEXPECTED_ERROR",
             }
 
     def clear_tokens(self) -> None:
@@ -480,15 +447,16 @@ class IdentityAuthService:
         cache.delete(self._get_cache_key("access_token"))
         cache.delete(self._get_cache_key("refresh_token"))
         logger.info("KYC Identity tokens cleared from cache")
+
     # Loan Validation Service Methods (with automatic token management)
     def loan_send_otp(self, national_code: str, mobile_number: str) -> Dict:
         """
         Send OTP for loan validation with automatic token management.
-        
+
         Args:
             national_code: User's national ID
             mobile_number: User's mobile number
-            
+
         Returns:
             Dict with success status, unique_id, and message
         """
@@ -500,17 +468,17 @@ class IdentityAuthService:
                 "error": "Authentication failed",
                 "error_code": "AUTH_FAILED",
             }
-        
+
         return self.loan_validation.send_otp(national_code, mobile_number, access_token)
 
     def loan_verify_otp_and_request_report(self, otp_code: str, unique_id: str) -> Dict:
         """
         Verify OTP and request credit report with automatic token management.
-        
+
         Args:
             otp_code: OTP code received by user
             unique_id: Unique ID from send_otp step
-            
+
         Returns:
             Dict with success status, new unique_id for tracking, and status
         """
@@ -522,7 +490,7 @@ class IdentityAuthService:
                 "error": "Authentication failed",
                 "error_code": "AUTH_FAILED",
             }
-        
+
         return self.loan_validation.verify_otp_and_request_report(
             otp_code, unique_id, access_token
         )
@@ -530,10 +498,10 @@ class IdentityAuthService:
     def loan_get_report_result(self, unique_id: str) -> Dict:
         """
         Get credit report result with automatic token management.
-        
+
         Args:
             unique_id: Unique ID from verify_otp_and_request_report step
-            
+
         Returns:
             Dict with report data, score, risk level, etc.
         """
@@ -545,8 +513,9 @@ class IdentityAuthService:
                 "error": "Authentication failed",
                 "error_code": "AUTH_FAILED",
             }
-        
+
         return self.loan_validation.get_report_result(unique_id, access_token)
+
 
 def get_identity_auth_service() -> IdentityAuthService:
     """

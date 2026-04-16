@@ -9,8 +9,8 @@ from .validators import (
 
 __all__ = [
     # Validators
-    'validate_national_id',
-    'validate_phone_number',
-    'validate_user_data',
-    'sanitize_user_data',
+    "validate_national_id",
+    "validate_phone_number",
+    "validate_user_data",
+    "sanitize_user_data",
 ]
