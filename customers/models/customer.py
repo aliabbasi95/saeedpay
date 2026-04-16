@@ -11,7 +11,7 @@ class Customer(BaseModel):
         get_user_model(),
         on_delete=models.CASCADE,
         related_name="customer",
-        verbose_name="کاربر"
+        verbose_name="کاربر",
     )
 
     class Meta:
