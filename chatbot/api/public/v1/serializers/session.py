@@ -1,6 +1,6 @@
 # chatbot/api/public/v1/serializers/session.py
 
-from drf_spectacular.utils import extend_schema_field, OpenApiTypes
+from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
 
 from chatbot.api.public.v1.serializers import ChatMessageSerializer

@@ -6,27 +6,27 @@ from urllib.parse import urljoin
 
 import requests
 from django.conf import settings
-from django.db.models import Max, F, Prefetch
+from django.db.models import F, Max, Prefetch
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
-from rest_framework import mixins, viewsets, status
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from chatbot.api.public.v1.schema import (
-    chat_session_viewset_schema,
     chat_action_schema,
+    chat_session_viewset_schema,
     messages_action_schema,
 )
 from chatbot.api.public.v1.serializers import (
-    ChatSessionSerializer,
-    ChatSessionDetailSerializer,
+    ChatMessageSerializer,
     ChatRequestSerializer,
     ChatResponseSerializer,
-    ChatMessageSerializer,
+    ChatSessionDetailSerializer,
+    ChatSessionSerializer,
 )
-from chatbot.models import ChatSession, ChatMessage
+from chatbot.models import ChatMessage, ChatSession
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 logger = logging.getLogger(__name__)
@@ -42,11 +42,12 @@ class ChatSessionViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     mixins.CreateModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
 ):
     """
     Read/write endpoints for chat sessions + `chat` and `messages` actions.
     """
+
     permission_classes = [AllowAny]
     pagination_class = None
     lookup_field = "pk"
@@ -77,25 +78,17 @@ class ChatSessionViewSet(
 
         if self.action == "list":
             return (
-                base_qs
-                .annotate(last_msg_at=Max("messages__created_at"))
-                .annotate(
-                    last_sort_at=Coalesce(F("last_msg_at"), F("created_at"))
-                )
+                base_qs.annotate(last_msg_at=Max("messages__created_at"))
+                .annotate(last_sort_at=Coalesce(F("last_msg_at"), F("created_at")))
                 .order_by("-last_sort_at")
             )
 
         if self.action == "retrieve":
-            return (
-                base_qs
-                .prefetch_related(
-                    Prefetch(
-                        "messages",
-                        queryset=ChatMessage.objects.order_by("created_at")
-                    )
+            return base_qs.prefetch_related(
+                Prefetch(
+                    "messages", queryset=ChatMessage.objects.order_by("created_at")
                 )
-                .annotate(last_msg_at=Max("messages__created_at"))
-            )
+            ).annotate(last_msg_at=Max("messages__created_at"))
 
         return base_qs
 
@@ -133,13 +126,12 @@ class ChatSessionViewSet(
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        ip_address = \
-            (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0] \
-            or request.META.get("REMOTE_ADDR")
+        ip_address = (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[
+            0
+        ] or request.META.get("REMOTE_ADDR")
 
         session = ChatSession.objects.create(
-            user=user, session_key=session_key, ip_address=ip_address,
-            is_active=True
+            user=user, session_key=session_key, ip_address=ip_address, is_active=True
         )
         return Response(
             ChatSessionSerializer(session).data, status=status.HTTP_201_CREATED
@@ -175,21 +167,20 @@ class ChatSessionViewSet(
                 )
 
         msgs = list(
-            ChatMessage.objects.filter(session=session)
-            .order_by("-created_at")[:HISTORY_LIMIT]
+            ChatMessage.objects.filter(session=session).order_by("-created_at")[
+                :HISTORY_LIMIT
+            ]
         )
         msgs.reverse()
         history = [
             {
                 "content": m.message,
-                "role": "user" if m.sender == "user" else "assistant"
+                "role": "user" if m.sender == "user" else "assistant",
             }
             for m in msgs
         ]
 
-        ChatMessage.objects.create(
-            session=session, sender="user", message=query
-        )
+        ChatMessage.objects.create(session=session, sender="user", message=query)
 
         try:
             llm_url = urljoin(LLM_BASE_URL.rstrip("/") + "/", "api/v1/chat")
@@ -200,8 +191,8 @@ class ChatSessionViewSet(
 
             try:
                 data = resp.json()
-                answer = data.get("answer") or data.get("content") or data.get(
-                    "response"
+                answer = (
+                    data.get("answer") or data.get("content") or data.get("response")
                 )
             except ValueError:
                 answer = (resp.text or "").strip()
@@ -209,9 +200,7 @@ class ChatSessionViewSet(
             if not answer:
                 raise ValueError("No answer in LLM response")
 
-            ChatMessage.objects.create(
-                session=session, sender="ai", message=answer
-            )
+            ChatMessage.objects.create(session=session, sender="ai", message=answer)
 
             out = ChatResponseSerializer(data={"answer": answer})
             out.is_valid(raise_exception=True)
@@ -220,8 +209,7 @@ class ChatSessionViewSet(
         except Exception as exc:
             logger.exception("LLM proxy error")
             return Response(
-                {"detail": f"LLM error: {str(exc)}"},
-                status=status.HTTP_502_BAD_GATEWAY
+                {"detail": f"LLM error: {str(exc)}"}, status=status.HTTP_502_BAD_GATEWAY
             )
 
     # ---------- messages listing ----------
@@ -235,6 +223,5 @@ class ChatSessionViewSet(
         )
         qs = session.messages.order_by("created_at")
         return Response(
-            ChatMessageSerializer(qs, many=True).data,
-            status=status.HTTP_200_OK
+            ChatMessageSerializer(qs, many=True).data, status=status.HTTP_200_OK
         )

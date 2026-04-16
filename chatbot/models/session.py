@@ -50,10 +50,7 @@ class ChatSession(BaseModel):
         verbose_name_plural = _("نشست‌های گفتگو")
         constraints = [
             models.CheckConstraint(
-                check=(
-                        Q(user__isnull=False) |
-                        Q(session_key__isnull=False)
-                ),
+                check=(Q(user__isnull=False) | Q(session_key__isnull=False)),
                 name="chat_session_has_some_identity",
                 violation_error_message=_(
                     "حداقل یکی از کاربر یا کلید نشست باید تنظیم شود."
@@ -61,7 +58,5 @@ class ChatSession(BaseModel):
             ),
         ]
         indexes = [
-            models.Index(
-                fields=["created_at"], name="chatsession_created_idx"
-            ),
+            models.Index(fields=["created_at"], name="chatsession_created_idx"),
         ]

@@ -4,8 +4,9 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
-from .session import ChatSession
+
 from ..utils.choices import Sender
+from .session import ChatSession
 
 
 class ChatMessage(BaseModel):
@@ -35,7 +36,6 @@ class ChatMessage(BaseModel):
         ordering = ["created_at"]
         indexes = [
             models.Index(
-                fields=["session", "created_at"],
-                name="chatmsg_session_created_idx"
+                fields=["session", "created_at"], name="chatmsg_session_created_idx"
             ),
         ]
