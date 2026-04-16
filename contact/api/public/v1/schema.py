@@ -1,8 +1,9 @@
 # contact/api/public/v1/schema.py
 
 from drf_spectacular.utils import (
-    extend_schema, OpenApiExample,
+    OpenApiExample,
     OpenApiResponse,
+    extend_schema,
 )
 from rest_framework import status
 
@@ -15,7 +16,7 @@ contact_create_schema = extend_schema(
     responses={
         status.HTTP_201_CREATED: OpenApiResponse(
             response=ContactCreateSerializer,
-            description="Contact created successfully."
+            description="Contact created successfully.",
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
             description="BAD REQUEST (validation error or blocked client)"
@@ -23,33 +24,31 @@ contact_create_schema = extend_schema(
     },
     examples=[
         OpenApiExample(
-            'نمونه درخواست',
+            "نمونه درخواست",
             value={
-                'name': 'علی رضایی',
-                'email': 'ali@example.com',
-                'phone': '09123456789',
-                'message': 'سلام، مایلم با شما همکاری کنم.'
+                "name": "علی رضایی",
+                "email": "ali@example.com",
+                "phone": "09123456789",
+                "message": "سلام، مایلم با شما همکاری کنم.",
             },
-            request_only=True
+            request_only=True,
         ),
         OpenApiExample(
-            'نمونه پاسخ موفق',
+            "نمونه پاسخ موفق",
             value={
-                'name': 'علی رضایی',
-                'email': 'ali@example.com',
-                'phone': '09123456789',
-                'message': 'سلام، مایلم با شما همکاری کنم.'
+                "name": "علی رضایی",
+                "email": "ali@example.com",
+                "phone": "09123456789",
+                "message": "سلام، مایلم با شما همکاری کنم.",
             },
             response_only=True,
-            status_codes=[str(status.HTTP_201_CREATED)]
+            status_codes=[str(status.HTTP_201_CREATED)],
         ),
         OpenApiExample(
-            'نمونه خطا',
-            value={
-                'detail': 'BAD REQUEST'
-            },
+            "نمونه خطا",
+            value={"detail": "BAD REQUEST"},
             response_only=True,
-            status_codes=[str(status.HTTP_400_BAD_REQUEST)]
+            status_codes=[str(status.HTTP_400_BAD_REQUEST)],
         ),
-    ]
+    ],
 )
