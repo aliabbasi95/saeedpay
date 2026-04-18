@@ -15,6 +15,10 @@ def create_payment_event(
         description="",
         extra_data=None,
 ):
+    """
+    Thin wrapper around PaymentEvent.log to keep service-layer callers
+    decoupled from the model implementation details.
+    """
     return PaymentEvent.log(
         payment_request=payment_request,
         payment=payment,

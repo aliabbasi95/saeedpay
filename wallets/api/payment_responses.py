@@ -6,49 +6,39 @@ from rest_framework.response import Response
 from wallets.utils.choices import PaymentFlowType, PaymentStatus
 
 
-def _get_payment_request_status(payment_request):
-    if not payment_request:
-        return None
-    return getattr(payment_request, "status", None)
+def _resolve_payment_request_status(payment_request):
+    return getattr(payment_request, "status", None) if payment_request else None
 
 
-def _get_payment_status(payment):
-    if not payment:
-        return None
-    return getattr(payment, "status", None)
+def _resolve_payment_status(payment):
+    return getattr(payment, "status", None) if payment else None
 
 
-def _get_payment_reference_code(payment_request):
-    if not payment_request:
-        return None
-    return getattr(payment_request, "reference_code", None)
+def _resolve_payment_reference_code(payment_request):
+    return getattr(payment_request, "reference_code", None) if payment_request else None
 
 
-def _get_transaction_reference_code(payment):
+def _resolve_transaction_reference_code(payment):
     if not payment:
         return None
     return getattr(payment, "operation_reference_code", None) or ""
 
 
-def _get_return_url(payment_request):
-    if not payment_request:
-        return None
-    return getattr(payment_request, "return_url", None)
+def _resolve_return_url(payment_request):
+    return getattr(payment_request, "return_url", None) if payment_request else None
 
 
-def _get_amount(payment_request):
-    if not payment_request:
-        return None
-    return getattr(payment_request, "amount", None)
+def _resolve_amount(payment_request):
+    return getattr(payment_request, "amount", None) if payment_request else None
 
 
-def _get_merchant_confirmation_required(payment_request):
+def _resolve_merchant_confirmation_required(payment_request):
     if not payment_request:
         return None
     return payment_request.flow_type == PaymentFlowType.ONLINE
 
 
-def _get_next_action(payment):
+def _resolve_next_action(payment):
     if not payment:
         return None
 
@@ -72,26 +62,26 @@ def build_payment_response_payload(
     payload = {
         "detail": detail,
         "code": code,
-        "payment_reference_code": _get_payment_reference_code(payment_request),
-        "payment_request_status": _get_payment_request_status(payment_request),
-        "payment_status": _get_payment_status(payment),
+        "payment_reference_code": _resolve_payment_reference_code(payment_request),
+        "payment_request_status": _resolve_payment_request_status(payment_request),
+        "payment_status": _resolve_payment_status(payment),
         "transaction_reference_code": (
-            _get_transaction_reference_code(payment)
+            _resolve_transaction_reference_code(payment)
             if transaction_reference_code is None
             else transaction_reference_code
         ),
         "next_action": (
-            _get_next_action(payment)
+            _resolve_next_action(payment)
             if next_action is None
             else next_action
         ),
         "merchant_confirmation_required": (
-            _get_merchant_confirmation_required(payment_request)
+            _resolve_merchant_confirmation_required(payment_request)
             if merchant_confirmation_required is None
             else merchant_confirmation_required
         ),
-        "return_url": _get_return_url(payment_request),
-        "amount": _get_amount(payment_request),
+        "return_url": _resolve_return_url(payment_request),
+        "amount": _resolve_amount(payment_request),
     }
 
     if extra:
@@ -100,32 +90,7 @@ def build_payment_response_payload(
     return payload
 
 
-def payment_success_response(
-        *,
-        detail,
-        code,
-        payment_request=None,
-        payment=None,
-        http_status=status.HTTP_200_OK,
-        transaction_reference_code=None,
-        next_action=None,
-        merchant_confirmation_required=None,
-        extra=None,
-):
-    payload = build_payment_response_payload(
-        detail=detail,
-        code=code,
-        payment_request=payment_request,
-        payment=payment,
-        transaction_reference_code=transaction_reference_code,
-        next_action=next_action,
-        merchant_confirmation_required=merchant_confirmation_required,
-        extra=extra,
-    )
-    return Response(payload, status=http_status)
-
-
-def payment_error_response(
+def _build_payment_response(
         *,
         detail,
         code,
@@ -148,3 +113,53 @@ def payment_error_response(
         extra=extra,
     )
     return Response(payload, status=http_status)
+
+
+def payment_success_response(
+        *,
+        detail,
+        code,
+        payment_request=None,
+        payment=None,
+        http_status=status.HTTP_200_OK,
+        transaction_reference_code=None,
+        next_action=None,
+        merchant_confirmation_required=None,
+        extra=None,
+):
+    return _build_payment_response(
+        detail=detail,
+        code=code,
+        http_status=http_status,
+        payment_request=payment_request,
+        payment=payment,
+        transaction_reference_code=transaction_reference_code,
+        next_action=next_action,
+        merchant_confirmation_required=merchant_confirmation_required,
+        extra=extra,
+    )
+
+
+def payment_error_response(
+        *,
+        detail,
+        code,
+        http_status,
+        payment_request=None,
+        payment=None,
+        transaction_reference_code=None,
+        next_action=None,
+        merchant_confirmation_required=None,
+        extra=None,
+):
+    return _build_payment_response(
+        detail=detail,
+        code=code,
+        http_status=http_status,
+        payment_request=payment_request,
+        payment=payment,
+        transaction_reference_code=transaction_reference_code,
+        next_action=next_action,
+        merchant_confirmation_required=merchant_confirmation_required,
+        extra=extra,
+    )
