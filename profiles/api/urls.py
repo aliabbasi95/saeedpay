@@ -2,5 +2,5 @@
 from django.urls import include, path
 
 urlpatterns = [
-    path('public/', include('profiles.api.public.urls')),
+    path("public/", include("profiles.api.public.urls")),
 ]

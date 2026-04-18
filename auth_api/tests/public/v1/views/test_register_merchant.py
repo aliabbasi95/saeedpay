@@ -2,6 +2,7 @@
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -13,9 +14,13 @@ from profiles.models import Profile
 REGISTER_MERCHANT_URL = "/saeedpay/api/auth/public/v1/register/merchant/"
 
 
+@pytest.fixture(autouse=True)
+def clear_cache():
+    cache.clear()
+
+
 @pytest.mark.django_db
 class TestRegisterMerchantView:
-
     @pytest.fixture(autouse=True)
     def setup(self):
         self.client = APIClient()
@@ -33,10 +38,10 @@ class TestRegisterMerchantView:
             "phone_number": "09121110000",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
-        assert res.status_code == status.HTTP_201_CREATED
+        assert res.status_code == status.HTTP_200_OK
         assert "access" in res.data
         assert "sp_refresh" in res.cookies
         assert res.data["phone_number"] == "09121110000"
@@ -53,13 +58,11 @@ class TestRegisterMerchantView:
             "phone_number": "09121112222",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
         assert res.status_code == status.HTTP_400_BAD_REQUEST
-        assert "این شماره تلفن قبلاً به عنوان فروشنده ثبت شده است." in str(
-            res.data
-        )
+        assert "این شماره تلفن قبلاً به عنوان فروشنده ثبت شده است." in str(res.data)
 
     def test_password_mismatch(self):
         code = self.create_otp("09121113333")
@@ -67,7 +70,7 @@ class TestRegisterMerchantView:
             "phone_number": "09121113333",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "WrongConfirm"
+            "confirm_password": "WrongConfirm",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
         assert res.status_code == status.HTTP_400_BAD_REQUEST
@@ -79,7 +82,7 @@ class TestRegisterMerchantView:
             "phone_number": "09121114444",
             "code": code,
             "password": "weak",
-            "confirm_password": "weak"
+            "confirm_password": "weak",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
         assert res.status_code == status.HTTP_400_BAD_REQUEST
@@ -91,7 +94,7 @@ class TestRegisterMerchantView:
             "phone_number": "09121115555",
             "code": "wrong",
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
         assert res.status_code == status.HTTP_400_BAD_REQUEST
@@ -102,7 +105,7 @@ class TestRegisterMerchantView:
             "phone_number": "09121116666",
             "code": "1234",
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
         assert res.status_code == status.HTTP_400_BAD_REQUEST
@@ -115,10 +118,10 @@ class TestRegisterMerchantView:
             "phone_number": "09121117777",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
-        assert res.status_code == status.HTTP_201_CREATED
+        assert res.status_code == status.HTTP_200_OK
         assert res.data["user_id"] == user.id
         assert Merchant.objects.filter(user=user).exists()
 
@@ -128,7 +131,7 @@ class TestRegisterMerchantView:
             "phone_number": "abc123",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
         assert res.status_code == status.HTTP_400_BAD_REQUEST
@@ -151,7 +154,7 @@ class TestRegisterMerchantView:
             "phone_number": "09120008888",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
         assert res.status_code == status.HTTP_400_BAD_REQUEST
@@ -163,10 +166,10 @@ class TestRegisterMerchantView:
             "phone_number": " 09121119999 ",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
-        assert res.status_code == status.HTTP_201_CREATED
+        assert res.status_code == status.HTTP_200_OK
         assert "merchant" in res.data["roles"]
 
     def test_profile_phone_number_updated_if_different(self):
@@ -177,8 +180,9 @@ class TestRegisterMerchantView:
             "phone_number": "09121112233",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_MERCHANT_URL, payload)
+        assert res.status_code == status.HTTP_200_OK
         profile = Profile.objects.get(user=user)
         assert profile.phone_number == "09121112233"

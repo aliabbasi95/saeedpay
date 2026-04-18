@@ -1,6 +1,6 @@
 # banking/api/urls.py
 
-from django.urls import path, include
+from django.urls import include, path
 
 app_name = "banking"
 

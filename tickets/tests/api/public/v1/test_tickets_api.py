@@ -12,7 +12,7 @@ from tickets.models import (
     TicketMessage,
     TicketMessageAttachment,
 )
-from tickets.utils.choices import TicketStatus, TicketPriority
+from tickets.utils.choices import TicketPriority, TicketStatus
 
 User = get_user_model()
 
@@ -41,9 +41,7 @@ class TestTicketsAPI:
 
     @pytest.fixture
     def category(self):
-        return TicketCategory.objects.create(
-            name="General", icon="", color="#000"
-        )
+        return TicketCategory.objects.create(name="General", icon="", color="#000")
 
     def create_ticket(self, user, category=None, **kwargs):
         defaults = dict(
@@ -93,37 +91,50 @@ class TestTicketsAPI:
     # Retrieve with paginated messages
     def test_retrieve_ticket_with_paginated_messages(self, api_client, user):
         ticket = self.create_ticket(user)
-        # Create 11 messages to test pagination (page_size=10)
+
+        # Create 11 messages (page_size=10)
         for i in range(11):
             TicketMessage.objects.create(
-                ticket=ticket, sender=TicketMessage.Sender.USER,
-                content=f"msg {i}"
+                ticket=ticket,
+                sender=TicketMessage.Sender.USER,
+                content=f"msg {i}",
             )
-        resp = api_client.get(
-            f"/saeedpay/api/tickets/public/v1/tickets/{ticket.id}/"
-        )
+
+        # ---- Test retrieve ticket ----
+        resp = api_client.get(f"/saeedpay/api/tickets/public/v1/tickets/{ticket.id}/")
         assert resp.status_code == status.HTTP_200_OK
-        assert set(resp.data.keys()) == {"ticket", "messages"}
-        msgs = resp.data["messages"]
-        assert set(msgs.keys()) == {"results", "pagination"}
-        assert len(msgs["results"]) == 10
-        assert msgs["pagination"]["count"] == 11
+
+        # Should return TicketSerializer fields directly
+        assert "id" in resp.data
+        assert resp.data["id"] == ticket.id
+        assert "title" in resp.data
+        assert "status" in resp.data
+
+        # ---- Test messages pagination endpoint ----
+        resp_msgs = api_client.get(
+            f"/saeedpay/api/tickets/public/v1/tickets/{ticket.id}/messages/"
+        )
+        assert resp_msgs.status_code == status.HTTP_200_OK
+
+        assert "results" in resp_msgs.data
+        assert "pagination" in resp_msgs.data
+
+        assert len(resp_msgs.data["results"]) == 10
+        assert resp_msgs.data["pagination"]["count"] == 11
+
         # second page
         resp2 = api_client.get(
-            f"/saeedpay/api/tickets/public/v1/tickets/{ticket.id}/?page=2"
+            f"/saeedpay/api/tickets/public/v1/tickets/{ticket.id}/messages/?page=2"
         )
-        assert len(resp2.data["messages"]["results"]) == 1
-        assert resp2.data["messages"]["pagination"]["page"] == 2
+
+        assert len(resp2.data["results"]) == 1
+        assert resp2.data["pagination"]["page"] == 2
 
     # Add message action
     def test_add_message_with_two_attachments(self, api_client, user):
         ticket = self.create_ticket(user)
-        file1 = SimpleUploadedFile(
-            "note1.txt", b"hello", content_type="text/plain"
-        )
-        file2 = SimpleUploadedFile(
-            "note2.txt", b"world", content_type="text/plain"
-        )
+        file1 = SimpleUploadedFile("note1.txt", b"hello", content_type="text/plain")
+        file2 = SimpleUploadedFile("note2.txt", b"world", content_type="text/plain")
         data = {"content": "Here are files", "files": [file1, file2]}
         resp = api_client.post(
             f"/saeedpay/api/tickets/public/v1/tickets/{ticket.id}/messages/",
@@ -152,9 +163,7 @@ class TestTicketsAPI:
 
     def test_add_message_invalid_mime_rejected(self, api_client, user):
         ticket = self.create_ticket(user)
-        bad = SimpleUploadedFile(
-            "malware.bin", b"x", content_type="application/zip"
-        )
+        bad = SimpleUploadedFile("malware.bin", b"x", content_type="application/zip")
         resp = api_client.post(
             f"/saeedpay/api/tickets/public/v1/tickets/{ticket.id}/messages/",
             {"content": "bad file", "files": [bad]},
@@ -166,9 +175,7 @@ class TestTicketsAPI:
     def test_add_message_oversized_file_rejected(self, api_client, user):
         ticket = self.create_ticket(user)
         big_bytes = b"0" * (5 * 1024 * 1024 + 1)
-        big = SimpleUploadedFile(
-            "big.pdf", big_bytes, content_type="application/pdf"
-        )
+        big = SimpleUploadedFile("big.pdf", big_bytes, content_type="application/pdf")
         resp = api_client.post(
             f"/saeedpay/api/tickets/public/v1/tickets/{ticket.id}/messages/",
             {"content": "big file", "files": [big]},
@@ -177,9 +184,7 @@ class TestTicketsAPI:
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
         assert "files" in resp.data
 
-    def test_add_message_reply_to_must_belong_to_same_ticket(
-            self, api_client, user
-    ):
+    def test_add_message_reply_to_must_belong_to_same_ticket(self, api_client, user):
         t1 = self.create_ticket(user)
         t2 = self.create_ticket(user)
         msg = TicketMessage.objects.create(
@@ -204,13 +209,11 @@ class TestTicketsAPI:
         assert "sender" in resp.data
 
     def test_other_user_cannot_access_ticket_or_add_message(
-            self, api_client, other_client, user, other_user
+        self, api_client, other_client, user, other_user
     ):
         ticket = self.create_ticket(user)
         # Other user cannot retrieve
-        resp = other_client.get(
-            f"/saeedpay/api/tickets/public/v1/tickets/{ticket.id}/"
-        )
+        resp = other_client.get(f"/saeedpay/api/tickets/public/v1/tickets/{ticket.id}/")
         assert resp.status_code == status.HTTP_404_NOT_FOUND
         # Or post message
         resp2 = other_client.post(
@@ -222,20 +225,20 @@ class TestTicketsAPI:
 
     # Filtering and ordering
     def test_filter_by_status_priority_category_and_ordering(
-            self, api_client, user, category
+        self, api_client, user, category
     ):
         cat2 = TicketCategory.objects.create(name="Billing")
         t_open = self.create_ticket(
-            user, category, status=TicketStatus.OPEN,
-            priority=TicketPriority.HIGH
+            user, category, status=TicketStatus.OPEN, priority=TicketPriority.HIGH
         )
         t_prog = self.create_ticket(
-            user, category, status=TicketStatus.IN_PROGRESS,
-            priority=TicketPriority.NORMAL
+            user,
+            category,
+            status=TicketStatus.IN_PROGRESS,
+            priority=TicketPriority.NORMAL,
         )
-        t_res = self.create_ticket(
-            user, cat2, status=TicketStatus.RESOLVED,
-            priority=TicketPriority.LOW
+        self.create_ticket(
+            user, cat2, status=TicketStatus.RESOLVED, priority=TicketPriority.LOW
         )
 
         # status multi
@@ -247,27 +250,20 @@ class TestTicketsAPI:
         assert ids == {t_open.id, t_prog.id}
 
         # priority
-        resp2 = api_client.get(
-            "/saeedpay/api/tickets/public/v1/tickets/?priority=high"
-        )
+        resp2 = api_client.get("/saeedpay/api/tickets/public/v1/tickets/?priority=high")
         assert {row["id"] for row in resp2.data["results"]} == {t_open.id}
 
         # category
         resp3 = api_client.get(
             f"/saeedpay/api/tickets/public/v1/tickets/?category={category.id}"
         )
-        assert {row["id"] for row in resp3.data["results"]} == {t_open.id,
-                                                                t_prog.id}
+        assert {row["id"] for row in resp3.data["results"]} == {t_open.id, t_prog.id}
         # ordering by id asc (deterministic)
-        resp4 = api_client.get(
-            "/saeedpay/api/tickets/public/v1/tickets/?ordering=id"
-        )
+        resp4 = api_client.get("/saeedpay/api/tickets/public/v1/tickets/?ordering=id")
         assert resp4.data["results"][0]["id"] == t_open.id
 
     def test_invalid_filter_value_returns_400(self, api_client):
-        resp = api_client.get(
-            "/saeedpay/api/tickets/public/v1/tickets/?status=invalid"
-        )
+        resp = api_client.get("/saeedpay/api/tickets/public/v1/tickets/?status=invalid")
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
         assert "status" in resp.data
 
@@ -283,7 +279,5 @@ class TestTicketsAPI:
             "priority": TicketPriority.NORMAL,
             "category_id": category.id,
         }
-        resp2 = client.post(
-            "/saeedpay/api/tickets/public/v1/tickets/", payload
-        )
+        resp2 = client.post("/saeedpay/api/tickets/public/v1/tickets/", payload)
         assert resp2.status_code == status.HTTP_401_UNAUTHORIZED

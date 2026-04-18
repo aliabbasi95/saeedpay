@@ -7,12 +7,13 @@ from django.db import transaction
 from rest_framework import serializers
 
 from auth_api.api.public.v1.serializers.mixins import (
-    UserPublicPayloadMixin,
     OTPValidationMixin,
+    UserPublicPayloadMixin,
 )
 from customers.models import Customer
-from lib.erp_base.serializers.persian_error_message import \
-    PersianValidationErrorMessages
+from lib.erp_base.serializers.persian_error_message import (
+    PersianValidationErrorMessages,
+)
 from profiles.models import Profile
 from wallets.services import create_default_wallets_for_user
 from wallets.utils.choices import OwnerType
@@ -22,16 +23,13 @@ class RegisterCustomerSerializer(
     PersianValidationErrorMessages,
     UserPublicPayloadMixin,
     OTPValidationMixin,
-    serializers.Serializer
+    serializers.Serializer,
 ):
     phone_number = serializers.CharField(
         max_length=11,
         validators=[
-            RegexValidator(
-                regex=r'^09\d{9}$',
-                message="شماره تلفن معتبر نیست."
-            ),
-        ]
+            RegexValidator(regex=r"^09\d{9}$", message="شماره تلفن معتبر نیست."),
+        ],
     )
     code = serializers.CharField()
     password = serializers.CharField(write_only=True)
@@ -45,20 +43,16 @@ class RegisterCustomerSerializer(
         return password
 
     def validate(self, data):
-        if data['password'] != data['confirm_password']:
+        if data["password"] != data["confirm_password"]:
             raise serializers.ValidationError(
-                {'confirm_password': 'رمز عبور و تکرار آن یکسان نیستند.'}
+                {"confirm_password": "رمز عبور و تکرار آن یکسان نیستند."}
             )
 
         phone_number = data.get("phone_number")
 
-        if Customer.objects.filter(
-                user__username=phone_number
-        ).exists():
+        if Customer.objects.filter(user__username=phone_number).exists():
             raise serializers.ValidationError(
-                {
-                    "phone_number": "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است."
-                }
+                {"phone_number": "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است."}
             )
 
         self.validate_phone_otp(phone_number, data["code"])
@@ -66,8 +60,8 @@ class RegisterCustomerSerializer(
         return data
 
     def create(self, validated_data):
-        phone_number = validated_data['phone_number']
-        password = validated_data['password']
+        phone_number = validated_data["phone_number"]
+        password = validated_data["password"]
 
         User = get_user_model()
 
@@ -81,12 +75,8 @@ class RegisterCustomerSerializer(
             if profile.phone_number != phone_number:
                 profile.phone_number = phone_number
                 profile.save()
-            Customer.objects.create(
-                user=user
-            )
-            create_default_wallets_for_user(
-                user, owner_type=OwnerType.CUSTOMER
-            )
+            Customer.objects.create(user=user)
+            create_default_wallets_for_user(user, owner_type=OwnerType.CUSTOMER)
 
         self.user = user
         return user

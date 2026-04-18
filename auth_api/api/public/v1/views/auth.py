@@ -10,15 +10,15 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
 from auth_api.api.public.v1.schema import (
+    CHANGE_PASSWORD_SCHEMA,
     LOGIN_SCHEMA,
     LOGOUT_SCHEMA,
     REFRESH_SCHEMA,
-    SEND_OTP_SCHEMA,
-    SEND_USER_OTP_SCHEMA,
     REGISTER_CUSTOMER_SCHEMA,
     REGISTER_MERCHANT_SCHEMA,
-    CHANGE_PASSWORD_SCHEMA,
     RESET_PASSWORD_SCHEMA,
+    SEND_OTP_SCHEMA,
+    SEND_USER_OTP_SCHEMA,
 )
 from auth_api.api.public.v1.serializers import (
     ChangePasswordSerializer,
@@ -31,19 +31,15 @@ from auth_api.api.public.v1.serializers import (
 )
 from auth_api.api.public.v1.views.mixins import IssueTokensResponseMixin
 from auth_api.services.tokens import rotate_refresh_cookie
-from auth_api.utils.cookies import set_refresh_cookie, delete_refresh_cookie
+from auth_api.utils.cookies import delete_refresh_cookie, set_refresh_cookie
 from auth_api.utils.throttles import OTPPhoneRateThrottle
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
-MAX_SESSION_LIFETIME = getattr(
-    settings, "MAX_SESSION_LIFETIME", timedelta(hours=24)
-)
+MAX_SESSION_LIFETIME = getattr(settings, "MAX_SESSION_LIFETIME", timedelta(hours=24))
 
 
 class AuthViewSet(
-    ScopedThrottleByActionMixin,
-    IssueTokensResponseMixin,
-    viewsets.GenericViewSet
+    ScopedThrottleByActionMixin, IssueTokensResponseMixin, viewsets.GenericViewSet
 ):
     """
     Route-based Authentication endpoints (router + per-action schema/throttling/permissions).
@@ -159,20 +155,16 @@ class AuthViewSet(
                 cookie_name=cookie_name,
             )
         except ValueError as e:
-            resp = Response(
-                {"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED
-            )
+            resp = Response({"detail": str(e)}, status=status.HTTP_401_UNAUTHORIZED)
             resp.delete_cookie(cookie_name, path="/")
             return resp
         except Exception:
             return Response(
-                {"detail": "خطا در پردازش توکن."},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "خطا در پردازش توکن."}, status=status.HTTP_400_BAD_REQUEST
             )
 
         resp = Response(
-            {"access": access, "token_type": "Bearer"},
-            status=status.HTTP_200_OK
+            {"access": access, "token_type": "Bearer"}, status=status.HTTP_200_OK
         )
         set_refresh_cookie(resp, new_refresh_str)
         return resp

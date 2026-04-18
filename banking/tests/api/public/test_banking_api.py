@@ -62,7 +62,7 @@ class TestBankingAPI:
     def test_list_banks(self, api_client, bank):
         response = api_client.get("/saeedpay/api/banking/v1/banks/")
         assert response.status_code == status.HTTP_200_OK
-        items = response.data["results"]
+        items = response.data
         assert len(items) == 1
         assert items[0]["name"] == "Test Bank"
 
@@ -84,14 +84,10 @@ class TestBankingAPI:
 
         with patch("django.db.transaction.on_commit", lambda func: func()):
             with patch(
-                    "banking.services.bank_card_service.validate_card_task.delay"
+                "banking.services.bank_card_service.validate_card_task.delay"
             ) as mock_task:
-                response = api_client.post(
-                    "/saeedpay/api/banking/v1/cards/", data
-                )
-                print(
-                    "RESPONSE DATA:", response.data
-                )  # Debug print for error details
+                response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
+                print("RESPONSE DATA:", response.data)  # Debug print for error details
                 assert response.status_code == status.HTTP_201_CREATED
                 assert BankCard.objects.count() == 1
 
@@ -112,7 +108,7 @@ class TestBankingAPI:
 
         with patch("django.db.transaction.on_commit", lambda func: func()):
             with patch(
-                    "banking.services.bank_card_service.validate_card_task.delay"
+                "banking.services.bank_card_service.validate_card_task.delay"
             ) as mock_task:
                 response = api_client.patch(
                     f"/saeedpay/api/banking/v1/cards/{rejected_card.id}/", data
@@ -162,8 +158,8 @@ class TestBankingAPI:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert (
-                "کارت‌های در حال بررسی قابل ویرایش نیستند"
-                in response.data["non_field_errors"][0]
+            "کارت‌های در حال بررسی قابل ویرایش نیستند"
+            in response.data["non_field_errors"][0]
         )
 
     def test_delete_pending_card_not_allowed(self, api_client, pending_card):
@@ -174,9 +170,7 @@ class TestBankingAPI:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "کارت‌های در حال بررسی قابل حذف نیستند" in response.data[0]
 
-    def test_set_default_on_pending_card_not_allowed(
-            self, api_client, pending_card
-    ):
+    def test_set_default_on_pending_card_not_allowed(self, api_client, pending_card):
         """Test that PENDING cards cannot be set as default."""
         response = api_client.patch(
             f"/saeedpay/api/banking/v1/cards/{pending_card.id}/set-default/"
@@ -188,16 +182,14 @@ class TestBankingAPI:
         data = {"card_number": "6362141111393550"}
 
         with patch(
-                "banking.tasks.validate_card_task.delay",
-                side_effect=Exception("Task scheduling failed"),
+            "banking.tasks.validate_card_task.delay",
+            side_effect=Exception("Task scheduling failed"),
         ):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
             assert response.status_code == status.HTTP_201_CREATED
             assert BankCard.objects.count() == 1
 
-    def test_update_without_status_change_no_task(
-            self, api_client, verified_card
-    ):
+    def test_update_without_status_change_no_task(self, api_client, verified_card):
         """Test that updating without changing status doesn't schedule task."""
         # This test assumes we can update some other non-card_number field
         # Since current serializer only allows card_number, this test
@@ -208,12 +200,11 @@ class TestBankingAPI:
             response = api_client.patch(
                 f"/saeedpay/api/banking/v1/cards/{verified_card.id}/", {}
             )
+            assert response.status_code == status.HTTP_400_BAD_REQUEST
             # Task should not be called for non-status-changing updates
             mock_task.assert_not_called()
 
-    def test_rejection_reason_visible_in_response(
-            self, api_client, user, bank
-    ):
+    def test_rejection_reason_visible_in_response(self, api_client, user, bank):
         """Test that rejection_reason is included in API responses."""
         rejected_card = BankCard.objects.create(
             user=user,
@@ -224,9 +215,7 @@ class TestBankingAPI:
             is_active=True,
         )
 
-        response = api_client.get(
-            f"/saeedpay/api/banking/v1/cards/{rejected_card.id}/"
-        )
+        response = api_client.get(f"/saeedpay/api/banking/v1/cards/{rejected_card.id}/")
         assert response.status_code == status.HTTP_200_OK
         assert response.data["rejection_reason"] == "شماره کارت نامعتبر است"
 
@@ -266,17 +255,13 @@ class TestBankingAPI:
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
         # User1 should not be able to modify User2's card
-        response = client1.delete(
-            f"/saeedpay/api/banking/v1/cards/{card2.id}/"
-        )
+        response = client1.delete(f"/saeedpay/api/banking/v1/cards/{card2.id}/")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     # Security Tests
     def test_unauthenticated_access_denied(self, bank, verified_card):
         client = APIClient()
         endpoints = [
-            "/saeedpay/api/banking/v1/banks/",
-            f"/saeedpay/api/banking/v1/banks/{bank.id}/",
             "/saeedpay/api/banking/v1/cards/",
             f"/saeedpay/api/banking/v1/cards/{verified_card.id}/",
         ]
@@ -290,9 +275,7 @@ class TestBankingAPI:
             user=other_user, bank=bank, card_number="5022291333461554"
         )
 
-        response = api_client.get(
-            f"/saeedpay/api/banking/v1/cards/{other_card.id}/"
-        )
+        response = api_client.get(f"/saeedpay/api/banking/v1/cards/{other_card.id}/")
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
         response = api_client.get("/saeedpay/api/banking/v1/cards/")

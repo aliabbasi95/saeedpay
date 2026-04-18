@@ -1,21 +1,20 @@
 # kyc/api/public/v1/views/identity_verification.py
 
-from rest_framework import status, mixins, viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import mixins, status, viewsets
 from rest_framework.response import Response
 
 from kyc.api.public.v1.schema import VERIFY_IDENTITY_SCHEMA
-from kyc.api.public.v1.serializers.identity_verification import \
-    IdentityVerificationSerializer
+from kyc.api.public.v1.serializers.identity_verification import (
+    IdentityVerificationSerializer,
+)
 from kyc.services import get_identity_auth_service
 
 
-class IdentityVerificationViewSet(
-    mixins.CreateModelMixin, viewsets.GenericViewSet
-):
+class IdentityVerificationViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
     """
     POST /kyc/verify-identity/
     """
+
     serializer_class = IdentityVerificationSerializer
 
     @VERIFY_IDENTITY_SCHEMA
@@ -31,8 +30,9 @@ class IdentityVerificationViewSet(
                 {
                     "success": True,
                     "message": "Identity verified successfully",
-                    "data": result.get("data", {})
-                }, status=status.HTTP_200_OK
+                    "data": result.get("data", {}),
+                },
+                status=status.HTTP_200_OK,
             )
 
         return Response(
@@ -41,6 +41,7 @@ class IdentityVerificationViewSet(
                 "message": "Identity verification failed",
                 "error": result.get("error"),
                 "error_code": result.get("error_code"),
-                "status": result.get("status")
-            }, status=status.HTTP_400_BAD_REQUEST
+                "status": result.get("status"),
+            },
+            status=status.HTTP_400_BAD_REQUEST,
         )

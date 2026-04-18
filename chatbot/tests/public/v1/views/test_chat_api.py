@@ -1,108 +1,63 @@
 # chatbot/tests/public/v1/views/test_chat_api.py
 
+
 import pytest
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.urls import reverse
-from rest_framework.test import APIClient
 
 from chatbot.models import ChatSession
-from unittest.mock import patch
-
-
-@pytest.fixture
-def api_client():
-    return APIClient()
-
-
-@pytest.fixture(autouse=True)
-def mock_llm():
-    try:
-        path = "chatbot.services.chat_service.generate_reply"
-        with patch(path, return_value="pong"):
-            yield
-    except Exception:
-        with patch(
-                "chatbot.services.provider.generate_reply", return_value="pong"
-        ):
-            yield
-
-
-@pytest.fixture
-def test_user(db):
-    User = get_user_model()
-    username = getattr(settings, "TEST_CHATBOT_USERNAME", "09149257695")
-    password = getattr(settings, "TEST_CHATBOT_PASSWORD", "kuaghyA8921347@")
-    user, _ = User.objects.get_or_create(username=username)
-    user.set_password(password)
-    user.save()
-    return user, password
-
-
-@pytest.fixture
-def auth_token(api_client, test_user):
-    user, password = test_user
-    url = reverse("auth_api_public_v1:login")
-    response = api_client.post(
-        url, {"phone_number": user.username, "password": password}
-    )
-    assert response.status_code == 200
-    return response.data["access"], user
 
 
 @pytest.mark.django_db
 def test_anonymous_user_message_limit(api_client):
-    url = reverse("start_chat")
+    url = reverse("chatbot_public_v1:chat-session-list")
     response = api_client.post(url)
     assert response.status_code == 201
-    session_id = response.data["session_id"]
-    chat_url = reverse("chat", args=[session_id])
+    session_id = response.data["id"]
+    chat_url = reverse("chatbot_public_v1:chat-session-chat", args=[session_id])
     for i in range(settings.CHATBOT_HISTORY_LIMIT):
         resp = api_client.post(chat_url, {"query": f"msg {i}"}, format="json")
         assert resp.status_code == 200
-    resp = api_client.post(chat_url, {"query": "msg 11"}, format="json")
+    resp = api_client.post(chat_url, {"query": "msg extra"}, format="json")
     assert resp.status_code == 403
     assert (
-            f"limited to {settings.CHATBOT_HISTORY_LIMIT} messages"
-            in resp.data["detail"]
+        f"limited to {settings.CHATBOT_HISTORY_LIMIT} messages" in resp.data["detail"]
     )
 
 
 @pytest.mark.django_db
 def test_anonymous_user_limit_exactly_limit(api_client):
-    url = reverse("start_chat")
+    url = reverse("chatbot_public_v1:chat-session-list")
     response = api_client.post(url)
-    session_id = response.data["session_id"]
-    chat_url = reverse("chat", args=[session_id])
+    session_id = response.data["id"]
+    chat_url = reverse("chatbot_public_v1:chat-session-chat", args=[session_id])
     for i in range(settings.CHATBOT_HISTORY_LIMIT - 1):
         resp = api_client.post(chat_url, {"query": f"msg {i}"}, format="json")
         assert resp.status_code == 200
     resp = api_client.post(
-        chat_url,
-        {"query": f"msg {settings.CHATBOT_HISTORY_LIMIT - 1}"},
-        format="json",
+        chat_url, {"query": f"msg {settings.CHATBOT_HISTORY_LIMIT-1}"}, format="json"
     )
     assert resp.status_code == 200
-    resp = api_client.post(
-        chat_url,
-        {"query": f"msg {settings.CHATBOT_HISTORY_LIMIT}"},
-        format="json",
-    )
+    resp = api_client.post(chat_url, {"query": "msg extra"}, format="json")
     assert resp.status_code == 403
+    assert (
+        f"limited to {settings.CHATBOT_HISTORY_LIMIT} messages" in resp.data["detail"]
+    )
 
 
 @pytest.mark.django_db
 def test_anonymous_user_limit_resets_new_session(api_client):
-    url = reverse("start_chat")
+    url = reverse("chatbot_public_v1:chat-session-list")
     response1 = api_client.post(url)
-    session_id1 = response1.data["session_id"]
-    chat_url1 = reverse("chat", args=[session_id1])
+    session_id1 = response1.data["id"]
+    chat_url1 = reverse("chatbot_public_v1:chat-session-chat", args=[session_id1])
     for i in range(settings.CHATBOT_HISTORY_LIMIT):
-        api_client.post(chat_url1, {"query": f"msg {i}"}, format="json")
+        resp = api_client.post(chat_url1, {"query": f"msg {i}"}, format="json")
+        assert resp.status_code == 200
     response2 = api_client.post(url)
-    session_id2 = response2.data["session_id"]
-    chat_url2 = reverse("chat", args=[session_id2])
-    resp = api_client.post(chat_url2, {"query": "msg 0"}, format="json")
+    session_id2 = response2.data["id"]
+    chat_url2 = reverse("chatbot_public_v1:chat-session-chat", args=[session_id2])
+    resp = api_client.post(chat_url2, {"query": "first message"}, format="json")
     assert resp.status_code == 200
 
 
@@ -110,26 +65,25 @@ def test_anonymous_user_limit_resets_new_session(api_client):
 def test_authenticated_user_unlimited_messages(api_client, auth_token):
     token, user = auth_token
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
-    url = reverse("start_chat")
+    url = reverse("chatbot_public_v1:chat-session-list")
     response = api_client.post(url)
-    assert response.status_code == 201
-    session_id = response.data["session_id"]
-    chat_url = reverse("chat", args=[session_id])
-    for i in range(settings.CHATBOT_HISTORY_LIMIT * 2):
+    session_id = response.data["id"]
+    chat_url = reverse("chatbot_public_v1:chat-session-chat", args=[session_id])
+    for i in range(settings.CHATBOT_HISTORY_LIMIT * 2):  # unlimited for auth user
         resp = api_client.post(chat_url, {"query": f"msg {i}"}, format="json")
         assert resp.status_code == 200
 
 
 @pytest.mark.django_db
 def test_message_history(api_client):
-    url = reverse("start_chat")
+    url = reverse("chatbot_public_v1:chat-session-list")
     response = api_client.post(url)
-    session_id = response.data["session_id"]
-    chat_url = reverse("chat", args=[session_id])
+    session_id = response.data["id"]
+    chat_url = reverse("chatbot_public_v1:chat-session-chat", args=[session_id])
     # Send more messages than the history limit
     for i in range(settings.CHATBOT_HISTORY_LIMIT + 2):
         api_client.post(chat_url, {"query": f"msg {i}"}, format="json")
-    detail_url = reverse("chat_session_detail", args=[session_id])
+    detail_url = reverse("chatbot_public_v1:chat-session-detail", args=[session_id])
     resp = api_client.get(detail_url)
     assert resp.status_code == 200
     assert "messages" in resp.data
@@ -140,31 +94,31 @@ def test_message_history(api_client):
 def test_cannot_access_other_users_sessions(api_client, auth_token):
     token, user = auth_token
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
-    url = reverse("start_chat")
+    url = reverse("chatbot_public_v1:chat-session-list")
     response = api_client.post(url)
-    session_id = response.data["session_id"]
+    session_id = response.data["id"]
     api_client.credentials()  # Remove auth
-    detail_url = reverse("chat_session_detail", args=[session_id])
+    detail_url = reverse("chatbot_public_v1:chat-session-detail", args=[session_id])
     resp = api_client.get(detail_url)
     assert resp.status_code in (403, 404)
-    chat_url = reverse("chat", args=[session_id])
+    chat_url = reverse("chatbot_public_v1:chat-session-chat", args=[session_id])
     resp = api_client.post(chat_url, {"query": "hack"}, format="json")
     assert resp.status_code in (403, 404)
 
 
 @pytest.mark.django_db
 def test_session_key_isolation(api_client):
-    url = reverse("start_chat")
+    url = reverse("chatbot_public_v1:chat-session-list")
     resp1 = api_client.post(url)
     resp2 = api_client.post(url)
-    session_id1 = resp1.data["session_id"]
-    session_id2 = resp2.data["session_id"]
-    chat_url1 = reverse("chat", args=[session_id1])
-    chat_url2 = reverse("chat", args=[session_id2])
+    session_id1 = resp1.data["id"]
+    session_id2 = resp2.data["id"]
+    chat_url1 = reverse("chatbot_public_v1:chat-session-chat", args=[session_id1])
+    chat_url2 = reverse("chatbot_public_v1:chat-session-chat", args=[session_id2])
     api_client.post(chat_url1, {"query": "msg1"}, format="json")
     api_client.post(chat_url2, {"query": "msg2"}, format="json")
-    detail_url1 = reverse("chat_session_detail", args=[session_id1])
-    detail_url2 = reverse("chat_session_detail", args=[session_id2])
+    detail_url1 = reverse("chatbot_public_v1:chat-session-detail", args=[session_id1])
+    detail_url2 = reverse("chatbot_public_v1:chat-session-detail", args=[session_id2])
     resp1 = api_client.get(detail_url1)
     resp2 = api_client.get(detail_url2)
     assert "msg1" in str(resp1.data)
@@ -175,12 +129,12 @@ def test_session_key_isolation(api_client):
 def test_authenticated_user_session_list(api_client, auth_token):
     token, user = auth_token
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
-    url = reverse("start_chat")
+    url = reverse("chatbot_public_v1:chat-session-list")
     session_ids = []
     for _ in range(3):
         resp = api_client.post(url)
-        session_ids.append(resp.data["session_id"])
-    list_url = reverse("user_chat_sessions")
+        session_ids.append(resp.data["id"])
+    list_url = reverse("chatbot_public_v1:chat-session-list")
     resp = api_client.get(list_url)
     assert resp.status_code == 200
     returned_ids = [s.get("session_id", s.get("id")) for s in resp.data]
@@ -190,12 +144,12 @@ def test_authenticated_user_session_list(api_client, auth_token):
 
 @pytest.mark.django_db
 def test_anonymous_user_session_list_isolated(api_client):
-    url = reverse("start_chat")
+    url = reverse("chatbot_public_v1:chat-session-list")
     resp1 = api_client.post(url)
     resp2 = api_client.post(url)
-    session_id1 = resp1.data["session_id"]
-    session_id2 = resp2.data["session_id"]
-    list_url = reverse("user_chat_sessions")
+    session_id1 = resp1.data["id"]
+    session_id2 = resp2.data["id"]
+    list_url = reverse("chatbot_public_v1:chat-session-list")
     resp = api_client.get(list_url)
     assert resp.status_code == 200
     session_ids = [s.get("session_id", s.get("id")) for s in resp.data]
@@ -204,12 +158,10 @@ def test_anonymous_user_session_list_isolated(api_client):
 
 @pytest.mark.django_db
 def test_access_after_session_delete(api_client):
-    url = reverse("start_chat")
+    url = reverse("chatbot_public_v1:chat-session-list")
     resp = api_client.post(url)
-    session_id = resp.data["session_id"]
-    chat_url = reverse("chat", args=[session_id])
+    session_id = resp.data["id"]
+    chat_url = reverse("chatbot_public_v1:chat-session-chat", args=[session_id])
     ChatSession.objects.filter(id=session_id).delete()
-    resp = api_client.post(
-        chat_url, {"query": "msg after delete"}, format="json"
-    )
+    resp = api_client.post(chat_url, {"query": "msg after delete"}, format="json")
     assert resp.status_code in (403, 404)

@@ -5,14 +5,13 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from auth_api.api.public.v1.serializers.mixins import UserPublicPayloadMixin
-from lib.erp_base.serializers.persian_error_message import \
-    PersianValidationErrorMessages
+from lib.erp_base.serializers.persian_error_message import (
+    PersianValidationErrorMessages,
+)
 
 
 class LoginSerializer(
-    PersianValidationErrorMessages,
-    UserPublicPayloadMixin,
-    serializers.Serializer
+    PersianValidationErrorMessages, UserPublicPayloadMixin, serializers.Serializer
 ):
     phone_number = serializers.CharField()
     password = serializers.CharField(write_only=True)
@@ -25,19 +24,13 @@ class LoginSerializer(
         try:
             user = User.objects.get(username=phone)
         except User.DoesNotExist:
-            raise serializers.ValidationError(
-                _("شماره تلفن یا رمز عبور اشتباه است.")
-            )
+            raise serializers.ValidationError(_("شماره تلفن یا رمز عبور اشتباه است."))
 
         if not user.check_password(password):
-            raise serializers.ValidationError(
-                _("شماره تلفن یا رمز عبور اشتباه است.")
-            )
+            raise serializers.ValidationError(_("شماره تلفن یا رمز عبور اشتباه است."))
 
         if not user.is_active:
-            raise serializers.ValidationError(
-                _("حساب کاربری شما غیرفعال است.")
-            )
+            raise serializers.ValidationError(_("حساب کاربری شما غیرفعال است."))
 
         self.user = user
         return data

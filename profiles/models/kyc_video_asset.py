@@ -17,6 +17,7 @@ class KYCVideoAsset(BaseModel):
     - 'file' should be stored on a durable storage (S3, etc).
     - 'retention_until' = None means keep indefinitely (infinite retention).
     """
+
     profile = models.ForeignKey(
         "profiles.Profile",
         on_delete=models.CASCADE,
@@ -38,7 +39,8 @@ class KYCVideoAsset(BaseModel):
     )
     created_by_attempt = models.ForeignKey(
         "profiles.ProfileKYCAttempt",
-        null=True, blank=True,
+        null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         related_name="video_assets",
         verbose_name=_("ایجاد شده توسط تلاش"),
@@ -47,8 +49,12 @@ class KYCVideoAsset(BaseModel):
     # ---------- Factory ----------
     @classmethod
     def create_from_upload(
-            cls, *, profile, django_file, storage_prefix: str = None,
-            created_by_attempt=None
+        cls,
+        *,
+        profile,
+        django_file,
+        storage_prefix: str = None,
+        created_by_attempt=None,
     ) -> "KYCVideoAsset":
         """
         Persist a durable copy from an uploaded Django file:
@@ -76,7 +82,7 @@ class KYCVideoAsset(BaseModel):
         Apply retention window. days=None → infinite retention.
         """
         self.is_approved_copy = approved
-        self.retention_until = None if days is None else timezone.now() + timezone.timedelta(
-            days=days
+        self.retention_until = (
+            None if days is None else timezone.now() + timezone.timedelta(days=days)
         )
         self.save(update_fields=["is_approved_copy", "retention_until"])

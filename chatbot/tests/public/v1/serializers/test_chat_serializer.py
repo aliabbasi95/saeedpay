@@ -1,4 +1,5 @@
 import pytest
+
 from chatbot.api.public.v1.serializers import ChatRequestSerializer
 
 
@@ -9,4 +10,4 @@ def test_serializer_validation():
     assert serializer.is_valid()
     serializer = ChatRequestSerializer(data={})
     assert not serializer.is_valid()
-    assert "query" in serializer.errors 
+    assert "query" in serializer.errors

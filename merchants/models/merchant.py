@@ -11,7 +11,7 @@ class Merchant(BaseModel):
         get_user_model(),
         on_delete=models.CASCADE,
         related_name="merchant",
-        verbose_name=_("کاربر")
+        verbose_name=_("کاربر"),
     )
 
     class Meta:

@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Optional
 
-from django.db import models, IntegrityError
+from django.db import IntegrityError, models
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
 from profiles.models.profile import Profile
-from profiles.utils.choices import AttemptType, AttemptStatus
+from profiles.utils.choices import AttemptStatus, AttemptType
 
 
 class AttemptAlreadyProcessing(Exception):
@@ -92,11 +92,11 @@ class ProfileKYCAttempt(BaseModel):
     # ---------- Factory with DB-level uniqueness guard ----------
     @classmethod
     def start_new(
-            cls,
-            *,
-            profile_id: int,
-            attempt_type: str,
-            request_payload: dict | None = None,
+        cls,
+        *,
+        profile_id: int,
+        attempt_type: str,
+        request_payload: dict | None = None,
     ) -> "ProfileKYCAttempt":
         """
         Create a new attempt already in PROCESSING state.
@@ -116,10 +116,10 @@ class ProfileKYCAttempt(BaseModel):
 
     # ---------- Mutators ----------
     def mark_success(
-            self,
-            response_payload: dict | None = None,
-            external_id: str | None = None,
-            http_status: int | None = None,
+        self,
+        response_payload: dict | None = None,
+        external_id: str | None = None,
+        http_status: int | None = None,
     ) -> "ProfileKYCAttempt":
         """Mark attempt as SUCCESS and persist optional fields."""
         self.status = AttemptStatus.SUCCESS
@@ -143,10 +143,10 @@ class ProfileKYCAttempt(BaseModel):
         return self
 
     def mark_rejected(
-            self,
-            response_payload: dict | None = None,
-            http_status: int | None = None,
-            error_message: str | None = None,
+        self,
+        response_payload: dict | None = None,
+        http_status: int | None = None,
+        error_message: str | None = None,
     ) -> "ProfileKYCAttempt":
         """Mark attempt as REJECTED (e.g., business rule) with optional payload."""
         self.status = AttemptStatus.REJECTED
@@ -170,11 +170,11 @@ class ProfileKYCAttempt(BaseModel):
         return self
 
     def mark_failed(
-            self,
-            error_message: str,
-            error_code: str | None = None,
-            http_status: int | None = None,
-            response_payload: dict | None = None,
+        self,
+        error_message: str,
+        error_code: str | None = None,
+        http_status: int | None = None,
+        response_payload: dict | None = None,
     ) -> "ProfileKYCAttempt":
         """Mark attempt as FAILED (technical/transport errors)."""
         self.status = AttemptStatus.FAILED
@@ -210,9 +210,7 @@ class ProfileKYCAttempt(BaseModel):
     def duration_ms(self) -> Optional[int]:
         """Return duration in milliseconds if finished."""
         if self.started_at and self.finished_at:
-            return int(
-                (self.finished_at - self.started_at).total_seconds() * 1000
-            )
+            return int((self.finished_at - self.started_at).total_seconds() * 1000)
         return None
 
     def __str__(self) -> str:
@@ -224,9 +222,7 @@ class ProfileKYCAttempt(BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["profile", "attempt_type"],
-                condition=Q(
-                    status=AttemptStatus.PROCESSING, finished_at__isnull=True
-                ),
+                condition=Q(status=AttemptStatus.PROCESSING, finished_at__isnull=True),
                 name="uniq_processing_attempt_per_type_per_profile",
             ),
         ]

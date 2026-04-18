@@ -5,6 +5,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.admin import BaseAdmin
+
 from ..models import Bank
 
 
@@ -15,26 +16,18 @@ class BankAdmin(BaseAdmin):
         "logo_thumb",
         "color_swatch",
         "jalali_creation_date_time",
-        "jalali_update_date_time"
+        "jalali_update_date_time",
     )
     search_fields = ("name", "color")
     ordering = ("name",)
-    readonly_fields = (
-        "created_at",
-        "updated_at",
-        "logo_preview",
-        "color_swatch"
-    )
+    readonly_fields = ("created_at", "updated_at", "logo_preview", "color_swatch")
     fieldsets = (
-        (_("اطلاعات اصلی"), {
-            "fields": (
-                "name",
-                "logo",
-                "logo_preview",
-                "color",
-                "color_swatch"
-            ),
-        }),
+        (
+            _("اطلاعات اصلی"),
+            {
+                "fields": ("name", "logo", "logo_preview", "color", "color_swatch"),
+            },
+        ),
     )
 
     def get_search_fields(self, request):
@@ -44,8 +37,7 @@ class BankAdmin(BaseAdmin):
         if not obj.logo:
             return "—"
         return format_html(
-            '<img src="{}" style="height:28px;border-radius:4px;" />',
-            obj.logo.url
+            '<img src="{}" style="height:28px;border-radius:4px;" />', obj.logo.url
         )
 
     logo_thumb.short_description = _("لوگو")
@@ -54,8 +46,7 @@ class BankAdmin(BaseAdmin):
         if not obj.logo:
             return "—"
         return format_html(
-            '<img src="{}" style="max-height:80px;border-radius:6px;" />',
-            obj.logo.url
+            '<img src="{}" style="max-height:80px;border-radius:6px;" />', obj.logo.url
         )
 
     logo_preview.short_description = _("پیش‌نمایش لوگو")
@@ -67,7 +58,8 @@ class BankAdmin(BaseAdmin):
             '<span style="display:inline-block;width:18px;height:18px;border-radius:4px;'
             'border:1px solid #ddd;vertical-align:middle;background:{}"></span> '
             '<code style="margin-inline-start:6px">{}</code>',
-            obj.color, obj.color
+            obj.color,
+            obj.color,
         )
 
     color_swatch.short_description = _("رنگ")

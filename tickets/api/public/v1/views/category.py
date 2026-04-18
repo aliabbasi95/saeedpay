@@ -9,8 +9,8 @@ from rest_framework.permissions import AllowAny
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from tickets.api.public.v1.serializers import (
-    TicketCategoryListSerializer,
     TicketCategoryDetailSerializer,
+    TicketCategoryListSerializer,
 )
 from tickets.models import TicketCategory
 
@@ -31,7 +31,7 @@ class TicketCategoryViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
 ):
     queryset = TicketCategory.objects.all().order_by("id")
     permission_classes = [AllowAny]

@@ -10,18 +10,21 @@ from django.utils.safestring import mark_safe
 from profiles.models.kyc_attempt import ProfileKYCAttempt
 from profiles.models.profile import Profile
 from profiles.tasks import (
-    verify_identity_phone_national_id,
     check_profile_video_auth_result,
     reset_profile_video_auth,
+    verify_identity_phone_national_id,
 )
-from profiles.utils.choices import KYCStatus, AuthenticationStage
+from profiles.utils.choices import AuthenticationStage, KYCStatus
 
 
 def _badge(text: str, color: str) -> str:
     from django.utils.html import format_html
+
     return format_html(
         '<span style="display:inline-block;padding:2px 8px;border-radius:10px;'
-        'font-size:12px;color:#fff;background:{};">{}</span>', color, text
+        'font-size:12px;color:#fff;background:{};">{}</span>',
+        color,
+        text,
     )
 
 
@@ -40,8 +43,7 @@ class ProfileKYCAttemptInline(admin.TabularInline):
     model = ProfileKYCAttempt
     extra = 0
     can_delete = False
-    fields = ("created_at", "attempt_type", "status", "external_id",
-              "retry_count")
+    fields = ("created_at", "attempt_type", "status", "external_id", "retry_count")
     readonly_fields = fields
     ordering = ("-created_at",)
     show_change_link = True
@@ -67,8 +69,14 @@ class ProfileAdmin(admin.ModelAdmin):
         ("updated_at", admin.DateFieldListFilter),
         ("created_at", admin.DateFieldListFilter),
     )
-    search_fields = ("id", "user__username", "user__email", "phone_number",
-                     "national_id", "email")
+    search_fields = (
+        "id",
+        "user__username",
+        "user__email",
+        "phone_number",
+        "national_id",
+        "email",
+    )
     ordering = ("-updated_at",)
     date_hierarchy = "created_at"
     inlines = (ProfileKYCAttemptInline,)
@@ -92,28 +100,42 @@ class ProfileAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
-        ("مشخصات هویتی", {
-            "fields": ("user", "phone_number", "national_id",
-                       ("first_name", "last_name"), "email", "birth_date")
-        }),
-        ("وضعیت احراز هویت", {
-            "fields": (
-                "auth_stage",
-                "video_auth_status",
-                "phone_national_id_match_status",
-                "identity_verified_at",
-                "video_submitted_at",
-                "video_verified_at",
-                "video_auth_last_checked_at",
-                "video_task_id",
-                "video_auth_summary",
-            )
-        }),
+        (
+            "مشخصات هویتی",
+            {
+                "fields": (
+                    "user",
+                    "phone_number",
+                    "national_id",
+                    ("first_name", "last_name"),
+                    "email",
+                    "birth_date",
+                )
+            },
+        ),
+        (
+            "وضعیت احراز هویت",
+            {
+                "fields": (
+                    "auth_stage",
+                    "video_auth_status",
+                    "phone_national_id_match_status",
+                    "identity_verified_at",
+                    "video_submitted_at",
+                    "video_verified_at",
+                    "video_auth_last_checked_at",
+                    "video_task_id",
+                    "video_auth_summary",
+                )
+            },
+        ),
     )
 
-    actions = ("action_requeue_shahkar_for_profiles",
-               "action_poll_video_result_for_profiles",
-               "action_reset_video_for_profiles")
+    actions = (
+        "action_requeue_shahkar_for_profiles",
+        "action_poll_video_result_for_profiles",
+        "action_reset_video_for_profiles",
+    )
 
     # ---- list_display helpers ----
     @admin.display(description="مرحله احراز", ordering="auth_stage")
@@ -140,48 +162,48 @@ class ProfileAdmin(admin.ModelAdmin):
         )
 
     # ---- actions ----
-    @admin.action(
-        description="ارسال دوباره استعلام شاهکار برای پروفایل‌های انتخاب‌شده"
-    )
+    @admin.action(description="ارسال دوباره استعلام شاهکار برای پروفایل‌های انتخاب‌شده")
     def action_requeue_shahkar_for_profiles(self, request, queryset):
         count = 0
         for p in queryset:
             if not (p.national_id and p.phone_number):
                 continue
-            if p.phone_national_id_match_status in (KYCStatus.ACCEPTED,
-                                                    KYCStatus.REJECTED,
-                                                    KYCStatus.FAILED):
+            if p.phone_national_id_match_status in (
+                KYCStatus.ACCEPTED,
+                KYCStatus.REJECTED,
+                KYCStatus.FAILED,
+            ):
                 continue
             verify_identity_phone_national_id.delay(p.id)
             count += 1
         self.message_user(
             request,
-            f"استعلام شاهکار برای {count} پروفایل صف شد." if count else "پروفایل واجد شرایطی وجود ندارد.",
-            level=messages.SUCCESS if count else messages.WARNING
+            (
+                f"استعلام شاهکار برای {count} پروفایل صف شد."
+                if count
+                else "پروفایل واجد شرایطی وجود ندارد."
+            ),
+            level=messages.SUCCESS if count else messages.WARNING,
         )
 
-    @admin.action(
-        description="پول نتیجهٔ احراز ویدئویی برای پروفایل‌های انتخاب‌شده"
-    )
+    @admin.action(description="پول نتیجهٔ احراز ویدئویی برای پروفایل‌های انتخاب‌شده")
     def action_poll_video_result_for_profiles(self, request, queryset):
         count = 0
         for p in queryset:
             check_profile_video_auth_result.delay(p.id)
             count += 1
         self.message_user(
-            request, f"پول نتیجه برای {count} پروفایل صف شد.",
-            level=messages.SUCCESS
+            request, f"پول نتیجه برای {count} پروفایل صف شد.", level=messages.SUCCESS
         )
 
-    @admin.action(
-        description="ریست احراز هویت ویدئویی برای پروفایل‌های انتخاب‌شده"
-    )
+    @admin.action(description="ریست احراز هویت ویدئویی برای پروفایل‌های انتخاب‌شده")
     def action_reset_video_for_profiles(self, request, queryset):
         count = 0
         for p in queryset:
             reset_profile_video_auth.delay(p.id, reason="admin_action")
             count += 1
         self.message_user(
-            request, f"ریست ویدئویی برای {count} پروفایل زمان‌بندی شد.",
-            level=messages.SUCCESS
+            request,
+            f"ریست ویدئویی برای {count} پروفایل زمان‌بندی شد.",
+            level=messages.SUCCESS,
         )

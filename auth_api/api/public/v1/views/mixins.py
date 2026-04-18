@@ -19,10 +19,12 @@ class IssueTokensResponseMixin:
         refresh_str, access_str = self._make_tokens_payload(user)
 
         payload = serializer.build_user_public_payload(user)
-        payload.update({
-            "access": access_str,
-            "token_type": "Bearer",
-        })
+        payload.update(
+            {
+                "access": access_str,
+                "token_type": "Bearer",
+            }
+        )
 
         resp = Response(payload, status=self.default_success_status)
 

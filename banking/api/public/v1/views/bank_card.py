@@ -9,11 +9,10 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from banking.api.public.v1.schema import bank_card_viewset_schema
-from banking.api.public.v1.schema.schema_bank_card import \
-    set_default_action_schema
+from banking.api.public.v1.schema.schema_bank_card import set_default_action_schema
 from banking.api.public.v1.serializers import (
-    BankCardSerializer,
     BankCardCreateSerializer,
+    BankCardSerializer,
     BankCardUpdateSerializer,
 )
 from banking.models import BankCard
@@ -29,6 +28,7 @@ class BankCardViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     """
     User-owned bank cards (soft-delete). Write ops are throttled separately.
     """
+
     lookup_field = "id"
     pagination_class = None
     throttle_scope_map = {
@@ -43,8 +43,7 @@ class BankCardViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         # Only user's active cards; join bank for fewer queries in lists
         return (
-            BankCard.objects
-            .filter(user=self.request.user, is_active=True)
+            BankCard.objects.filter(user=self.request.user, is_active=True)
             .select_related("bank")
             .order_by("-is_default", "-created_at")
         )
@@ -68,9 +67,7 @@ class BankCardViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
         self.perform_create(serializer)
         output = BankCardSerializer(serializer.instance)
         headers = self.get_success_headers(output.data)
-        return Response(
-            output.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+        return Response(output.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -96,10 +93,7 @@ class BankCardViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
 
     @set_default_action_schema
     @action(
-        detail=True,
-        methods=["patch"],
-        url_path="set-default",
-        url_name="set-default"
+        detail=True, methods=["patch"], url_path="set-default", url_name="set-default"
     )
     def set_default(self, request, id=None):
         """

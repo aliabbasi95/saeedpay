@@ -3,8 +3,13 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from tickets.models import TicketCategory, Ticket, TicketMessage, TicketMessageAttachment
-from tickets.utils.choices import TicketStatus, TicketPriority
+from tickets.models import (
+    Ticket,
+    TicketCategory,
+    TicketMessage,
+    TicketMessageAttachment,
+)
+from tickets.utils.choices import TicketPriority, TicketStatus
 
 User = get_user_model()
 
@@ -17,7 +22,9 @@ class TestTicketsModels:
 
     @pytest.fixture
     def category(self):
-        return TicketCategory.objects.create(name="Support", description="", icon="", color="#111")
+        return TicketCategory.objects.create(
+            name="Support", description="", icon="", color="#111"
+        )
 
     def test_ticket_category_str(self, category):
         assert str(category) == "Support"
@@ -31,14 +38,20 @@ class TestTicketsModels:
 
     def test_ticket_message_str_and_reply_to(self, user):
         ticket = Ticket.objects.create(user=user, title="x")
-        m1 = TicketMessage.objects.create(ticket=ticket, sender=TicketMessage.Sender.USER, content="hi")
-        m2 = TicketMessage.objects.create(ticket=ticket, sender=TicketMessage.Sender.USER, content="re", reply_to=m1)
+        m1 = TicketMessage.objects.create(
+            ticket=ticket, sender=TicketMessage.Sender.USER, content="hi"
+        )
+        m2 = TicketMessage.objects.create(
+            ticket=ticket, sender=TicketMessage.Sender.USER, content="re", reply_to=m1
+        )
         assert f"Ticket#{ticket.id}" in str(m1)
         assert m2.reply_to_id == m1.id
 
     def test_ticket_message_attachment_create_with_file(self, user):
         ticket = Ticket.objects.create(user=user, title="x")
-        msg = TicketMessage.objects.create(ticket=ticket, sender=TicketMessage.Sender.USER, content="file")
+        msg = TicketMessage.objects.create(
+            ticket=ticket, sender=TicketMessage.Sender.USER, content="file"
+        )
         f = SimpleUploadedFile("doc.txt", b"hello", content_type="text/plain")
         att = TicketMessageAttachment.objects.create(message=msg, file=f)
         assert TicketMessageAttachment.objects.filter(id=att.id).exists()

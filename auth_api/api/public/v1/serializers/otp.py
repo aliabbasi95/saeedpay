@@ -11,9 +11,7 @@ class SendOTPSerializer(serializers.Serializer):
     phone_number = serializers.CharField(
         max_length=11,
         validators=[
-            RegexValidator(
-                regex=r"^09\d{9}$", message="شماره تلفن معتبر نیست."
-            ),
+            RegexValidator(regex=r"^09\d{9}$", message="شماره تلفن معتبر نیست."),
         ],
     )
 
@@ -28,9 +26,7 @@ class SendOTPSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         phone_number = validated_data["phone_number"]
-        otp_instance, _ = PhoneOTP.objects.get_or_create(
-            phone_number=phone_number
-        )
+        otp_instance, _ = PhoneOTP.objects.get_or_create(phone_number=phone_number)
         if otp_instance.send():
             return validated_data
         raise serializers.ValidationError(
@@ -39,7 +35,6 @@ class SendOTPSerializer(serializers.Serializer):
 
 
 class SendUserOTPSerializer(serializers.Serializer):
-
     def validate(self, data):
         user = self.context["request"].user
         phone_number = user.profile.phone_number
@@ -59,9 +54,7 @@ class SendUserOTPSerializer(serializers.Serializer):
         user = self.context["request"].user
         phone_number = user.profile.phone_number
 
-        otp_instance, _ = PhoneOTP.objects.get_or_create(
-            phone_number=phone_number
-        )
+        otp_instance, _ = PhoneOTP.objects.get_or_create(phone_number=phone_number)
         if otp_instance.send():
             return {"phone_number": phone_number}
         # TODO: check this error and improve it

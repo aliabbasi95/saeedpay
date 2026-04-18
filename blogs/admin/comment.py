@@ -17,6 +17,7 @@ class CommentAdmin(BaseAdmin):
     - Bulk actions with single UPDATE for speed.
     - Visual cues for spam/pending.
     """
+
     list_display = [
         "content_preview",
         "author",
@@ -45,29 +46,32 @@ class CommentAdmin(BaseAdmin):
         "dislike_count",
         "spam_score",
         "jalali_creation_date_time",
-        "jalali_update_date_time"
+        "jalali_update_date_time",
     ]
-    actions = [
-        "approve_comments",
-        "reject_comments",
-        "mark_as_spam",
-        "unmark_as_spam"
-    ]
+    actions = ["approve_comments", "reject_comments", "mark_as_spam", "unmark_as_spam"]
     list_select_related = ("author", "article", "reply_to")
     list_per_page = 50
 
     fieldsets = (
-        (_("محتوا"),
-         {"fields": ("article", "author", "reply_to", "content", "rating", "store")}),
+        (
+            _("محتوا"),
+            {"fields": ("article", "author", "reply_to", "content", "rating", "store")},
+        ),
         (_("وضعیت"), {"fields": ("is_approved", "is_spam")}),
-        (_("آمار"), {
-            "fields": ("like_count", "dislike_count", "spam_score"),
-            "classes": ("collapse",)
-        }),
-        (_("زمان‌بندی"), {
-            "fields": ("jalali_creation_date_time", "jalali_update_date_time"),
-            "classes": ("collapse",)
-        }),
+        (
+            _("آمار"),
+            {
+                "fields": ("like_count", "dislike_count", "spam_score"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            _("زمان‌بندی"),
+            {
+                "fields": ("jalali_creation_date_time", "jalali_update_date_time"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
     def get_queryset(self, request):
@@ -89,18 +93,14 @@ class CommentAdmin(BaseAdmin):
 
     @admin.display(description=_("محتوا"))
     def content_preview(self, obj):
-        content = obj.content[:100] + "..." if len(
-            obj.content
-        ) > 100 else obj.content
+        content = obj.content[:100] + "..." if len(obj.content) > 100 else obj.content
         if obj.is_spam:
             return format_html(
                 '<span style="color: red; text-decoration: line-through;">{}</span>',
-                content
+                content,
             )
         elif not obj.is_approved:
-            return format_html(
-                '<span style="color: orange;">{}</span>', content
-            )
+            return format_html('<span style="color: orange;">{}</span>', content)
         return content
 
     @admin.display(description=_("پاسخ"), boolean=True)
@@ -111,9 +111,7 @@ class CommentAdmin(BaseAdmin):
     @admin.display(description=_("تعداد پاسخ"))
     def approved_reply_count(self, obj):
         # Use annotated value; fallback to property if not annotated (e.g., in exports)
-        return getattr(
-            obj, "approved_reply_count_anno", None
-        ) or obj.reply_count
+        return getattr(obj, "approved_reply_count_anno", None) or obj.reply_count
 
     # --- Bulk actions ---
 
@@ -130,9 +128,7 @@ class CommentAdmin(BaseAdmin):
     @admin.action(description=_("علامت‌گذاری به عنوان اسپم"))
     def mark_as_spam(self, request, queryset):
         updated = queryset.update(is_spam=True, is_approved=False)
-        self.message_user(
-            request, f"{updated} نظر به عنوان اسپم علامت‌گذاری شد."
-        )
+        self.message_user(request, f"{updated} نظر به عنوان اسپم علامت‌گذاری شد.")
 
     @admin.action(description=_("حذف علامت اسپم"))
     def unmark_as_spam(self, request, queryset):

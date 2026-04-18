@@ -12,6 +12,7 @@ class ContactCreateView(ScopedThrottleByActionMixin, CreateAPIView):
     """
     Public endpoint to submit a contact message.
     """
+
     permission_classes = [AllowAny]
     serializer_class = ContactCreateSerializer
     throttle_scope_map = {

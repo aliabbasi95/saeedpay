@@ -16,13 +16,11 @@ class StoreApiKeyAuthentication(BaseAuthentication):
         if not auth.startswith(self.keyword + " "):
             return None
 
-        api_key = auth[len(self.keyword) + 1:]
+        api_key = auth[len(self.keyword) + 1 :]
         key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
 
         try:
-            api_key_obj = StoreApiKey.objects.get(
-                key_hash=key_hash, is_active=True
-            )
+            api_key_obj = StoreApiKey.objects.get(key_hash=key_hash, is_active=True)
         except StoreApiKey.DoesNotExist:
             raise AuthenticationFailed("Invalid API Key")
 

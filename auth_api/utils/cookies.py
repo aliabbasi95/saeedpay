@@ -14,7 +14,7 @@ def _default_refresh_cookie_max_age():
 def _resolve_cookie_max_age(refresh_token_str: str) -> int:
     try:
         token = RefreshToken(refresh_token_str)
-        exp_ts = int(token['exp'])
+        exp_ts = int(token["exp"])
         now_ts = int(datetime.now(timezone.utc).timestamp())
         remaining = max(exp_ts - now_ts, 0)
         return remaining or _default_refresh_cookie_max_age()
@@ -22,9 +22,7 @@ def _resolve_cookie_max_age(refresh_token_str: str) -> int:
         return _default_refresh_cookie_max_age()
 
 
-def set_refresh_cookie(
-        response, refresh_token_str: str, max_age: int | None = None
-):
+def set_refresh_cookie(response, refresh_token_str: str, max_age: int | None = None):
     if max_age is None:
         configured = getattr(settings, "REFRESH_COOKIE_MAX_AGE", None)
         if isinstance(configured, int) and configured > 0:

@@ -2,6 +2,7 @@
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -15,7 +16,6 @@ REGISTER_URL = "/saeedpay/api/auth/public/v1/register/customer/"
 
 @pytest.mark.django_db
 class TestRegisterCustomerView:
-
     @pytest.fixture(autouse=True)
     def setup(self):
         self.client = APIClient()
@@ -33,10 +33,10 @@ class TestRegisterCustomerView:
             "phone_number": "09123456789",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         response = self.client.post(REGISTER_URL, payload)
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_200_OK
         assert "access" in response.data
         assert "sp_refresh" in response.cookies
         assert "user_id" in response.data
@@ -52,10 +52,10 @@ class TestRegisterCustomerView:
             "phone_number": "09120001111",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         response = self.client.post(REGISTER_URL, payload)
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_200_OK
         assert response.data["user_id"] == user.id
         assert Customer.objects.filter(user=user).exists()
 
@@ -65,7 +65,7 @@ class TestRegisterCustomerView:
             "phone_number": "09120002222",
             "code": "wrongcode",
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         response = self.client.post(REGISTER_URL, payload)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -76,7 +76,7 @@ class TestRegisterCustomerView:
             "phone_number": "09120003333",
             "code": "1234",
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         response = self.client.post(REGISTER_URL, payload)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -92,13 +92,11 @@ class TestRegisterCustomerView:
             "phone_number": "09120004444",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         response = self.client.post(REGISTER_URL, payload)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است." in str(
-            response.data
-        )
+        assert "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است." in str(response.data)
 
     def test_password_mismatch(self):
         code = self.create_otp("09120005555")
@@ -106,7 +104,7 @@ class TestRegisterCustomerView:
             "phone_number": "09120005555",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "WrongConfirm"
+            "confirm_password": "WrongConfirm",
         }
         response = self.client.post(REGISTER_URL, payload)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -118,7 +116,7 @@ class TestRegisterCustomerView:
             "phone_number": "09120006666",
             "code": code,
             "password": "weak",
-            "confirm_password": "weak"
+            "confirm_password": "weak",
         }
         response = self.client.post(REGISTER_URL, payload)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -130,7 +128,7 @@ class TestRegisterCustomerView:
             "phone_number": "abcde12345",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         response = self.client.post(REGISTER_URL, payload)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -150,26 +148,30 @@ class TestRegisterCustomerView:
 
         # First use (success)
         response1 = self.client.post(
-            REGISTER_URL, {
+            REGISTER_URL,
+            {
                 "phone_number": phone,
                 "code": code,
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
-            }
+                "confirm_password": "StrongPass123!",
+            },
         )
-        assert response1.status_code == status.HTTP_201_CREATED
+
+        cache.clear()
+        assert response1.status_code == status.HTTP_200_OK
 
         # Remove customer to bypass UniqueAcrossModelsValidator
         get_user_model().objects.filter(username=phone).delete()
 
         # Second attempt (should now fail due to OTP being deleted)
         response2 = self.client.post(
-            REGISTER_URL, {
+            REGISTER_URL,
+            {
                 "phone_number": phone,
                 "code": code,
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
-            }
+                "confirm_password": "StrongPass123!",
+            },
         )
 
         assert response2.status_code == status.HTTP_400_BAD_REQUEST
@@ -181,10 +183,10 @@ class TestRegisterCustomerView:
             "phone_number": " 09123334444 ",  # spaces
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         response = self.client.post(REGISTER_URL, payload)
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_200_OK
         assert "customer" in response.data["roles"]
 
     def test_profile_phone_number_updated_if_different(self):
@@ -195,8 +197,10 @@ class TestRegisterCustomerView:
             "phone_number": "09124445555",
             "code": code,
             "password": "StrongPass123!",
-            "confirm_password": "StrongPass123!"
+            "confirm_password": "StrongPass123!",
         }
         res = self.client.post(REGISTER_URL, payload)
+        assert res.status_code == status.HTTP_200_OK
+
         profile = Profile.objects.get(user=user)
         assert profile.phone_number == "09124445555"

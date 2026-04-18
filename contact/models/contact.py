@@ -6,8 +6,7 @@ from django.db import models
 from lib.erp_base.models.base import BaseModel
 
 phone_validator = RegexValidator(
-    regex=r'^\+?[0-9\s\-\(\)\.]{7,20}$',
-    message="Please enter a valid phone number."
+    regex=r"^\+?[0-9\s\-\(\)\.]{7,20}$", message="Please enter a valid phone number."
 )
 
 
@@ -18,6 +17,7 @@ class Contact(BaseModel):
     - Keep fields minimal and stable to avoid breaking API.
     - Basic phone format validator added (international-friendly).
     """
+
     name = models.CharField(max_length=255, verbose_name="نام و نام خانوادگی")
     email = models.EmailField(verbose_name="ایمیل")
     phone = models.CharField(

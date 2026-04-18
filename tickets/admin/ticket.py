@@ -1,7 +1,7 @@
 # tickets/admin/ticket.py
 
 from django.contrib import admin
-from django.db.models import Count, Subquery, OuterRef
+from django.db.models import Count, OuterRef, Subquery
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
@@ -20,9 +20,11 @@ class TicketMessageInline(BaseStackedInlineAdmin):
             object_id = getattr(
                 getattr(request, "resolver_match", None), "kwargs", {}
             ).get("object_id")
-            qs = TicketMessage.objects.filter(
-                ticket_id=object_id
-            ) if object_id else TicketMessage.objects.none()
+            qs = (
+                TicketMessage.objects.filter(ticket_id=object_id)
+                if object_id
+                else TicketMessage.objects.none()
+            )
             kwargs["queryset"] = qs
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
@@ -32,7 +34,10 @@ class HasAssigneeFilter(admin.SimpleListFilter):
     parameter_name = "assigned"
 
     def lookups(self, request, model_admin):
-        return (("yes", _("بله")), ("no", _("خیر")),)
+        return (
+            ("yes", _("بله")),
+            ("no", _("خیر")),
+        )
 
     def queryset(self, request, queryset):
         if self.value() == "yes":
@@ -57,8 +62,11 @@ class HasWaitingOnUserFlagFilter(admin.SimpleListFilter):
             return qs.filter(status=Ticket.Status.WAITING_ON_USER)
         if self.value() == "staff":
             return qs.filter(
-                status__in=[Ticket.Status.OPEN, Ticket.Status.IN_PROGRESS,
-                            Ticket.Status.REOPENED]
+                status__in=[
+                    Ticket.Status.OPEN,
+                    Ticket.Status.IN_PROGRESS,
+                    Ticket.Status.REOPENED,
+                ]
             )
         return qs
 
@@ -77,10 +85,14 @@ class TicketAdmin(BaseAdmin):
         "last_message_preview",
         "jalali_update_date_time",
     )
-    list_filter = ("status", "priority", "category", HasAssigneeFilter,
-                   HasWaitingOnUserFlagFilter)
-    search_fields = ("id", "title", "user__username",
-                     "assigned_staff__username")
+    list_filter = (
+        "status",
+        "priority",
+        "category",
+        HasAssigneeFilter,
+        HasWaitingOnUserFlagFilter,
+    )
+    search_fields = ("id", "title", "user__username", "assigned_staff__username")
     inlines = [TicketMessageInline]
     list_select_related = ("user", "assigned_staff", "category")
     list_per_page = 30
@@ -101,21 +113,26 @@ class TicketAdmin(BaseAdmin):
     )
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request).select_related(
-            "category", "user", "assigned_staff"
+        qs = (
+            super()
+            .get_queryset(request)
+            .select_related("category", "user", "assigned_staff")
         )
         qs = qs.annotate(_messages_count=Count("messages"))
-        last_msg = TicketMessage.objects.filter(
-            ticket=OuterRef("pk")
-        ).order_by("-id").values("content")[:1]
+        last_msg = (
+            TicketMessage.objects.filter(ticket=OuterRef("pk"))
+            .order_by("-id")
+            .values("content")[:1]
+        )
         qs = qs.annotate(_last_msg=Subquery(last_msg))
         return qs
 
     @admin.display(description=_("کاربر"))
     def user_link(self, obj: Ticket):
         return format_html(
-            '<a href="/admin/auth/user/{}/change/">{}</a>', obj.user_id,
-            obj.user.username
+            '<a href="/admin/auth/user/{}/change/">{}</a>',
+            obj.user_id,
+            obj.user.username,
         )
 
     @admin.display(description=_("مسئول"))
@@ -125,7 +142,8 @@ class TicketAdmin(BaseAdmin):
         return format_html(
             '<a href="/admin/auth/user/{}/change/"><span style="padding:.1rem .4rem;'
             'border-radius:.35rem;background:#e3f2fd;color:#1565c0">{}</span></a>',
-            obj.assigned_staff_id, obj.assigned_staff.username
+            obj.assigned_staff_id,
+            obj.assigned_staff.username,
         )
 
     @admin.display(description=_("وضعیت"))
@@ -142,7 +160,8 @@ class TicketAdmin(BaseAdmin):
         return format_html(
             '<span style="padding:.15rem .45rem;border-radius:.4rem;'
             'font-size:.75rem;color:#fff;background:{}">{}</span>',
-            palette.get(obj.status, "#616161"), label
+            palette.get(obj.status, "#616161"),
+            label,
         )
 
     @admin.display(description=_("اولویت"))
@@ -157,7 +176,8 @@ class TicketAdmin(BaseAdmin):
         return format_html(
             '<span style="padding:.1rem .35rem;border-radius:.35rem;'
             'font-size:.75rem;color:#fff;background:{}">{}</span>',
-            tone.get(obj.priority, "#607d8b"), label
+            tone.get(obj.priority, "#607d8b"),
+            label,
         )
 
     @admin.display(description=_("تعداد پیام‌ها"))
@@ -263,8 +283,11 @@ class TicketAdmin(BaseAdmin):
 
         if ticket.status in {Ticket.Status.RESOLVED, Ticket.Status.CLOSED}:
             new_status = Ticket.Status.REOPENED
-        elif ticket.status in {Ticket.Status.OPEN, Ticket.Status.REOPENED,
-                               Ticket.Status.WAITING_ON_USER}:
+        elif ticket.status in {
+            Ticket.Status.OPEN,
+            Ticket.Status.REOPENED,
+            Ticket.Status.WAITING_ON_USER,
+        }:
             new_status = Ticket.Status.IN_PROGRESS
         else:
             new_status = ticket.status
@@ -274,6 +297,4 @@ class TicketAdmin(BaseAdmin):
             changed = True
 
         if changed:
-            ticket.save(
-                update_fields=["assigned_staff", "status", "updated_at"]
-            )
+            ticket.save(update_fields=["assigned_staff", "status", "updated_at"])

@@ -1,6 +1,6 @@
 # chatbot/api/public/urls.py
 
-from django.urls import path, include
+from django.urls import include, path
 
 urlpatterns = [
     path("v1/", include("chatbot.api.public.v1.urls")),

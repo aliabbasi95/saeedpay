@@ -1,20 +1,20 @@
 # blogs/api/public/v1/views/article.py
 
-from django.db.models import Q, Count, Prefetch
+from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
-from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from blogs.api.public.v1.schema import article_viewset_schema
 from blogs.api.public.v1.serializers import (
-    ArticleListSerializer,
     ArticleDetailSerializer,
+    ArticleListSerializer,
 )
 from blogs.filters import ArticleFilter
-from blogs.models import Article, Comment, ArticleSection
+from blogs.models import Article, ArticleSection, Comment
 
 
 @article_viewset_schema
@@ -24,6 +24,7 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
     - List: published & time passed for non-authors; include author's own drafts if authenticated.
     - Retrieve: same visibility; increments view_count atomically.
     """
+
     serializer_class = ArticleListSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -37,9 +38,7 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
         """
         Override to support both ID and slug lookup.
         """
-        lookup_value = self.kwargs.get(
-            self.lookup_url_kwarg or self.lookup_field
-        )
+        lookup_value = self.kwargs.get(self.lookup_url_kwarg or self.lookup_field)
 
         # Try to determine if it's an ID (numeric) or slug (string)
         if lookup_value.isdigit():
@@ -48,6 +47,7 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
             obj = queryset.filter(pk=lookup_value).first()
             if obj is None:
                 from rest_framework.exceptions import NotFound
+
                 raise NotFound("Article not found")
             return obj
         else:
@@ -61,8 +61,8 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action in ["list", "retrieve"]:
             if self.request.user.is_authenticated:
                 qs = qs.filter(
-                    Q(author=self.request.user) |
-                    Q(status="published", published_at__lte=now)
+                    Q(author=self.request.user)
+                    | Q(status="published", published_at__lte=now)
                 )
             else:
                 qs = qs.filter(status="published", published_at__lte=now)
@@ -70,9 +70,14 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == "list":
             qs = (
                 qs.only(
-                    "id", "title", "slug", "excerpt", "featured_image",
+                    "id",
+                    "title",
+                    "slug",
+                    "excerpt",
+                    "featured_image",
                     "published_at",
-                    "author__id", "author__username",
+                    "author__id",
+                    "author__username",
                     "author__profile__first_name",
                     "author__profile__last_name",
                 )
@@ -86,8 +91,13 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
                     Prefetch(
                         "sections",
                         queryset=ArticleSection.objects.only(
-                            "id", "section_type", "content", "image",
-                            "image_alt", "order", "article_id"
+                            "id",
+                            "section_type",
+                            "content",
+                            "image",
+                            "image_alt",
+                            "order",
+                            "article_id",
                         ).order_by("order"),
                     ),
                     Prefetch(
@@ -96,11 +106,20 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
                             "author", "author__profile"
                         )
                         .only(
-                            "id", "content", "rating", "reply_to_id",
-                            "is_approved", "like_count", "dislike_count",
-                            "created_at", "article_id", "store_id",
-                            "author__id", "author__username",
-                            "author__first_name", "author__last_name",
+                            "id",
+                            "content",
+                            "rating",
+                            "reply_to_id",
+                            "is_approved",
+                            "like_count",
+                            "dislike_count",
+                            "created_at",
+                            "article_id",
+                            "store_id",
+                            "author__id",
+                            "author__username",
+                            "author__first_name",
+                            "author__last_name",
                         )
                         .filter(is_approved=True)
                         .order_by("created_at"),

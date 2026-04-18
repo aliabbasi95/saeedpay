@@ -1,11 +1,12 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
 from django.db import models
-from customers.models.customer import Customer
-from merchants.models.merchant import Merchant
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from blogs.models.comment import Comment
 from customers.api.public.v1.schema import simple_status_schema
+from customers.models.customer import Customer
+from merchants.models.merchant import Merchant
 
 
 @simple_status_schema

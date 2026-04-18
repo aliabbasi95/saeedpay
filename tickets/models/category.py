@@ -7,25 +7,11 @@ from lib.erp_base.models import BaseModel
 
 
 class TicketCategory(BaseModel):
-    name = models.CharField(
-        max_length=100,
-        unique=True,
-        verbose_name=_("نام")
-    )
-    description = models.TextField(
-        blank=True,
-        verbose_name=_("توضیحات")
-    )
-    icon = models.CharField(
-        max_length=64,
-        blank=True,
-        verbose_name=_("آیکون")
-    )
+    name = models.CharField(max_length=100, unique=True, verbose_name=_("نام"))
+    description = models.TextField(blank=True, verbose_name=_("توضیحات"))
+    icon = models.CharField(max_length=64, blank=True, verbose_name=_("آیکون"))
     color = models.CharField(
-        max_length=32,
-        blank=True,
-        help_text=_("مثال: #1769aa"),
-        verbose_name=_("رنگ")
+        max_length=32, blank=True, help_text=_("مثال: #1769aa"), verbose_name=_("رنگ")
     )
 
     def __str__(self):

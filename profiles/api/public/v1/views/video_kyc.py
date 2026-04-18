@@ -1,13 +1,10 @@
 # profiles/api/public/v1/views/video_kyc.py
 
-import hashlib
 import os
 import tempfile
 
 from django.conf import settings
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
-from rest_framework import status, generics
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -22,6 +19,7 @@ class VideoKYCSubmitView(generics.GenericAPIView):
     Submit video authentication verification for the authenticated user's profile.
     Validation is handled by the serializer.
     """
+
     serializer_class = VideoKYCSerializer
     permission_classes = [IsAuthenticated]
 
@@ -29,25 +27,27 @@ class VideoKYCSubmitView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         # Validate request data and profile state
         serializer = self.get_serializer(
-            data=request.data, context={'request': request}
+            data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
 
         # Extract validated data
-        profile = serializer.validated_data['_profile']
-        video_file = serializer.validated_data['selfieVideo']
-        rand_action = serializer.validated_data['randAction']
+        profile = serializer.validated_data["_profile"]
+        video_file = serializer.validated_data["selfieVideo"]
+        rand_action = serializer.validated_data["randAction"]
 
         # Persist a durable copy only when policy requires (approved_only or short_all)
         asset_id = None
         if getattr(settings, "KYC_VIDEO_RETENTION_MODE", "approved_only") in (
-                "approved_only", "short_all"):
+            "approved_only",
+            "short_all",
+        ):
             asset = KYCVideoAsset.create_from_upload(
                 profile=profile,
                 django_file=video_file,
                 storage_prefix=getattr(
                     settings, "KYC_VIDEO_STORAGE_PREFIX", "kyc_videos/"
-                    ),
+                ),
                 created_by_attempt=None,  # بعداً در task لینک می‌شود
             )
             asset_id = asset.id
@@ -87,20 +87,14 @@ class VideoKYCSubmitView(generics.GenericAPIView):
                     pass
 
             return Response(
-                {
-                    "success": False,
-                    "error": "submission_failed",
-                    "message": str(e)
-                },
+                {"success": False, "error": "submission_failed", "message": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     def _save_temp_video(self, video_file) -> str:
         """Save uploaded video to a temporary file and return its absolute path."""
         suffix = os.path.splitext(video_file.name)[1] or ".mp4"
-        with tempfile.NamedTemporaryFile(
-                delete=False, suffix=suffix
-        ) as tmp_file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
             for chunk in video_file.chunks():
                 tmp_file.write(chunk)
             return tmp_file.name

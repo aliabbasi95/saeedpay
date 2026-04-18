@@ -9,7 +9,6 @@ from auth_api.models import PhoneOTP
 
 @pytest.mark.django_db
 class TestSendOTPSerializer:
-
     def test_otp_created_if_not_exists(self):
         serializer = SendOTPSerializer(data={"phone_number": "09120000000"})
         assert serializer.is_valid(), serializer.errors

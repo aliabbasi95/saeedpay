@@ -18,7 +18,7 @@ class RetentionStatusFilter(admin.SimpleListFilter):
         return (
             ("infinite", _("نامحدود")),
             ("expiring", _("در حال انقضا")),
-            ("expired", _("منقضی شده"))
+            ("expired", _("منقضی شده")),
         )
 
     def queryset(self, request, qs):
@@ -28,9 +28,7 @@ class RetentionStatusFilter(admin.SimpleListFilter):
         if self.value() == "expiring":
             return qs.filter(retention_until__gt=now)
         if self.value() == "expired":
-            return qs.filter(
-                retention_until__lte=now, retention_until__isnull=False
-            )
+            return qs.filter(retention_until__lte=now, retention_until__isnull=False)
         return qs
 
 
@@ -48,10 +46,12 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
         "jalali_creation_time",
         "jalali_update_time",
     )
-    list_filter = ("is_approved_copy", RetentionStatusFilter,
-                   ("created_at", admin.DateFieldListFilter))
-    search_fields = ("id", "profile__id", "created_by_attempt__id", "sha256",
-                     "file")
+    list_filter = (
+        "is_approved_copy",
+        RetentionStatusFilter,
+        ("created_at", admin.DateFieldListFilter),
+    )
+    search_fields = ("id", "profile__id", "created_by_attempt__id", "sha256", "file")
     ordering = ("-created_at",)
     date_hierarchy = "created_at"
     list_select_related = ("profile", "created_by_attempt")
@@ -108,9 +108,7 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
         if obj.retention_until <= now:
             return format_html('<span style="color:#c00">منقضی شده</span>')
         days = (obj.retention_until.date() - now.date()).days
-        return format_html(
-            '<span style="color:#a70">انقضا در {} روز</span>', days
-        )
+        return format_html('<span style="color:#a70">انقضا در {} روز</span>', days)
 
     @admin.display(description="Attempt")
     def attempt_link(self, obj: KYCVideoAsset) -> str:
@@ -126,9 +124,7 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
     def file_link(self, obj: KYCVideoAsset) -> str:
         try:
             url = obj.file.url
-            return format_html(
-                '<a href="{}" target="_blank">باز کردن</a>', url
-            )
+            return format_html('<a href="{}" target="_blank">باز کردن</a>', url)
         except Exception:
             return "-"
 
@@ -150,8 +146,9 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
     def action_mark_approved(self, request, queryset):
         updated = queryset.update(is_approved_copy=True)
         self.message_user(
-            request, f"{updated} مورد به‌عنوان مورد تأیید علامت‌گذاری شد.",
-            level=messages.SUCCESS
+            request,
+            f"{updated} مورد به‌عنوان مورد تأیید علامت‌گذاری شد.",
+            level=messages.SUCCESS,
         )
 
     @admin.action(description="لغو تأیید نسخه")
@@ -168,8 +165,9 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
             obj.mark_retention(days=None, approved=obj.is_approved_copy)
             count += 1
         self.message_user(
-            request, f"نگهداشت نامحدود برای {count} مورد تنظیم شد.",
-            level=messages.SUCCESS
+            request,
+            f"نگهداشت نامحدود برای {count} مورد تنظیم شد.",
+            level=messages.SUCCESS,
         )
 
     @admin.action(description="تنظیم نگهداشت ۳۰ روز")
@@ -179,8 +177,9 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
             obj.mark_retention(days=30, approved=obj.is_approved_copy)
             count += 1
         self.message_user(
-            request, f"نگهداشت ۳۰ روز برای {count} مورد تنظیم شد.",
-            level=messages.SUCCESS
+            request,
+            f"نگهداشت ۳۰ روز برای {count} مورد تنظیم شد.",
+            level=messages.SUCCESS,
         )
 
     @admin.action(description="تنظیم نگهداشت ۹۰ روز")
@@ -190,8 +189,9 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
             obj.mark_retention(days=90, approved=obj.is_approved_copy)
             count += 1
         self.message_user(
-            request, f"نگهداشت ۹۰ روز برای {count} مورد تنظیم شد.",
-            level=messages.SUCCESS
+            request,
+            f"نگهداشت ۹۰ روز برای {count} مورد تنظیم شد.",
+            level=messages.SUCCESS,
         )
 
     @admin.action(description="حذف فایل‌ها و رکوردهای انتخاب‌شده")
@@ -205,6 +205,4 @@ class KYCVideoAssetAdmin(admin.ModelAdmin):
                 pass
             obj.delete()
             deleted += 1
-        self.message_user(
-            request, f"{deleted} مورد حذف شد.", level=messages.WARNING
-        )
+        self.message_user(request, f"{deleted} مورد حذف شد.", level=messages.WARNING)

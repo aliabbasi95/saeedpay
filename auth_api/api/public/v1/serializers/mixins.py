@@ -6,7 +6,6 @@ from auth_api.models import PhoneOTP
 
 
 class UserPublicPayloadMixin:
-
     @staticmethod
     def build_user_public_payload(user):
         roles = []
@@ -31,8 +30,8 @@ class OTPValidationMixin:
         except PhoneOTP.DoesNotExist:
             raise serializers.ValidationError(
                 {"code": "کد تایید یافت نشد یا منقضی شده است."}
-                )
+            )
         if not otp_instance.verify(code):
             raise serializers.ValidationError(
                 {"code": "کد تایید اشتباه یا منقضی شده است."}
-                )
+            )

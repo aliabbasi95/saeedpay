@@ -1,21 +1,21 @@
 # chatbot/api/public/v1/schema.py
 
 from drf_spectacular.utils import (
-    extend_schema,
-    extend_schema_view,
-    OpenApiResponse,
     OpenApiExample,
     OpenApiParameter,
+    OpenApiResponse,
     OpenApiTypes,
+    extend_schema,
+    extend_schema_view,
 )
 from rest_framework import status
 
 from chatbot.api.public.v1.serializers import (
-    ChatSessionSerializer,
-    ChatSessionDetailSerializer,
+    ChatMessageSerializer,
     ChatRequestSerializer,
     ChatResponseSerializer,
-    ChatMessageSerializer,
+    ChatSessionDetailSerializer,
+    ChatSessionSerializer,
 )
 
 # -------- ViewSet (list/retrieve/create) --------
@@ -34,9 +34,10 @@ chat_session_viewset_schema = extend_schema_view(
         summary="Get a chat session with messages",
         parameters=[
             OpenApiParameter(
-                name="id", type=OpenApiTypes.INT,
+                name="id",
+                type=OpenApiTypes.INT,
                 location=OpenApiParameter.PATH,
-                description="Chat session id"
+                description="Chat session id",
             )
         ],
         responses={200: ChatSessionDetailSerializer},
@@ -49,14 +50,14 @@ chat_session_viewset_schema = extend_schema_view(
             status.HTTP_201_CREATED: OpenApiResponse(
                 response=ChatSessionSerializer,
                 description="Session created",
-                examples=[OpenApiExample(
-                    "Created",
-                    value={
-                        "id": 12, "is_active": True, "session_key": "abc123"
-                    },
-                    response_only=True,
-                    status_codes=[str(status.HTTP_201_CREATED)],
-                )],
+                examples=[
+                    OpenApiExample(
+                        "Created",
+                        value={"id": 12, "is_active": True, "session_key": "abc123"},
+                        response_only=True,
+                        status_codes=[str(status.HTTP_201_CREATED)],
+                    )
+                ],
             ),
             status.HTTP_403_FORBIDDEN: OpenApiResponse(
                 description="Anonymous session limit reached"
@@ -77,9 +78,7 @@ chat_action_schema = extend_schema(
     responses={
         200: ChatResponseSerializer,
         400: OpenApiResponse(description="Invalid input"),
-        403: OpenApiResponse(
-            description="Anonymous limits reached or forbidden"
-        ),
+        403: OpenApiResponse(description="Anonymous limits reached or forbidden"),
         404: OpenApiResponse(description="Session not found"),
         502: OpenApiResponse(description="LLM gateway error"),
     },
@@ -103,8 +102,10 @@ messages_action_schema = extend_schema(
     summary="List messages of a session",
     parameters=[
         OpenApiParameter(
-            name="id", type=OpenApiTypes.INT, location=OpenApiParameter.PATH,
-            description="Chat session id"
+            name="id",
+            type=OpenApiTypes.INT,
+            location=OpenApiParameter.PATH,
+            description="Chat session id",
         )
     ],
     responses={200: ChatMessageSerializer(many=True)},

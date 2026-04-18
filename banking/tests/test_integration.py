@@ -1,15 +1,16 @@
 # banking/tests/test_integration.py
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 from django.contrib.auth import get_user_model
 from django.test import override_settings
+from rest_framework import status
 from rest_framework.test import APIClient
 
-
 from banking.models import Bank, BankCard
+from banking.tasks import CardValidationTask, validate_card_task
 from banking.utils.choices import BankCardStatus
-from banking.tasks import validate_card_task, CardValidationTask
 
 User = get_user_model()
 
@@ -32,17 +33,17 @@ class TestCardValidationIntegration:
     def bank(self):
         return Bank.objects.create(name="Test Bank", color="#123456")
 
-    def test_complete_card_creation_and_validation_flow(
-        self, api_client, bank
-    ):
+    def test_complete_card_creation_and_validation_flow(self, api_client, bank):
         """
         Test the complete flow from card creation to validation completion.
         """
         # Step 1: Create a card via API
         data = {"card_number": "6362141111393550"}
 
-        with patch("banking.tasks.validate_card_task.delay") as mock_task_delay, \
-     patch("banking.services.bank_card_service.enqueue_validation_if_pending", side_effect=lambda old_status, card: validate_card_task.delay(str(card.id))):
+        with patch("banking.tasks.validate_card_task.delay") as mock_task_delay, patch(
+            "banking.services.bank_card_service.enqueue_validation_if_pending",
+            side_effect=lambda old_status, card: validate_card_task.delay(str(card.id)),
+        ):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
             assert response.status_code == 201
 
@@ -58,9 +59,7 @@ class TestCardValidationIntegration:
         # Step 2: Simulate task execution (mock validation - approval)
         with override_settings(CARD_VALIDATOR_MOCK=True):
             with patch("time.sleep"):  # Skip sleep for faster testing
-                with patch(
-                    "random.random", return_value=0.1
-                ):  # Force approval
+                with patch("random.random", return_value=0.1):  # Force approval
                     result = validate_card_task(str(card.id))
                     assert result is True
 
@@ -92,9 +91,7 @@ class TestCardValidationIntegration:
         # Step 2: Simulate task execution (mock validation - rejection)
         with override_settings(CARD_VALIDATOR_MOCK=True):
             with patch("time.sleep"):
-                with patch(
-                    "random.random", return_value=0.9
-                ):  # Force rejection
+                with patch("random.random", return_value=0.9):  # Force rejection
                     validate_card_task(str(card.id))
 
         # Step 3: Verify card was rejected
@@ -106,8 +103,10 @@ class TestCardValidationIntegration:
 
         # Step 4: Verify rejected card can be updated
         data = {"card_number": "6362141111393154"}
-        with patch("banking.tasks.validate_card_task.delay") as mock_task, \
-     patch("banking.services.bank_card_service.enqueue_validation_if_pending", side_effect=lambda old_status, card: validate_card_task.delay(str(card.id))):
+        with patch("banking.tasks.validate_card_task.delay") as mock_task, patch(
+            "banking.services.bank_card_service.enqueue_validation_if_pending",
+            side_effect=lambda old_status, card: validate_card_task.delay(str(card.id)),
+        ):
             response = api_client.patch(
                 f"/saeedpay/api/banking/v1/cards/{card.id}/", data
             )
@@ -139,9 +138,7 @@ class TestCardValidationIntegration:
         assert response.status_code == 400
 
         # Cannot delete
-        response = api_client.delete(
-            f"/saeedpay/api/banking/v1/cards/{card_id}/"
-        )
+        response = api_client.delete(f"/saeedpay/api/banking/v1/cards/{card_id}/")
         assert response.status_code == 400
 
         # Cannot set as default
@@ -167,9 +164,7 @@ class TestCardValidationIntegration:
         mock_task_instance.max_retries = 3
 
         # Call the on_failure handler directly to simulate permanent failure
-        CardValidationTask().on_failure(
-            exc, card.id, (str(card.id),), {}, None
-        )
+        CardValidationTask().on_failure(exc, card.id, (str(card.id),), {}, None)
 
         # Verify card was marked as rejected due to system failure
         card.refresh_from_db()
@@ -178,8 +173,10 @@ class TestCardValidationIntegration:
 
         # Verify rejected card can still be updated to retry validation
         data = {"card_number": "6362141111393154"}
-        with patch("banking.tasks.validate_card_task.delay") as mock_task, \
-     patch("banking.services.bank_card_service.enqueue_validation_if_pending", side_effect=lambda old_status, card: validate_card_task.delay(str(card.id))):
+        with patch("banking.tasks.validate_card_task.delay") as mock_task, patch(
+            "banking.services.bank_card_service.enqueue_validation_if_pending",
+            side_effect=lambda old_status, card: validate_card_task.delay(str(card.id)),
+        ):
             response = api_client.patch(
                 f"/saeedpay/api/banking/v1/cards/{card.id}/", data
             )
@@ -193,6 +190,8 @@ class TestCardValidationIntegration:
 
         with patch("banking.tasks.validate_card_task.delay"):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
+            assert response.status_code == status.HTTP_201_CREATED
+
             card = BankCard.objects.get(card_number="6362141111393550")
 
         # Test production validation is called
@@ -208,6 +207,8 @@ class TestCardValidationIntegration:
         data = {"card_number": "6362141111393550"}
         with patch("banking.tasks.validate_card_task.delay"):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
+            assert response.status_code == status.HTTP_201_CREATED
+
             card = BankCard.objects.get(card_number="6362141111393550")
 
         # Simulate concurrent status change during validation
@@ -219,12 +220,12 @@ class TestCardValidationIntegration:
 
         with patch(
             "banking.services.card_validator.validate_pending_card",
-            side_effect=lambda card_id: change_status_during_validation(BankCard.objects.get(id=card_id)),
+            side_effect=lambda card_id: change_status_during_validation(
+                BankCard.objects.get(id=card_id)
+            ),
         ):
             result = validate_card_task(str(card.id))
-            assert (
-                result is True
-            )  # Should handle concurrent changes gracefully
+            assert result is True  # Should handle concurrent changes gracefully
 
     def test_multiple_users_card_isolation(self):
         """Test that multiple users' cards are properly isolated."""

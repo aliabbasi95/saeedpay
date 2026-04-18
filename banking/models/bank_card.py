@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 
 from banking.utils.choices import BankCardStatus
 from lib.erp_base.models import BaseModel
+
 from .bank import Bank
 
 
@@ -75,16 +76,20 @@ class BankCard(BaseModel):
         errors = {}
         if self.card_number:
             from banking.services import bank_card_service
+
             if not bank_card_service.is_luhn_valid(self.card_number):
                 errors["card_number"] = _("شماره کارت نامعتبر است.")
         if self.is_default and self.status != BankCardStatus.VERIFIED:
-            errors["is_default"] = _(
-                "فقط کارت‌های تأیید‌شده می‌توانند پیش‌فرض شوند."
-            )
+            errors["is_default"] = _("فقط کارت‌های تأیید‌شده می‌توانند پیش‌فرض شوند.")
         if self.card_number:
-            exists_other_verified = type(self).objects.filter(
-                card_number=self.card_number, status=BankCardStatus.VERIFIED
-            ).exclude(user=self.user).exists()
+            exists_other_verified = (
+                type(self)
+                .objects.filter(
+                    card_number=self.card_number, status=BankCardStatus.VERIFIED
+                )
+                .exclude(user=self.user)
+                .exists()
+            )
             if exists_other_verified:
                 errors["card_number"] = _(
                     "این شماره کارت قبلاً توسط کاربر دیگری تأیید شده است."
@@ -100,8 +105,8 @@ class BankCard(BaseModel):
         if not self._state.adding:
             original = BankCard.objects.get(pk=self.pk)
             if (
-                    self.card_number != original.card_number
-                    and original.status == BankCardStatus.REJECTED
+                self.card_number != original.card_number
+                and original.status == BankCardStatus.REJECTED
             ):
                 self.status = BankCardStatus.PENDING
                 self.bank = None
@@ -123,16 +128,12 @@ class BankCard(BaseModel):
                 fields=["user", "is_default"],
                 condition=models.Q(is_default=True),
                 name="unique_default_card_per_user",
-                violation_error_message=_(
-                    "فقط یک کارت می‌تواند پیش‌فرض باشد."
-                ),
+                violation_error_message=_("فقط یک کارت می‌تواند پیش‌فرض باشد."),
             ),
             models.UniqueConstraint(
                 fields=["user", "card_number"],
                 name="unique_card_per_user",
-                violation_error_message=_(
-                    "شما قبلاً این کارت را ثبت کرده‌اید."
-                ),
+                violation_error_message=_("شما قبلاً این کارت را ثبت کرده‌اید."),
             ),
             models.UniqueConstraint(
                 fields=["card_number"],
@@ -144,11 +145,8 @@ class BankCard(BaseModel):
             ),
         ]
         indexes = [
+            models.Index(fields=["user", "is_active"], name="bankcard_user_active_idx"),
             models.Index(
-                fields=["user", "is_active"], name="bankcard_user_active_idx"
-            ),
-            models.Index(
-                fields=["-is_default", "-created_at"],
-                name="bankcard_default_added_idx"
+                fields=["-is_default", "-created_at"], name="bankcard_default_added_idx"
             ),
         ]

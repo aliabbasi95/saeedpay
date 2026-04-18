@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from urllib.parse import urljoin
 
 import requests
@@ -27,14 +27,14 @@ class VideoIdentityVerificationService:
             )
 
     def verify_idcard_video(
-            self,
-            national_code: str,
-            birth_date: str,
-            selfie_video_path: str,
-            rand_action: str,
-            access_token: str,
-            matching_thr: Optional[int] = None,
-            liveness_thr: Optional[int] = None,
+        self,
+        national_code: str,
+        birth_date: str,
+        selfie_video_path: str,
+        rand_action: str,
+        access_token: str,
+        matching_thr: Optional[int] = None,
+        liveness_thr: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Send video-based identity verification request.
@@ -53,22 +53,25 @@ class VideoIdentityVerificationService:
         if not access_token:
             logger.error("Access token is required for video verification")
             return {
-                "success": False, "error": "access_token_required",
-                "status": "validation_error"
+                "success": False,
+                "error": "access_token_required",
+                "status": "validation_error",
             }
 
         if not selfie_video_path or not selfie_video_path.strip():
             logger.error("Selfie video file path is empty or None")
             return {
-                "success": False, "error": "selfie_video_file_path_empty",
-                "status": "validation_error"
+                "success": False,
+                "error": "selfie_video_file_path_empty",
+                "status": "validation_error",
             }
 
         if not os.path.exists(selfie_video_path):
             logger.error(f"Selfie video file not found: {selfie_video_path}")
             return {
-                "success": False, "error": "selfie_video_file_not_found",
-                "status": "file_error"
+                "success": False,
+                "error": "selfie_video_file_not_found",
+                "status": "file_error",
             }
 
         # Prepare request
@@ -77,11 +80,12 @@ class VideoIdentityVerificationService:
         )
         headers = {
             "Authorization": f"Bearer {access_token}",
-            "User-Agent": "SaeedPay-KYC-Service/1.0"
+            "User-Agent": "SaeedPay-KYC-Service/1.0",
         }
         data = {
-            "nationalCode": national_code, "birthDate": birth_date,
-            "randAction": rand_action
+            "nationalCode": national_code,
+            "birthDate": birth_date,
+            "randAction": rand_action,
         }
 
         if matching_thr is not None:
@@ -100,8 +104,7 @@ class VideoIdentityVerificationService:
                     )
                 }
                 response = self.session.post(
-                    url, data=data, files=files, headers=headers,
-                    timeout=self.timeout
+                    url, data=data, files=files, headers=headers, timeout=self.timeout
                 )
             if response.status_code == 200:
                 try:
@@ -110,29 +113,30 @@ class VideoIdentityVerificationService:
                     logger.error("Invalid JSON in success response")
                     return {
                         "success": False,
-                        "error": "Invalid JSON in success response"
+                        "error": "Invalid JSON in success response",
                     }
             elif response.status_code == 400:
                 try:
                     return {
                         "success": False,
                         "error": response.json().get("error", {}),
-                        "status": 400
+                        "status": 400,
                     }
                 except Exception:
                     logger.error("Invalid JSON in error response (400)")
                     return {
                         "success": False,
                         "error": "Invalid JSON in error response (400)",
-                        "status": 400
+                        "status": 400,
                     }
             else:
                 logger.error(
                     f"Unexpected status {response.status_code}: {response.text}"
                 )
                 return {
-                    "success": False, "error": response.text,
-                    "status": response.status_code
+                    "success": False,
+                    "error": response.text,
+                    "status": response.status_code,
                 }
         except requests.exceptions.RequestException as e:
             logger.error(f"Network error: {e}")
@@ -141,8 +145,9 @@ class VideoIdentityVerificationService:
             logger.error(f"Unexpected error: {e}")
             return {"success": False, "error": str(e), "status": "exception"}
 
-    def get_verification_result(self, unique_id: str, access_token: str) -> \
-            Dict[str, Any]:
+    def get_verification_result(
+        self, unique_id: str, access_token: str
+    ) -> Dict[str, Any]:
         """
         Fetch the result of a video-based identity verification by uniqueId.
         Args:
@@ -152,18 +157,14 @@ class VideoIdentityVerificationService:
             Dict with success status, result details if available, or error info
         """
         if not access_token:
-            logger.error(
-                "Access token is required for fetching verification result"
-            )
+            logger.error("Access token is required for fetching verification result")
             return {
                 "success": False,
                 "error": "access_token_required",
                 "status": "validation_error",
             }
 
-        url = urljoin(
-            self.base_url.rstrip("/") + "/", "api/vvs/video/verify/result"
-        )
+        url = urljoin(self.base_url.rstrip("/") + "/", "api/vvs/video/verify/result")
         headers = {
             "Authorization": f"Bearer {access_token}",
             "User-Agent": "SaeedPay-KYC-Service/1.0",
@@ -197,9 +198,7 @@ class VideoIdentityVerificationService:
                         "matching": details.get("matching"),
                         "liveness": details.get("liveness"),
                         "spoofing": details.get("spoofing"),
-                        "spoofingDoubleCheck": details.get(
-                            "spoofingDoubleCheck"
-                        ),
+                        "spoofingDoubleCheck": details.get("spoofingDoubleCheck"),
                         "verifyStatus": verify_status,
                         "verifyStatusMsg": details.get("verifyStatusMsg"),
                         "reason": details.get("reason", []),
@@ -214,9 +213,7 @@ class VideoIdentityVerificationService:
                     }
             elif response.status_code == 404:
                 # Result not yet available
-                logger.info(
-                    f"Verification result not yet available for {unique_id}"
-                )
+                logger.info(f"Verification result not yet available for {unique_id}")
                 return {
                     "success": False,
                     "error": "Result not yet available",

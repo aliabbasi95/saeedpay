@@ -1,18 +1,19 @@
 # banking/tests/test_tasks.py
 
-import pytest
 import logging
-from unittest.mock import patch, MagicMock
-from django.contrib.auth import get_user_model
+from unittest.mock import MagicMock, patch
+
+import pytest
 from celery.exceptions import Retry
+from django.contrib.auth import get_user_model
 
 from banking.models import Bank, BankCard
-from banking.utils.choices import BankCardStatus
 from banking.tasks import (
-    validate_card_task,
     CardValidationTask,
     _validate_card_task_logic,
+    validate_card_task,
 )
+from banking.utils.choices import BankCardStatus
 
 User = get_user_model()
 
@@ -74,9 +75,7 @@ class TestCardValidationTask:
                 "banking.tasks.validate_card_task.retry", side_effect=Retry
             ) as mock_retry:
                 with pytest.raises(Retry):
-                    validate_card_task.apply(
-                        args=[str(pending_card.id)], throw=True
-                    )
+                    validate_card_task.apply(args=[str(pending_card.id)], throw=True)
                 mock_retry.assert_called_once()
 
     def test_on_failure_marks_card_as_rejected(self, pending_card):

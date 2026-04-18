@@ -12,7 +12,6 @@ from profiles.models import Profile
 
 @pytest.mark.django_db
 class TestRegisterCustomerSerializer:
-
     def create_otp(self, phone_number):
         otp = PhoneOTP.objects.create(phone_number=phone_number)
         code = otp.generate()
@@ -27,7 +26,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09123456789",
                 "code": code,
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
         assert serializer.is_valid(), serializer.errors
@@ -42,7 +41,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09121111111",
                 "code": "1111",
                 "password": "TestPass123!",
-                "confirm_password": "WrongConfirm!"
+                "confirm_password": "WrongConfirm!",
             }
         )
         with pytest.raises(ValidationError) as exc:
@@ -56,7 +55,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09122222222",
                 "code": "2222",
                 "password": "weak",
-                "confirm_password": "weak"
+                "confirm_password": "weak",
             }
         )
         assert not serializer.is_valid()
@@ -68,7 +67,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09123334444",
                 "code": "9999",
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
         with pytest.raises(ValidationError) as exc:
@@ -82,7 +81,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09124445555",
                 "code": "wrong",
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
         with pytest.raises(ValidationError) as exc:
@@ -99,14 +98,12 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09129998888",
                 "code": "9999",
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
         with pytest.raises(ValidationError) as exc:
             serializer.is_valid(raise_exception=True)
-        assert "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است." in str(
-            exc.value
-        )
+        assert "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است." in str(exc.value)
 
     def test_existing_user_without_customer(self):
         user = get_user_model().objects.create(username="09126667777")
@@ -116,7 +113,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09126667777",
                 "code": code,
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
         assert serializer.is_valid(), serializer.errors
@@ -130,7 +127,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "12345abc",
                 "code": "1234",
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
         assert not serializer.is_valid()
@@ -142,7 +139,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "",
                 "code": "",
                 "password": "",
-                "confirm_password": ""
+                "confirm_password": "",
             }
         )
         assert not serializer.is_valid()
@@ -157,7 +154,7 @@ class TestRegisterCustomerSerializer:
             data={
                 "phone_number": "09121112222",
                 "code": code,
-                "password": "StrongPass123!"
+                "password": "StrongPass123!",
                 # confirm_password is missing
             }
         )
@@ -171,7 +168,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09120000000",
                 "code": code,
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
         assert serializer.is_valid()
@@ -191,14 +188,12 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09128889999",
                 "code": code,
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
         with pytest.raises(ValidationError) as exc:
             serializer.is_valid(raise_exception=True)
-        assert "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است." in str(
-            exc.value
-        )
+        assert "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است." in str(exc.value)
 
     def test_password_without_symbol(self):
         self.create_otp("09125557777")
@@ -207,7 +202,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09125557777",
                 "code": "1234",
                 "password": "StrongPass123",  # no symbol
-                "confirm_password": "StrongPass123"
+                "confirm_password": "StrongPass123",
             }
         )
         assert not serializer.is_valid()
@@ -222,7 +217,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09127773333",
                 "code": code,
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
         assert serializer1.is_valid()
@@ -237,7 +232,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09127773333",
                 "code": code,
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
         with pytest.raises(ValidationError) as exc:
@@ -251,7 +246,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09124440000",
                 "code": code,
                 "password": "StrongPass123!",
-                "confirm_password": "Mismatch"
+                "confirm_password": "Mismatch",
             }
         )
         with pytest.raises(ValidationError):
@@ -270,7 +265,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09126660000",
                 "code": code,
                 "password": "NewPass4567!",
-                "confirm_password": "NewPass4567!"
+                "confirm_password": "NewPass4567!",
             }
         )
         assert serializer.is_valid(), serializer.errors
@@ -289,7 +284,7 @@ class TestRegisterCustomerSerializer:
                 "phone_number": "09129997777",
                 "code": code,
                 "password": "StrongPass123!",
-                "confirm_password": "StrongPass123!"
+                "confirm_password": "StrongPass123!",
             }
         )
 

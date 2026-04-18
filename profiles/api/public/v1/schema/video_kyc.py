@@ -1,8 +1,9 @@
 # profiles/api/public/v1/schema/video_kyc.py
 
 from drf_spectacular.utils import (
-    extend_schema, OpenApiResponse,
     OpenApiExample,
+    OpenApiResponse,
+    extend_schema,
 )
 
 from profiles.api.public.v1.serializers.video_kyc import VideoKYCSerializer
@@ -38,7 +39,8 @@ VIDEO_KYC_SUBMIT_SCHEMA = extend_schema(
                         "success": False,
                         "errors": {
                             "selfieVideo": [
-                                "فایل باید یک ویدیو باشد (mp4, mov, avi, mkv)"]
+                                "فایل باید یک ویدیو باشد (mp4, mov, avi, mkv)"
+                            ]
                         },
                     },
                 )

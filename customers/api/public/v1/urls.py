@@ -1,5 +1,6 @@
 # customers/api/public/v1/urls.py
 from django.urls import path
+
 from .views.simple_status import SimpleStatusView
 
 urlpatterns = [

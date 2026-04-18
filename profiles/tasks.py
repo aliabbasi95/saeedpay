@@ -14,14 +14,16 @@ from kyc.services.identity_auth_service import (
     IdentityAuthService,
     get_identity_auth_service,
 )
-from profiles.models import Profile, KYCVideoAsset
+from profiles.models import KYCVideoAsset, Profile
 from profiles.models.kyc_attempt import (
-    ProfileKYCAttempt,
     AttemptAlreadyProcessing,
+    ProfileKYCAttempt,
 )
 from profiles.utils.choices import (
-    KYCStatus, AttemptType, AttemptStatus,
+    AttemptStatus,
+    AttemptType,
     AuthenticationStage,
+    KYCStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,8 +31,9 @@ logger = logging.getLogger(__name__)
 
 # ───────────────────────── Retention helpers ───────────────────────── #
 
+
 def _parse_retention_days(
-        value: str | int | None, default_days: int | None
+    value: str | int | None, default_days: int | None
 ) -> int | None:
     """
     Parse env/config values to a retention window in days.
@@ -46,7 +49,7 @@ def _parse_retention_days(
 
 
 def _apply_retention_policy(
-        profile: Profile, accepted: bool, durable_asset_id: int | None = None
+    profile: Profile, accepted: bool, durable_asset_id: int | None = None
 ) -> None:
     """
     Apply retention policy to durable video assets of a profile after final decision.
@@ -121,7 +124,7 @@ def _cleanup_temp_file(file_path: str) -> None:
 # Helper to (re)queue Shahkar
 # -----------------------------
 def _should_queue_shahkar(
-        profile: Profile, now: timezone.datetime, stale_after: timedelta
+    profile: Profile, now: timezone.datetime, stale_after: timedelta
 ) -> bool:
     """
     Decide if Shahkar verification should be (re)queued for this profile.
@@ -152,8 +155,9 @@ def _should_queue_shahkar(
 
     # For None -> check attempt recency
     last_attempt = (
-        ProfileKYCAttempt.objects
-        .filter(profile=profile, attempt_type=AttemptType.SHAHKAR)
+        ProfileKYCAttempt.objects.filter(
+            profile=profile, attempt_type=AttemptType.SHAHKAR
+        )
         .order_by("-created_at")
         .first()
     )
@@ -175,15 +179,15 @@ def _enqueue_shahkar(profile_id: int) -> None:
 
 @shared_task(bind=True)
 def submit_profile_video_auth(
-        self,
-        profile_id: int,
-        national_code: str,
-        birth_date: str,
-        selfie_video_path: str,
-        rand_action: str,
-        matching_thr: int | None = None,
-        liveness_thr: int | None = None,
-        durable_asset_id: int | None = None,
+    self,
+    profile_id: int,
+    national_code: str,
+    birth_date: str,
+    selfie_video_path: str,
+    rand_action: str,
+    matching_thr: int | None = None,
+    liveness_thr: int | None = None,
+    durable_asset_id: int | None = None,
 ) -> dict:
     """
     Submit video authentication for a profile and persist tracking fields.
@@ -205,15 +209,12 @@ def submit_profile_video_auth(
             try:
                 KYCVideoAsset.objects.filter(
                     id=durable_asset_id, profile_id=profile_id
-                ) \
-                    .update(created_by_attempt=attempt)
+                ).update(created_by_attempt=attempt)
             except Exception:
                 logger.warning("Could not link KYCVideoAsset to attempt")
     except AttemptAlreadyProcessing:
         _cleanup_temp_file(selfie_video_path)
-        logger.warning(
-            f"Profile {profile_id}: duplicate video submit while processing"
-        )
+        logger.warning(f"Profile {profile_id}: duplicate video submit while processing")
         return {
             "success": False,
             "error": "kyc_in_progress",
@@ -292,20 +293,14 @@ def submit_profile_video_auth(
             error_message=str(e),
             error_code="service_unavailable",
         )
-        return {
-            "success": False, "error": "service_unavailable", "message": str(e)
-        }
+        return {"success": False, "error": "service_unavailable", "message": str(e)}
 
     if not result.get("success"):
         _cleanup_temp_file(selfie_video_path)
         error_msg = result.get("error", "Unknown service error")
         attempt.mark_failed(error_msg, response_payload=result)
-        logger.error(
-            f"Video submit failed for profile {profile_id}: {error_msg}"
-        )
-        return {
-            "success": False, "error": "service_error", "message": error_msg
-        }
+        logger.error(f"Video submit failed for profile {profile_id}: {error_msg}")
+        return {"success": False, "error": "service_error", "message": error_msg}
 
     # Extract uniqueId from the response structure
     data = (result or {}).get("data") or {}
@@ -313,9 +308,7 @@ def submit_profile_video_auth(
     if not unique_id:
         _cleanup_temp_file(selfie_video_path)
         attempt.mark_failed("missing_unique_id", response_payload=result)
-        logger.error(
-            f"Profile {profile_id}: No unique ID returned from KYC service"
-        )
+        logger.error(f"Profile {profile_id}: No unique ID returned from KYC service")
         return {
             "success": False,
             "error": "missing_unique_id",
@@ -330,9 +323,7 @@ def submit_profile_video_auth(
         try:
             profile = Profile.objects.select_for_update().get(id=profile_id)
             profile.mark_video_submitted(task_id=unique_id)
-            attempt.mark_success(
-                response_payload=result, external_id=unique_id
-            )
+            attempt.mark_success(response_payload=result, external_id=unique_id)
             transaction.on_commit(
                 lambda: check_profile_video_auth_result.apply_async(
                     (profile_id,), countdown=30
@@ -345,11 +336,9 @@ def submit_profile_video_auth(
                 try:
                     attempt.request_payload = {
                         **(attempt.request_payload or {}),
-                        "durable_asset_id": durable_asset_id
+                        "durable_asset_id": durable_asset_id,
                     }
-                    attempt.save(
-                        update_fields=["request_payload", "updated_at"]
-                    )
+                    attempt.save(update_fields=["request_payload", "updated_at"])
                 except Exception:
                     pass
         except ValidationError as e:
@@ -360,10 +349,7 @@ def submit_profile_video_auth(
             logger.error(
                 f"Profile {profile_id}: Validation error during submission: {e}"
             )
-            return {
-                "success": False, "error": "validation_error",
-                "message": str(e)
-            }
+            return {"success": False, "error": "validation_error", "message": str(e)}
         except Profile.DoesNotExist:
             attempt.mark_failed("profile_not_found")
             return {"success": False, "error": "profile_not_found"}
@@ -383,14 +369,15 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
             attempt_type=AttemptType.VIDEO_RESULT,
         )
     except AttemptAlreadyProcessing:
-        attempt = (ProfileKYCAttempt.objects
-                   .filter(
-            profile_id=profile_id,
-            attempt_type=AttemptType.VIDEO_RESULT,
-            status=AttemptStatus.PROCESSING
+        attempt = (
+            ProfileKYCAttempt.objects.filter(
+                profile_id=profile_id,
+                attempt_type=AttemptType.VIDEO_RESULT,
+                status=AttemptStatus.PROCESSING,
+            )
+            .order_by("-created_at")
+            .first()
         )
-                   .order_by("-created_at")
-                   .first())
         if not attempt:
             return {"success": False, "error": "poll_in_progress"}
 
@@ -433,9 +420,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
 
         with transaction.atomic():
             try:
-                profile = Profile.objects.select_for_update().get(
-                    id=profile_id
-                )
+                profile = Profile.objects.select_for_update().get(id=profile_id)
                 profile.touch_video_auth_check()
             except Profile.DoesNotExist:
                 pass
@@ -451,16 +436,14 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
     if not result.get("success") and result.get("status") in {
         404,
         "in_progress",
-        "network"
+        "network",
     }:
         max_retries = getattr(settings, "KYC_VIDEO_CHECK_MAX_RETRIES", 6)
         retry_delay = getattr(settings, "KYC_VIDEO_CHECK_RETRY_DELAY", 30)
         attempt.bump_retry()
         with transaction.atomic():
             try:
-                profile = Profile.objects.select_for_update().get(
-                    id=profile_id
-                )
+                profile = Profile.objects.select_for_update().get(id=profile_id)
                 profile.touch_video_auth_check()
             except Profile.DoesNotExist:
                 pass
@@ -469,9 +452,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
             logger.info(
                 f"Profile {profile_id}: result not ready; retrying in {retry_delay}s"
             )
-            raise self.retry(
-                exc=Exception("result_not_ready"), countdown=retry_delay
-            )
+            raise self.retry(exc=Exception("result_not_ready"), countdown=retry_delay)
 
         attempt.mark_failed("max_retries_exceeded", response_payload=result)
         return {"success": False, "error": "poll_timeout"}
@@ -481,9 +462,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
         error_msg = result.get("error", "Unknown service error")
         with transaction.atomic():
             try:
-                profile = Profile.objects.select_for_update().get(
-                    id=profile_id
-                )
+                profile = Profile.objects.select_for_update().get(id=profile_id)
                 profile.update_video_auth_result(
                     accepted=False, error_details=str(error_msg)
                 )
@@ -493,9 +472,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
         return {"success": False, "error": "service_error"}
 
     # Normalize payload: some providers nest in 'data'
-    payload = result.get("data") if isinstance(
-        result.get("data"), dict
-    ) else result
+    payload = result.get("data") if isinstance(result.get("data"), dict) else result
 
     accepted = False
     try:
@@ -509,13 +486,12 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
         elif verify_status == "REJECT":
             accepted = False
         else:
-            accepted = (matching == "TRUE") and (liveness == "TRUE") and (
-                    spoofing == "FALSE")
+            accepted = (
+                (matching == "TRUE") and (liveness == "TRUE") and (spoofing == "FALSE")
+            )
     except Exception as e:
         accepted = False
-        logger.warning(
-            f"Profile {profile_id}: Could not determine result: {e}"
-        )
+        logger.warning(f"Profile {profile_id}: Could not determine result: {e}")
 
     with transaction.atomic():
         try:
@@ -530,15 +506,15 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
         profile = Profile.objects.get(id=profile_id)
         # Try to locate durable_asset_id from the latest VIDEO_SUBMIT attempt (optional)
         durable_asset_id = None
-        last_submit = (ProfileKYCAttempt.objects
-                       .filter(
-            profile_id=profile_id, attempt_type=AttemptType.VIDEO_SUBMIT
-        )
-                       .order_by("-created_at").first())
-        if last_submit and isinstance(last_submit.request_payload, dict):
-            durable_asset_id = last_submit.request_payload.get(
-                "durable_asset_id"
+        last_submit = (
+            ProfileKYCAttempt.objects.filter(
+                profile_id=profile_id, attempt_type=AttemptType.VIDEO_SUBMIT
             )
+            .order_by("-created_at")
+            .first()
+        )
+        if last_submit and isinstance(last_submit.request_payload, dict):
+            durable_asset_id = last_submit.request_payload.get("durable_asset_id")
         _apply_retention_policy(
             profile, accepted=accepted, durable_asset_id=durable_asset_id
         )
@@ -558,7 +534,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
 
 @shared_task(bind=True)
 def reset_profile_video_auth(
-        self, profile_id: int, reason: str = "manual_reset"
+    self, profile_id: int, reason: str = "manual_reset"
 ) -> dict:
     """
     Reset a profile's video authentication status back to identity verified stage.
@@ -574,7 +550,10 @@ def reset_profile_video_auth(
         with transaction.atomic():
             profile = Profile.objects.select_for_update().get(id=profile_id)
 
-            if not profile.can_retry_video_auth() and not profile.is_video_auth_in_progress():
+            if (
+                not profile.can_retry_video_auth()
+                and not profile.is_video_auth_in_progress()
+            ):
                 attempt.mark_failed("invalid_state_for_reset")
                 logger.warning(
                     f"Profile {profile_id} cannot be reset. Current state: {profile.auth_stage}/{profile.video_auth_status}"
@@ -597,20 +576,14 @@ def reset_profile_video_auth(
             error_message=str(e),
             error_code="validation_error",
         )
-        logger.error(
-            f"Validation error during reset for profile {profile_id}: {e}"
-        )
-        return {
-            "success": False, "error": "validation_error", "message": str(e)
-        }
+        logger.error(f"Validation error during reset for profile {profile_id}: {e}")
+        return {"success": False, "error": "validation_error", "message": str(e)}
     except Exception as e:
         attempt.mark_failed(
             error_message=str(e),
             error_code="reset_failed",
         )
-        logger.error(
-            f"Unexpected error during reset for profile {profile_id}: {e}"
-        )
+        logger.error(f"Unexpected error during reset for profile {profile_id}: {e}")
         return {"success": False, "error": "reset_failed", "message": str(e)}
 
     attempt.mark_success()
@@ -619,7 +592,7 @@ def reset_profile_video_auth(
     )
     return {
         "success": True,
-        "message": "Profile video authentication reset successfully"
+        "message": "Profile video authentication reset successfully",
     }
 
 
@@ -646,9 +619,7 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
 
     if not profile.national_id or not profile.phone_number:
         attempt.mark_failed("missing_required_fields")
-        logger.warning(
-            f"Profile {profile_id}: Missing national_id or phone_number"
-        )
+        logger.warning(f"Profile {profile_id}: Missing national_id or phone_number")
         return {
             "success": False,
             "error": "missing_required_fields",
@@ -659,8 +630,10 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
     with transaction.atomic():
         try:
             p = Profile.objects.select_for_update().get(id=profile_id)
-            if p.phone_national_id_match_status in (KYCStatus.ACCEPTED,
-                                                    KYCStatus.REJECTED):
+            if p.phone_national_id_match_status in (
+                KYCStatus.ACCEPTED,
+                KYCStatus.REJECTED,
+            ):
                 attempt.mark_failed("terminal_state")
                 return {"success": False, "error": "terminal_state"}
             p.begin_phone_national_id_check()
@@ -679,27 +652,18 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
         retry_delay = getattr(settings, "KYC_SHAHKAR_RETRY_DELAY", 60)
         attempt.bump_retry()
         if self.request.retries < max_retries:
-            logger.warning(
-                f"Profile {profile_id}: Shahkar API error, retrying: {e}"
-            )
+            logger.warning(f"Profile {profile_id}: Shahkar API error, retrying: {e}")
             raise self.retry(exc=e, countdown=retry_delay)
 
-        logger.error(
-            f"Profile {profile_id}: Shahkar API error after max retries: {e}"
-        )
+        logger.error(f"Profile {profile_id}: Shahkar API error after max retries: {e}")
         try:
             with transaction.atomic():
                 p = Profile.objects.select_for_update().get(id=profile_id)
                 p.phone_national_id_match_status = None
-                p.save(
-                    update_fields=["phone_national_id_match_status",
-                                   "updated_at"]
-                )
+                p.save(update_fields=["phone_national_id_match_status", "updated_at"])
         except Profile.DoesNotExist:
             pass
-        attempt.mark_failed(
-            error_message=str(e), error_code="service_unavailable"
-        )
+        attempt.mark_failed(error_message=str(e), error_code="service_unavailable")
         return {"success": False, "error": "service_unavailable"}
 
     if not result.get("success"):
@@ -714,8 +678,7 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
                 else:
                     p.phone_national_id_match_status = None
                     p.save(
-                        update_fields=["phone_national_id_match_status",
-                                       "updated_at"]
+                        update_fields=["phone_national_id_match_status", "updated_at"]
                     )
             except Profile.DoesNotExist:
                 pass
@@ -737,12 +700,8 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
                 "error_code": result.get("error_code"),
             }
 
-        logger.error(
-            f"Profile {profile_id}: Shahkar service error - {error_msg}"
-        )
-        return {
-            "success": False, "error": "service_error", "message": error_msg
-        }
+        logger.error(f"Profile {profile_id}: Shahkar service error - {error_msg}")
+        return {"success": False, "error": "service_error", "message": error_msg}
 
     # Success path
     is_matched = result.get("is_matched", False)
@@ -768,9 +727,7 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
             }
 
         p.mark_phone_national_id_rejected()
-        attempt.mark_rejected(
-            response_payload=result, error_message="Not matched"
-        )
+        attempt.mark_rejected(response_payload=result, error_message="Not matched")
         logger.warning(
             f"Profile {profile_id}: Phone/National ID verification failed - not matched"
         )
@@ -796,13 +753,13 @@ def rehydrate_shahkar_checks(self) -> dict:
     stale_after = timedelta(minutes=stale_minutes)
     now = timezone.localtime(timezone.now())
 
-    qs = Profile.objects.filter(
-        national_id__isnull=False,
-        phone_number__isnull=False,
-    ).exclude(
-        phone_national_id_match_status=KYCStatus.ACCEPTED
-    ).exclude(
-        phone_national_id_match_status=KYCStatus.REJECTED
+    qs = (
+        Profile.objects.filter(
+            national_id__isnull=False,
+            phone_number__isnull=False,
+        )
+        .exclude(phone_national_id_match_status=KYCStatus.ACCEPTED)
+        .exclude(phone_national_id_match_status=KYCStatus.REJECTED)
     )
 
     requeued = 0
@@ -824,14 +781,23 @@ def rehydrate_video_auth_checks(self) -> dict:
     stale_after = timedelta(minutes=stale_minutes)
     now = timezone.localtime(timezone.now())
 
-    qs = Profile.objects.filter(
-        auth_stage=AuthenticationStage.IDENTITY_VERIFIED,
-        video_auth_status=KYCStatus.PROCESSING,
-    ).exclude(video_task_id__isnull=True).exclude(video_task_id__exact="")
+    qs = (
+        Profile.objects.filter(
+            auth_stage=AuthenticationStage.IDENTITY_VERIFIED,
+            video_auth_status=KYCStatus.PROCESSING,
+        )
+        .exclude(video_task_id__isnull=True)
+        .exclude(video_task_id__exact="")
+    )
 
     requeued = 0
     for p in qs.iterator(chunk_size=500):
-        last = p.video_auth_last_checked_at or p.video_submitted_at or p.updated_at or p.created_at
+        last = (
+            p.video_auth_last_checked_at
+            or p.video_submitted_at
+            or p.updated_at
+            or p.created_at
+        )
         if (now - last) > stale_after:
             check_profile_video_auth_result.apply_async((p.id,), countdown=1)
             requeued += 1

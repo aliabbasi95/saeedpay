@@ -2,15 +2,16 @@
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
-    extend_schema, OpenApiResponse,
-    OpenApiExample, OpenApiParameter,
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
 )
-from drf_spectacular.openapi import AutoSchema
-from rest_framework import status
 
 from .serializers import (
-    StoreSerializer, StoreCreateSerializer,
     PublicStoreSerializer,
+    StoreCreateSerializer,
+    StoreSerializer,
 )
 
 # Store Management Schemas (Owner/Merchant)
@@ -21,12 +22,12 @@ store_list_schema = extend_schema(
     responses={
         200: OpenApiResponse(
             response=StoreSerializer(many=True),
-            description="لیست فروشگاه‌ها با موفقیت دریافت شد"
+            description="لیست فروشگاه‌ها با موفقیت دریافت شد",
         ),
         401: OpenApiResponse(description="احراز هویت نشده"),
         403: OpenApiResponse(description="دسترسی مجاز نیست"),
     },
-    tags=["Store · Management"]
+    tags=["Store · Management"],
 )
 
 store_create_schema = extend_schema(
@@ -36,8 +37,7 @@ store_create_schema = extend_schema(
     request=StoreCreateSerializer,
     responses={
         201: OpenApiResponse(
-            response=StoreSerializer,
-            description="فروشگاه با موفقیت ایجاد شد"
+            response=StoreSerializer, description="فروشگاه با موفقیت ایجاد شد"
         ),
         400: OpenApiResponse(description="داده‌های ورودی نامعتبر"),
         401: OpenApiResponse(description="احراز هویت نشده"),
@@ -58,7 +58,7 @@ store_create_schema = extend_schema(
             request_only=True,
         )
     ],
-    tags=["Store · Management"]
+    tags=["Store · Management"],
 )
 
 store_retrieve_schema = extend_schema(
@@ -67,14 +67,13 @@ store_retrieve_schema = extend_schema(
     description="دریافت جزئیات کامل یک فروشگاه خاص",
     responses={
         200: OpenApiResponse(
-            response=StoreSerializer,
-            description="جزئیات فروشگاه با موفقیت دریافت شد"
+            response=StoreSerializer, description="جزئیات فروشگاه با موفقیت دریافت شد"
         ),
         404: OpenApiResponse(description="فروشگاه یافت نشد"),
         401: OpenApiResponse(description="احراز هویت نشده"),
         403: OpenApiResponse(description="دسترسی مجاز نیست"),
     },
-    tags=["Store · Management"]
+    tags=["Store · Management"],
 )
 
 store_update_schema = extend_schema(
@@ -84,8 +83,7 @@ store_update_schema = extend_schema(
     request=StoreSerializer,
     responses={
         200: OpenApiResponse(
-            response=StoreSerializer,
-            description="فروشگاه با موفقیت ویرایش شد"
+            response=StoreSerializer, description="فروشگاه با موفقیت ویرایش شد"
         ),
         400: OpenApiResponse(description="داده‌های ورودی نامعتبر"),
         404: OpenApiResponse(description="فروشگاه یافت نشد"),
@@ -109,7 +107,7 @@ store_update_schema = extend_schema(
             request_only=True,
         )
     ],
-    tags=["Store · Management"]
+    tags=["Store · Management"],
 )
 
 store_delete_schema = extend_schema(
@@ -122,7 +120,7 @@ store_delete_schema = extend_schema(
         401: OpenApiResponse(description="احراز هویت نشده"),
         403: OpenApiResponse(description="دسترسی مجاز نیست"),
     },
-    tags=["Store · Management"]
+    tags=["Store · Management"],
 )
 
 # Public Store Schemas
@@ -132,17 +130,17 @@ public_store_list_schema = extend_schema(
     description="دریافت لیست فروشگاه‌های تایید شده و فعال برای عموم با قابلیت صفحه‌بندی",
     parameters=[
         OpenApiParameter(
-            name='page',
+            name="page",
             type=int,
             location=OpenApiParameter.QUERY,
-            description='شماره صفحه (پیش‌فرض: 1)',
+            description="شماره صفحه (پیش‌فرض: 1)",
             required=False,
         ),
         OpenApiParameter(
-            name='page_size',
+            name="page_size",
             type=int,
             location=OpenApiParameter.QUERY,
-            description='تعداد آیتم در هر صفحه (پیش‌فرض: 20، حداکثر: 100)',
+            description="تعداد آیتم در هر صفحه (پیش‌فرض: 20، حداکثر: 100)",
             required=False,
         ),
     ],
@@ -170,16 +168,16 @@ public_store_list_schema = extend_schema(
                                 "status": "active",
                                 "status_display": "فعال",
                                 "logo": "http://example.com/media/store_logos/store_1_abc123.jpg",
-                                "rating": 82.5
+                                "rating": 82.5,
                             }
-                        ]
+                        ],
                     },
                     response_only=True,
                 )
-            ]
+            ],
         ),
     },
-    tags=["Store · Public"]
+    tags=["Store · Public"],
 )
 
 public_store_retrieve_schema = extend_schema(
@@ -189,11 +187,11 @@ public_store_retrieve_schema = extend_schema(
     responses={
         200: OpenApiResponse(
             response=PublicStoreSerializer,
-            description="جزئیات فروشگاه با موفقیت دریافت شد"
+            description="جزئیات فروشگاه با موفقیت دریافت شد",
         ),
         404: OpenApiResponse(description="فروشگاه یافت نشد یا غیرفعال است"),
     },
-    tags=["Store · Public"]
+    tags=["Store · Public"],
 )
 store_update_put_schema = extend_schema(
     operation_id="store_update",
@@ -203,13 +201,13 @@ store_update_put_schema = extend_schema(
     responses={
         200: OpenApiResponse(
             response=StoreSerializer, description="فروشگاه با موفقیت ویرایش شد"
-            ),
+        ),
         400: OpenApiResponse(description="داده‌های ورودی نامعتبر"),
         404: OpenApiResponse(description="فروشگاه یافت نشد"),
         401: OpenApiResponse(description="احراز هویت نشده"),
         403: OpenApiResponse(
             description="دسترسی مجاز نیست یا فروشگاه قابل ویرایش نیست"
-            ),
+        ),
     },
     parameters=[
         OpenApiParameter(
@@ -230,13 +228,13 @@ store_partial_update_schema = extend_schema(
     responses={
         200: OpenApiResponse(
             response=StoreSerializer, description="فروشگاه با موفقیت ویرایش شد"
-            ),
+        ),
         400: OpenApiResponse(description="داده‌های ورودی نامعتبر"),
         404: OpenApiResponse(description="فروشگاه یافت نشد"),
         401: OpenApiResponse(description="احراز هویت نشده"),
         403: OpenApiResponse(
             description="دسترسی مجاز نیست یا فروشگاه قابل ویرایش نیست"
-            ),
+        ),
     },
     parameters=[
         OpenApiParameter(
