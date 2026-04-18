@@ -46,6 +46,12 @@ class Payment(BaseModel):
         PaymentStatus.FAILED,
     }
 
+    ACTIVE_STATUSES = {
+        PaymentStatus.CREATED,
+        PaymentStatus.AUTHORIZED,
+        PaymentStatus.AWAITING_MERCHANT_CONFIRMATION,
+    }
+
     payment_request = models.ForeignKey(
         "wallets.PaymentRequest",
         on_delete=models.CASCADE,
@@ -185,7 +191,6 @@ class Payment(BaseModel):
         if extra_update_fields:
             update_fields.extend(extra_update_fields)
 
-        # remove duplicates while preserving order
         update_fields = list(dict.fromkeys(update_fields))
         self.save(update_fields=update_fields)
 
@@ -267,5 +272,18 @@ class Payment(BaseModel):
             models.Index(
                 fields=["flow_type", "status"],
                 name="pay_flow_status_idx",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["payment_request"],
+                condition=models.Q(
+                    status__in=[
+                        PaymentStatus.CREATED,
+                        PaymentStatus.AUTHORIZED,
+                        PaymentStatus.AWAITING_MERCHANT_CONFIRMATION,
+                    ]
+                ),
+                name="uniq_active_payment_per_request",
             ),
         ]

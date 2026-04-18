@@ -1,6 +1,6 @@
 # wallets/services/payment/payment_processing_service.py
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ValidationError
 
 from credit.models.authorization import CreditAuthorization
@@ -37,6 +37,34 @@ from wallets.utils.choices import (
 )
 
 
+def _create_payment_safely(
+        *,
+        payment_request: PaymentRequest,
+        payer,
+        payer_wallet: Wallet,
+        amount,
+        method,
+        flow_type,
+):
+    try:
+        return Payment.objects.create(
+            payment_request=payment_request,
+            payer=payer,
+            payer_wallet=payer_wallet,
+            amount=amount,
+            method=method,
+            flow_type=flow_type,
+            status=PaymentStatus.CREATED,
+        )
+    except IntegrityError as exc:
+        if "uniq_active_payment_per_request" in str(exc):
+            raise ValidationError(
+                "این درخواست پرداخت در حال پردازش است.",
+                code="payment_in_progress",
+            ) from exc
+        raise
+
+
 def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
     with transaction.atomic():
         payment_request = (
@@ -56,14 +84,13 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
         customer_wallet = validate_wallet_ownership(user=user, wallet=wallet)
         payment_method = resolve_payment_method(customer_wallet)
 
-        payment = Payment.objects.create(
+        payment = _create_payment_safely(
             payment_request=payment_request,
             payer=user,
             payer_wallet=customer_wallet,
             amount=payment_request.amount,
             method=payment_method,
             flow_type=payment_request.flow_type,
-            status=PaymentStatus.CREATED,
         )
 
         if payment.method == PaymentMethod.CASH:

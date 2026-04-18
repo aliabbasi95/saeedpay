@@ -22,8 +22,12 @@ class WalletAdmin(BaseAdmin):
         "jalali_creation_time",
     )
     list_filter = ("owner_type", "kind", "created_at")
-    search_fields = ("wallet_number", "user__username", "user__first_name",
-                     "user__last_name")
+    search_fields = (
+        "wallet_number",
+        "user__username",
+        "user__profile__first_name",
+        "user__profile__last_name"
+    )
     readonly_fields = (
         "wallet_number",
         "balance",
