@@ -1,5 +1,7 @@
 # wallets/services/payment/payment_processing_service.py
 
+import logging
+
 from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ValidationError
 
@@ -7,6 +9,7 @@ from credit.models.authorization import CreditAuthorization
 from credit.models.statement import Statement
 from credit.models.statement_line import StatementLine
 from credit.utils.choices import StatementLineType
+from saeedpay.logging import log_event
 from wallets.models import Payment, PaymentRequest, Transaction, Wallet
 from wallets.services.payment.payment_request_service import (
     check_and_expire_payment_request,
@@ -24,7 +27,7 @@ from wallets.services.payment.payment_shared import (
     get_latest_payment_for_request,
     get_escrow_wallet,
     get_merchant_gateway_wallet,
-    logger,
+    logger as shared_logger,
     merchant_confirm_expiry,
 )
 from wallets.utils.choices import (
@@ -35,6 +38,8 @@ from wallets.utils.choices import (
     PaymentStatus,
     TransactionPurpose,
 )
+
+logger = logging.getLogger("saeedpay.wallets.payment")
 
 
 def _create_payment_safely(
@@ -58,6 +63,20 @@ def _create_payment_safely(
         )
     except IntegrityError as exc:
         if "uniq_active_payment_per_request" in str(exc):
+            log_event(
+                logger,
+                level="warning",
+                event="payment_create_integrity_conflict",
+                message="Duplicate active payment prevented by DB constraint.",
+                module="wallets.payment",
+                action="_create_payment_safely",
+                payment_request_id=payment_request.id,
+                payment_request_reference=payment_request.reference_code,
+                user_id=getattr(payer, "id", None),
+                store_id=payment_request.store_id,
+                amount=amount,
+                flow_type=flow_type,
+            )
             raise ValidationError(
                 "این درخواست پرداخت در حال پردازش است.",
                 code="payment_in_progress",
@@ -68,9 +87,25 @@ def _create_payment_safely(
 def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
     with transaction.atomic():
         payment_request = (
-            PaymentRequest.objects
-            .select_for_update()
+            PaymentRequest.objects.select_for_update()
+            .select_related("store__merchant__user", "customer__user")
             .get(pk=request_obj.pk)
+        )
+
+        log_event(
+            logger,
+            level="info",
+            event="payment_processing_started",
+            message="Payment processing started.",
+            module="wallets.payment",
+            action="pay_payment_request",
+            payment_request_id=payment_request.id,
+            payment_request_reference=payment_request.reference_code,
+            store_id=payment_request.store_id,
+            user_id=getattr(user, "id", None),
+            amount=payment_request.amount,
+            flow_type=payment_request.flow_type,
+            status=payment_request.status,
         )
 
         check_and_expire_payment_request(payment_request)
@@ -91,6 +126,25 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
             amount=payment_request.amount,
             method=payment_method,
             flow_type=payment_request.flow_type,
+        )
+
+        log_event(
+            logger,
+            level="info",
+            event="payment_created",
+            message="Payment object created.",
+            module="wallets.payment",
+            action="pay_payment_request",
+            payment_request_id=payment_request.id,
+            payment_request_reference=payment_request.reference_code,
+            payment_id=payment.id,
+            payment_reference=payment.reference_code,
+            store_id=payment_request.store_id,
+            user_id=getattr(user, "id", None),
+            amount=payment.amount,
+            flow_type=payment.flow_type,
+            payment_method=payment.method,
+            payment_status=payment.status,
         )
 
         if payment.method == PaymentMethod.CASH:
@@ -147,18 +201,50 @@ def pay_payment_request(request_obj: PaymentRequest, user, wallet: Wallet):
                     payment=payment,
                 )
 
+        log_event(
+            logger,
+            level="info",
+            event="payment_processing_finished",
+            message="Payment processing finished.",
+            module="wallets.payment",
+            action="pay_payment_request",
+            payment_request_id=payment_request.id,
+            payment_request_reference=payment_request.reference_code,
+            payment_id=payment.id,
+            payment_reference=payment.reference_code,
+            store_id=payment_request.store_id,
+            user_id=getattr(user, "id", None),
+            amount=payment.amount,
+            flow_type=payment.flow_type,
+            payment_method=payment.method,
+            payment_status=payment.status,
+            payment_request_status=payment_request.status,
+        )
+
         return payment
 
 
 def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Payment:
     with transaction.atomic():
         request_obj = (
-            PaymentRequest.objects
-            .select_for_update()
+            PaymentRequest.objects.select_for_update()
+            .select_related("store__merchant__user")
             .get(pk=payment_request.pk)
         )
 
         if store is not None and request_obj.store_id != store.id:
+            log_event(
+                logger,
+                level="warning",
+                event="payment_verify_forbidden_store",
+                message="Forbidden store attempted payment verification.",
+                module="wallets.payment",
+                action="verify_payment_request",
+                payment_request_id=request_obj.id,
+                payment_request_reference=request_obj.reference_code,
+                store_id=getattr(store, "id", None),
+                owner_store_id=request_obj.store_id,
+            )
             raise ValidationError(
                 "این درخواست پرداخت متعلق به این فروشگاه نیست.",
                 code="forbidden_store",
@@ -169,6 +255,20 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
                 "نهایی‌سازی برای این نوع درخواست پرداخت مجاز نیست.",
                 code="unsupported_flow_type",
             )
+
+        log_event(
+            logger,
+            level="info",
+            event="payment_verification_started",
+            message="Payment verification started.",
+            module="wallets.payment",
+            action="verify_payment_request",
+            payment_request_id=request_obj.id,
+            payment_request_reference=request_obj.reference_code,
+            store_id=request_obj.store_id,
+            flow_type=request_obj.flow_type,
+            payment_request_status=request_obj.status,
+        )
 
         check_and_expire_payment_request(request_obj)
         latest_payment = get_latest_payment_for_request(request_obj)
@@ -253,6 +353,24 @@ def verify_payment_request(payment_request: PaymentRequest, *, store=None) -> Pa
             payment=payment,
             from_status=from_status,
         )
+
+        log_event(
+            logger,
+            level="info",
+            event="payment_verification_finished",
+            message="Payment verification finished.",
+            module="wallets.payment",
+            action="verify_payment_request",
+            payment_request_id=request_obj.id,
+            payment_request_reference=request_obj.reference_code,
+            payment_id=payment.id,
+            payment_reference=payment.reference_code,
+            store_id=request_obj.store_id,
+            payment_method=payment.method,
+            from_status=from_status,
+            to_status=request_obj.status,
+        )
+
         return payment
 
 
@@ -323,6 +441,24 @@ def _authorize_cash_payment(payment: Payment, customer_wallet: Wallet):
         ),
     )
 
+    log_event(
+        logger,
+        level="info",
+        event="payment_authorized",
+        message="Cash payment authorized.",
+        module="wallets.payment",
+        action="_authorize_cash_payment",
+        payment_request_id=payment.payment_request_id,
+        payment_request_reference=payment.payment_request.reference_code,
+        payment_id=payment.id,
+        payment_reference=payment.reference_code,
+        user_id=getattr(payment.payer, "id", None),
+        amount=payment.amount,
+        payment_method=payment.method,
+        payment_status=payment.status,
+        transaction_id=escrow_transaction.id,
+    )
+
 
 def _authorize_credit_payment(payment: Payment):
     from credit.models.credit_limit import CreditLimit
@@ -367,6 +503,24 @@ def _authorize_credit_payment(payment: Payment):
         ),
     )
 
+    log_event(
+        logger,
+        level="info",
+        event="payment_authorized",
+        message="Credit payment authorized.",
+        module="wallets.payment",
+        action="_authorize_credit_payment",
+        payment_request_id=payment.payment_request_id,
+        payment_request_reference=payment.payment_request.reference_code,
+        payment_id=payment.id,
+        payment_reference=payment.reference_code,
+        user_id=getattr(payment.payer, "id", None),
+        amount=payment.amount,
+        payment_method=payment.method,
+        payment_status=payment.status,
+        credit_authorization_id=authorization.id,
+    )
+
 
 def _mark_payment_awaiting_merchant(payment: Payment):
     payment.merchant_confirm_expires_at = merchant_confirm_expiry()
@@ -405,6 +559,24 @@ def _move_request_to_awaiting_merchant(
         },
     )
 
+    log_event(
+        logger,
+        level="info",
+        event="payment_awaiting_merchant_confirmation",
+        message="Payment request moved to awaiting merchant confirmation.",
+        module="wallets.payment",
+        action="_move_request_to_awaiting_merchant",
+        payment_request_id=payment_request.id,
+        payment_request_reference=payment_request.reference_code,
+        payment_id=payment.id,
+        payment_reference=payment.reference_code,
+        user_id=getattr(user, "id", None),
+        store_id=payment_request.store_id,
+        from_status=from_status,
+        to_status=payment_request.status,
+        merchant_confirm_expires_at=merchant_deadline,
+    )
+
 
 def _log_request_completed_event(
         *,
@@ -427,6 +599,23 @@ def _log_request_completed_event(
         },
     )
 
+    log_event(
+        logger,
+        level="info",
+        event="payment_request_completed",
+        message="Payment request completed.",
+        module="wallets.payment",
+        action="_log_request_completed_event",
+        payment_request_id=payment_request.id,
+        payment_request_reference=payment_request.reference_code,
+        payment_id=payment.id,
+        payment_reference=payment.reference_code,
+        user_id=getattr(user, "id", None),
+        store_id=payment_request.store_id,
+        from_status=from_status,
+        to_status=payment_request.status,
+    )
+
 
 def _settle_cash_payment(payment):
     customer_to_escrow_txn = Transaction.latest_success_for_payment(
@@ -445,10 +634,25 @@ def _settle_cash_payment(payment):
     merchant_wallet = get_merchant_gateway_wallet(payment)
 
     if escrow_wallet.balance < payment.amount:
-        logger.error(
+        shared_logger.error(
             "ESCROW low balance verify: need %s, have %s",
             payment.amount,
             escrow_wallet.balance,
+        )
+        log_event(
+            logger,
+            level="error",
+            event="payment_settlement_failed",
+            message="Escrow insufficient during cash settlement.",
+            module="wallets.payment",
+            action="_settle_cash_payment",
+            payment_request_id=payment.payment_request_id,
+            payment_request_reference=payment.payment_request.reference_code,
+            payment_id=payment.id,
+            payment_reference=payment.reference_code,
+            amount=payment.amount,
+            payment_method=payment.method,
+            reason_code="escrow_insufficient",
         )
         raise ValidationError(
             "عملیات با خطا مواجه شد. لطفاً بعداً تلاش کنید.",
@@ -483,6 +687,23 @@ def _settle_cash_payment(payment):
             "amount": payment.amount,
         },
     )
+
+    log_event(
+        logger,
+        level="info",
+        event="payment_settled",
+        message="Cash payment settled.",
+        module="wallets.payment",
+        action="_settle_cash_payment",
+        payment_request_id=payment.payment_request_id,
+        payment_request_reference=payment.payment_request.reference_code,
+        payment_id=payment.id,
+        payment_reference=payment.reference_code,
+        transaction_id=settlement_txn.id,
+        amount=payment.amount,
+        payment_method=payment.method,
+    )
+
     return settlement_txn
 
 
@@ -544,6 +765,23 @@ def _settle_credit_payment(payment: Payment):
             "amount": payment.amount,
         },
     )
+
+    log_event(
+        logger,
+        level="info",
+        event="payment_settled",
+        message="Credit payment settled.",
+        module="wallets.payment",
+        action="_settle_credit_payment",
+        payment_request_id=payment.payment_request_id,
+        payment_request_reference=payment.payment_request.reference_code,
+        payment_id=payment.id,
+        payment_reference=payment.reference_code,
+        credit_authorization_id=auth.id,
+        amount=payment.amount,
+        payment_method=payment.method,
+    )
+
     return auth
 
 
@@ -572,10 +810,25 @@ def _rollback_cash_payment(payment: Payment):
     )
 
     if escrow_wallet.balance < debit_transaction.amount:
-        logger.error(
+        shared_logger.error(
             "ESCROW low balance rollback: need %s, have %s",
             debit_transaction.amount,
             escrow_wallet.balance,
+        )
+        log_event(
+            logger,
+            level="error",
+            event="payment_rollback_failed",
+            message="Escrow insufficient during rollback.",
+            module="wallets.payment",
+            action="_rollback_cash_payment",
+            payment_request_id=payment.payment_request_id,
+            payment_request_reference=payment.payment_request.reference_code,
+            payment_id=payment.id,
+            payment_reference=payment.reference_code,
+            amount=debit_transaction.amount,
+            payment_method=payment.method,
+            reason_code="escrow_insufficient",
         )
         raise ValidationError(
             "عملیات بازگشت وجه با خطا مواجه شد.",
@@ -624,6 +877,26 @@ def _rollback_cash_payment(payment: Payment):
             "payment_request_status": payment.payment_request.status,
         },
     )
+
+    log_event(
+        logger,
+        level="info",
+        event="payment_rolled_back",
+        message="Cash payment rolled back.",
+        module="wallets.payment",
+        action="_rollback_cash_payment",
+        payment_request_id=payment.payment_request_id,
+        payment_request_reference=payment.payment_request.reference_code,
+        payment_id=payment.id,
+        payment_reference=payment.reference_code,
+        transaction_id=reversal.id,
+        amount=reversal.amount,
+        payment_method=payment.method,
+        payment_status=payment.status,
+        reason_code=reason_code,
+        rollback_type="cash_reversal",
+    )
+
     return reversal
 
 
@@ -669,4 +942,24 @@ def _rollback_credit_payment(payment: Payment):
             "payment_request_status": payment.payment_request.status,
         },
     )
+
+    log_event(
+        logger,
+        level="info",
+        event="payment_rolled_back",
+        message="Credit authorization released / rolled back.",
+        module="wallets.payment",
+        action="_rollback_credit_payment",
+        payment_request_id=payment.payment_request_id,
+        payment_request_reference=payment.payment_request.reference_code,
+        payment_id=payment.id,
+        payment_reference=payment.reference_code,
+        credit_authorization_id=auth.id,
+        amount=payment.amount,
+        payment_method=payment.method,
+        payment_status=payment.status,
+        reason_code=reason_code,
+        rollback_type="credit_release",
+    )
+
     return auth

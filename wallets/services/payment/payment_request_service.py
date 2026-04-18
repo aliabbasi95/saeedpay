@@ -1,8 +1,11 @@
 # wallets/services/payment/payment_request_service.py
 
+import logging
+
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
+from saeedpay.logging import log_event
 from wallets.models import PaymentRequest, Wallet
 from wallets.services.payment.payment_shared import (
     create_event,
@@ -21,6 +24,8 @@ from wallets.utils.choices import (
     PaymentStatus,
     WalletKind,
 )
+
+logger = logging.getLogger("saeedpay.wallets.payment")
 
 
 def _validate_payment_request_creation(
@@ -99,6 +104,23 @@ def create_payment_request(
             "store_id": payment_request.store_id,
         },
     )
+
+    log_event(
+        logger,
+        level="info",
+        event="payment_request_created",
+        message="Payment request created.",
+        module="wallets.payment",
+        action="create_payment_request",
+        payment_request_id=payment_request.id,
+        payment_request_reference=payment_request.reference_code,
+        store_id=payment_request.store_id,
+        user_id=getattr(actor, "id", None) if actor is not None else None,
+        amount=payment_request.amount,
+        flow_type=payment_request.flow_type,
+        status=payment_request.status,
+    )
+
     return payment_request
 
 
@@ -139,6 +161,19 @@ def check_and_expire_payment_request(
 
     if payment_request.expires_at and payment_request.expires_at < now_local():
         if not is_terminal_payment_request_status(payment_request.status):
+            log_event(
+                logger,
+                level="warning",
+                event="payment_request_expiry_detected",
+                message="Payment request reached expiry deadline.",
+                module="wallets.payment",
+                action="check_and_expire_payment_request",
+                payment_request_id=payment_request.id,
+                payment_request_reference=payment_request.reference_code,
+                store_id=payment_request.store_id,
+                flow_type=payment_request.flow_type,
+                status=payment_request.status,
+            )
             expire_payment_request(payment_request)
 
         if raise_exception:
@@ -188,6 +223,26 @@ def expire_payment_request(payment_request: PaymentRequest):
                 "payment_request_status": request_obj.status,
             },
         )
+
+        log_event(
+            logger,
+            level="info",
+            event="payment_request_expired",
+            message="Payment request expired.",
+            module="wallets.payment",
+            action="expire_payment_request",
+            payment_request_id=request_obj.id,
+            payment_request_reference=request_obj.reference_code,
+            payment_id=getattr(latest_payment, "id", None),
+            payment_reference=getattr(latest_payment, "reference_code", None),
+            store_id=request_obj.store_id,
+            user_id=getattr(request_obj.paid_by, "id", None),
+            flow_type=request_obj.flow_type,
+            from_status=from_status,
+            to_status=request_obj.status,
+            reason_code="expired_by_deadline",
+        )
+
         return request_obj
 
 
@@ -201,12 +256,25 @@ def cancel_payment_request(
 
     with transaction.atomic():
         request_obj = (
-            PaymentRequest.objects
-            .select_for_update()
+            PaymentRequest.objects.select_for_update()
+            .select_related("store__merchant__user", "paid_by")
             .get(pk=payment_request.pk)
         )
 
         if store is not None and request_obj.store_id != store.id:
+            log_event(
+                logger,
+                level="warning",
+                event="payment_request_cancel_forbidden_store",
+                message="Forbidden store attempted to cancel payment request.",
+                module="wallets.payment",
+                action="cancel_payment_request",
+                payment_request_id=request_obj.id,
+                payment_request_reference=request_obj.reference_code,
+                store_id=getattr(store, "id", None),
+                owner_store_id=request_obj.store_id,
+                user_id=getattr(actor, "id", None),
+            )
             raise ValidationError(
                 "این درخواست پرداخت متعلق به این فروشگاه نیست.",
                 code="forbidden_store",
@@ -244,6 +312,26 @@ def cancel_payment_request(
                 "payment_request_status": request_obj.status,
             },
         )
+
+        log_event(
+            logger,
+            level="info",
+            event="payment_request_cancelled",
+            message="Payment request cancelled.",
+            module="wallets.payment",
+            action="cancel_payment_request",
+            payment_request_id=request_obj.id,
+            payment_request_reference=request_obj.reference_code,
+            payment_id=getattr(latest_payment, "id", None),
+            payment_reference=getattr(latest_payment, "reference_code", None),
+            store_id=request_obj.store_id,
+            user_id=getattr(actor, "id", None) if actor is not None else None,
+            flow_type=request_obj.flow_type,
+            from_status=from_status,
+            to_status=request_obj.status,
+            reason_code="cancelled_by_merchant",
+        )
+
         return request_obj
 
 
@@ -254,6 +342,16 @@ def validate_wallet_ownership(*, user, wallet):
             customer_wallet.user_id != user.id
             or customer_wallet.owner_type != OwnerType.CUSTOMER
     ):
+        log_event(
+            logger,
+            level="warning",
+            event="wallet_ownership_validation_failed",
+            message="Wallet ownership validation failed.",
+            module="wallets.payment",
+            action="validate_wallet_ownership",
+            user_id=getattr(user, "id", None),
+            wallet_id=getattr(wallet, "id", None),
+        )
         raise ValidationError(
             "کیف پول برای کاربر نیست.",
             code="wallet_not_owned",
@@ -270,6 +368,18 @@ def validate_payment_request_payer_access(*, payment_request, user):
 
     user_customer = getattr(user, "customer", None)
     if not user_customer or user_customer.id != bound_customer.id:
+        log_event(
+            logger,
+            level="warning",
+            event="payment_request_payer_access_denied",
+            message="Payment request payer access denied.",
+            module="wallets.payment",
+            action="validate_payment_request_payer_access",
+            payment_request_id=payment_request.id,
+            payment_request_reference=payment_request.reference_code,
+            user_id=getattr(user, "id", None),
+            store_id=payment_request.store_id,
+        )
         raise ValidationError(
             "این درخواست پرداخت برای شما نیست.",
             code="payment_request_not_allowed",
@@ -292,6 +402,19 @@ def ensure_no_active_payment_exists(payment_request):
         .first()
     )
     if completed_payment:
+        log_event(
+            logger,
+            level="warning",
+            event="payment_request_already_completed",
+            message="Payment request already has completed payment.",
+            module="wallets.payment",
+            action="ensure_no_active_payment_exists",
+            payment_request_id=payment_request.id,
+            payment_request_reference=payment_request.reference_code,
+            payment_id=completed_payment.id,
+            payment_reference=completed_payment.reference_code,
+            store_id=payment_request.store_id,
+        )
         raise ValidationError(
             "این درخواست پرداخت قبلاً نهایی شده است.",
             code="already_completed",
@@ -310,6 +433,20 @@ def ensure_no_active_payment_exists(payment_request):
         .first()
     )
     if active_payment:
+        log_event(
+            logger,
+            level="warning",
+            event="payment_request_already_in_progress",
+            message="Payment request already has active payment.",
+            module="wallets.payment",
+            action="ensure_no_active_payment_exists",
+            payment_request_id=payment_request.id,
+            payment_request_reference=payment_request.reference_code,
+            payment_id=active_payment.id,
+            payment_reference=active_payment.reference_code,
+            payment_status=active_payment.status,
+            store_id=payment_request.store_id,
+        )
         raise ValidationError(
             "این درخواست پرداخت در حال پردازش است.",
             code="payment_in_progress",

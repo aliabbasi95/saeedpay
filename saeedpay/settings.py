@@ -1,3 +1,4 @@
+# saeedpay/settings.py
 """
 Django settings for saeedpay project.
 
@@ -21,9 +22,6 @@ try:
 except ImportError:
     from .local_settings_template import *
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-# Application definition
 DEFAULT_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -67,6 +65,7 @@ INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "saeedpay.middleware.RequestIDMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -98,9 +97,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "saeedpay.wsgi.application"
-
-# Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
 # Card Validator Configuration
 CARD_VALIDATOR_MOCK = True  # Set to False for production validation
@@ -184,19 +180,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.0/topics/i18n/
-
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "Asia/Tehran"
-
 USE_I18N = True
-
 USE_TZ = True
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "/saeedpay/static/"
 STATICFILES_DIRS = [
@@ -204,10 +191,6 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_URL = "/saeedpay/media/"
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
@@ -450,11 +433,11 @@ CELERY_BEAT_SCHEDULE = {
     # profile
     "rehydrate-shahkar-checks-every-15m": {
         "task": "profiles.tasks.rehydrate_shahkar_checks",
-        "schedule": 15 * 60,  # seconds
+        "schedule": 15 * 60,
     },
     "rehydrate-video-kyc-checks-every-15m": {
         "task": "profiles.tasks.rehydrate_video_auth_checks",
-        "schedule": 15 * 60,  # seconds
+        "schedule": 15 * 60,
     },
     # profiles / KYC videos GC
     "purge-expired-kyc-videos-daily-0330": {
@@ -465,8 +448,59 @@ CELERY_BEAT_SCHEDULE = {
 
 # reCAPTCHA Configuration
 RECAPTCHA_SECRET_KEY = config(
-    'RECAPTCHA_SECRET_KEY', default='6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs'
+    "RECAPTCHA_SECRET_KEY",
+    default="6LfseasrAAAAAPFD-ZLZPLOco46yvgickFkRR-gs",
 )
-RECAPTCHA_V3 = False  # Set to False for reCAPTCHA v2
-RECAPTCHA_V3_THRESHOLD = 0.5  # Score threshold for v3 (ignored when v2)
-RECAPTCHA_ACTION = "submit"  # Default action name for v3 (ignored when v2)
+RECAPTCHA_V3 = False
+RECAPTCHA_V3_THRESHOLD = 0.5
+RECAPTCHA_ACTION = "submit"
+
+REQUEST_ID_HEADER = "X-Request-ID"
+LOG_LEVEL = config("LOG_LEVEL", default="INFO")
+LOG_JSON = config("LOG_JSON", default=False, cast=bool)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "structured_console": {
+            "()": "saeedpay.logging.KeyValueLogFormatter",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+        "structured_json": {
+            "()": "saeedpay.logging.JsonLogFormatter",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "structured_json" if LOG_JSON else "structured_console",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        "saeedpay": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "saeedpay.wallets.payment": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "celery": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}
