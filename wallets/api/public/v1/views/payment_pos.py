@@ -1,7 +1,6 @@
 # wallets/api/public/v1/views/payment_pos.py
 
 from django.conf import settings
-from django.http import Http404
 from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -44,25 +43,31 @@ _ALLOWED_ORDERING = {"created_at", "-created_at", "amount", "-amount"}
 def _parse_dt_maybe(value):
     if not value:
         return None
+
     dt = parse_datetime(value)
     if dt:
         return dt
+
     return parse_date(value)
 
 
 def _extract_validation_code(exc, default="validation_error"):
     if hasattr(exc, "get_codes"):
         codes = exc.get_codes()
+
         if isinstance(codes, list) and codes:
             return codes[0]
+
         if isinstance(codes, str):
             return codes
+
         if isinstance(codes, dict):
             first_value = next(iter(codes.values()), default)
             if isinstance(first_value, list) and first_value:
                 return first_value[0]
             if isinstance(first_value, str):
                 return first_value
+
     return getattr(exc, "code", default)
 
 
@@ -84,8 +89,11 @@ class MerchantPosPaymentRequestViewSet(
         "cancel": "merchant-pos-payment-write",
     }
 
-    def _get_owned_store(self, *, store_id, user):
-        merchant = getattr(user, "merchant", None)
+    def _get_merchant(self):
+        return getattr(self.request.user, "merchant", None)
+
+    def _get_owned_store(self, *, store_id):
+        merchant = self._get_merchant()
         if not merchant:
             return None
 
@@ -94,53 +102,56 @@ class MerchantPosPaymentRequestViewSet(
             merchant=merchant,
         ).first()
 
+    def _apply_list_filters(self, qs):
+        params = self.request.query_params
+
+        store_id = params.get("store_id")
+        if store_id:
+            qs = qs.filter(store_id=store_id)
+
+        status_param = params.get("status")
+        if status_param:
+            qs = qs.filter(status=status_param)
+
+        q = params.get("q")
+        if q:
+            qs = qs.filter(reference_code__icontains=q)
+
+        created_from = _parse_dt_maybe(params.get("created_from"))
+        if created_from:
+            qs = qs.filter(created_at__gte=created_from)
+
+        created_to = _parse_dt_maybe(params.get("created_to"))
+        if created_to:
+            qs = qs.filter(created_at__lte=created_to)
+
+        ordering = params.get("ordering") or "-created_at"
+        if ordering not in _ALLOWED_ORDERING:
+            ordering = "-created_at"
+
+        return qs.order_by(ordering)
+
+    def _build_payment_url(self, payment_request: PaymentRequest) -> str:
+        return (
+            f"{settings.FRONTEND_BASE_URL}"
+            f"{FRONTEND_PAYMENT_DETAIL_URL}"
+            f"{payment_request.reference_code}/"
+        )
+
     def get_queryset(self):
-        qs = PaymentRequest.objects.select_related(
-            "store",
-            "paid_by",
-            "paid_wallet",
-        ).filter(flow_type=PaymentFlowType.QR_POS)
+        qs = PaymentRequest.objects.select_related("store").filter(
+            flow_type=PaymentFlowType.QR_POS,
+        )
+
+        if self.action in {"list", "retrieve", "cancel"}:
+            merchant = self._get_merchant()
+            if merchant is not None:
+                qs = qs.filter(store__merchant=merchant)
 
         if self.action == "list":
-            qs = qs.filter(store__merchant=self.request.user.merchant)
-
-            params = self.request.query_params
-
-            store_id = params.get("store_id")
-            if store_id:
-                qs = qs.filter(store_id=store_id)
-
-            status_param = params.get("status")
-            if status_param:
-                qs = qs.filter(status=status_param)
-
-            q = params.get("q")
-            if q:
-                qs = qs.filter(reference_code__icontains=q)
-
-            created_from = _parse_dt_maybe(params.get("created_from"))
-            if created_from:
-                qs = qs.filter(created_at__gte=created_from)
-
-            created_to = _parse_dt_maybe(params.get("created_to"))
-            if created_to:
-                qs = qs.filter(created_at__lte=created_to)
-
-            ordering = params.get("ordering") or "-created_at"
-            if ordering not in _ALLOWED_ORDERING:
-                ordering = "-created_at"
-            qs = qs.order_by(ordering)
+            qs = self._apply_list_filters(qs)
 
         return qs
-
-    def get_object(self):
-        obj = super().get_object()
-        merchant = getattr(self.request.user, "merchant", None)
-
-        if obj.store.merchant_id != getattr(merchant, "id", None):
-            raise Http404
-
-        return obj
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -158,10 +169,7 @@ class MerchantPosPaymentRequestViewSet(
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        store = self._get_owned_store(
-            store_id=data["store_id"],
-            user=request.user,
-        )
+        store = self._get_owned_store(store_id=data["store_id"])
         if not store:
             return payment_error_response(
                 detail="فروشگاه پیدا نشد یا متعلق به شما نیست.",
@@ -187,12 +195,6 @@ class MerchantPosPaymentRequestViewSet(
             actor=request.user,
         )
 
-        payment_url = (
-            f"{settings.FRONTEND_BASE_URL}"
-            f"{FRONTEND_PAYMENT_DETAIL_URL}"
-            f"{payment_request.reference_code}/"
-        )
-
         payload = build_payment_response_payload(
             detail="درخواست پرداخت حضوری با موفقیت ایجاد شد.",
             code="payment_request_created",
@@ -202,7 +204,7 @@ class MerchantPosPaymentRequestViewSet(
             extra={
                 "payment_request_id": payment_request.id,
                 "flow_type": payment_request.flow_type,
-                "payment_url": payment_url,
+                "payment_url": self._build_payment_url(payment_request),
                 "qr_payload": payment_request.reference_code,
                 "store_id": store.id,
                 "store_name": store.name,
@@ -210,7 +212,7 @@ class MerchantPosPaymentRequestViewSet(
         )
 
         response_serializer = MerchantPosPaymentRequestCreateResponseSerializer(
-            payload
+            payload,
         )
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 

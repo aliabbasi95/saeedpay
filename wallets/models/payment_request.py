@@ -38,6 +38,12 @@ class PaymentRequest(BaseModel):
         PaymentRequestStatus.EXPIRED,
     }
 
+    POS_RECREATE_STATUSES = {
+        PaymentRequestStatus.COMPLETED,
+        PaymentRequestStatus.CANCELLED,
+        PaymentRequestStatus.EXPIRED,
+    }
+
     store = models.ForeignKey(
         Store,
         null=True,
@@ -133,6 +139,41 @@ class PaymentRequest(BaseModel):
     @property
     def is_terminal(self) -> bool:
         return self.status in self.TERMINAL_STATUSES
+
+    @property
+    def is_qr_pos(self) -> bool:
+        return self.flow_type == PaymentFlowType.QR_POS
+
+    def is_expired_by_time(self, *, ref_time=None) -> bool:
+        if self.status == PaymentRequestStatus.EXPIRED:
+            return True
+
+        if self.expires_at is None:
+            return False
+
+        ref_time = ref_time or self._now()
+        return self.expires_at < ref_time
+
+    def can_cancel_for_pos(self) -> bool:
+        return self.is_qr_pos and self.status == PaymentRequestStatus.CREATED
+
+    def can_recreate_for_pos(self) -> bool:
+        return self.is_qr_pos and self.status in self.POS_RECREATE_STATUSES
+
+    def get_pos_status_action_hint(self) -> str | None:
+        if not self.is_qr_pos:
+            return None
+
+        if self.status == PaymentRequestStatus.CREATED:
+            return "waiting_for_customer_scan"
+
+        if self.status in self.POS_RECREATE_STATUSES:
+            return "create_new_qr"
+
+        if self.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION:
+            return "awaiting_store_confirmation"
+
+        return None
 
     def _get_allowed_next_statuses(self):
         return self.ALLOWED_STATUS_TRANSITIONS.get(self.status, set())

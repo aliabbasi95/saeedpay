@@ -136,6 +136,10 @@ class Payment(BaseModel):
     def is_final(self) -> bool:
         return self.status in self.FINAL_STATUSES
 
+    @property
+    def is_active(self) -> bool:
+        return self.status in self.ACTIVE_STATUSES
+
     def _get_allowed_next_statuses(self):
         return self.ALLOWED_STATUS_TRANSITIONS.get(self.status, set())
 
@@ -176,7 +180,6 @@ class Payment(BaseModel):
             return
 
         update_fields = ["status"]
-
         self.status = to_status
 
         if datetime_field:

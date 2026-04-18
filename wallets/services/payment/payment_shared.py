@@ -21,7 +21,7 @@ from wallets.utils.consts import (
     MERCHANT_CONFIRM_WINDOW_MINUTES,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("saeedpay.wallets.payment")
 
 
 def now_local():
@@ -116,11 +116,11 @@ def get_merchant_gateway_wallet(payment):
             kind=WalletKind.MERCHANT_GATEWAY,
             owner_type=OwnerType.MERCHANT,
         )
-    except Wallet.DoesNotExist:
+    except Wallet.DoesNotExist as exc:
         raise ValidationError(
             "کیف پول فروشگاه برای تسویه یافت نشد.",
             code="merchant_wallet_not_found",
-        )
+        ) from exc
 
 
 def build_authorized_event_extra(*, payment, wallet_id=None, extra=None):

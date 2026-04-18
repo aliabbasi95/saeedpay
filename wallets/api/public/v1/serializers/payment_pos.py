@@ -1,6 +1,5 @@
 # wallets/api/public/v1/serializers/payment_pos.py
 
-from django.utils import timezone
 from rest_framework import serializers
 
 from wallets.models import PaymentRequest
@@ -65,54 +64,20 @@ class MerchantPosPaymentRequestBaseSerializer(serializers.ModelSerializer):
     def get_merchant_confirmation_required(self, obj: PaymentRequest) -> bool:
         return obj.flow_type == PaymentFlowType.ONLINE
 
-    def get_can_cancel(self, obj):
-        return (
-                obj.flow_type == PaymentFlowType.QR_POS
-                and obj.status == PaymentRequestStatus.CREATED
-        )
+    def get_can_cancel(self, obj: PaymentRequest) -> bool:
+        return obj.can_cancel_for_pos()
 
-    def get_can_recreate(self, obj):
-        return (
-                obj.flow_type == PaymentFlowType.QR_POS
-                and obj.status in {
-                    PaymentRequestStatus.COMPLETED,
-                    PaymentRequestStatus.CANCELLED,
-                    PaymentRequestStatus.EXPIRED,
-                }
-        )
+    def get_can_recreate(self, obj: PaymentRequest) -> bool:
+        return obj.can_recreate_for_pos()
 
-    def get_status_action_hint(self, obj):
-        if obj.flow_type != PaymentFlowType.QR_POS:
-            return None
+    def get_status_action_hint(self, obj: PaymentRequest) -> str | None:
+        return obj.get_pos_status_action_hint()
 
-        if obj.status == PaymentRequestStatus.CREATED:
-            return "waiting_for_customer_scan"
-
-        if obj.status == PaymentRequestStatus.COMPLETED:
-            return "create_new_qr"
-
-        if obj.status == PaymentRequestStatus.CANCELLED:
-            return "create_new_qr"
-
-        if obj.status == PaymentRequestStatus.EXPIRED:
-            return "create_new_qr"
-
-        if obj.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION:
-            return "awaiting_store_confirmation"
-
-        return None
-
-    def get_is_paid(self, obj):
+    def get_is_paid(self, obj: PaymentRequest) -> bool:
         return obj.status == PaymentRequestStatus.COMPLETED
 
-    def get_is_expired(self, obj):
-        if obj.status == PaymentRequestStatus.EXPIRED:
-            return True
-
-        if obj.expires_at is None:
-            return False
-
-        return obj.expires_at < timezone.localtime(timezone.now())
+    def get_is_expired(self, obj: PaymentRequest) -> bool:
+        return obj.is_expired_by_time()
 
 
 class MerchantPosPaymentRequestListItemSerializer(
