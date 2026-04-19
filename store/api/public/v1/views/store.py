@@ -1,6 +1,6 @@
 # store/api/public/v1/views/store.py
 
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import extend_schema_view
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.mixins import (
@@ -23,6 +23,7 @@ from store.api.public.v1.schema import (
     store_delete_schema,
     store_list_schema,
     store_partial_update_schema,
+    store_regenerate_api_key_schema,
     store_retrieve_schema,
     store_update_put_schema,
 )
@@ -87,19 +88,15 @@ class StoreViewSet(
         instance.store_reviewer_verification = 0
         serializer.save()
 
-    @extend_schema(
-        tags=["Store · API Key"],
-        summary="تولید مجدد API Key فروشگاه",
-        description="تنها مرچنت مالک فروشگاه می‌تواند کلید را بازتولید کند.",
-        responses={201: StoreApiKeyRegenerateResponseSerializer},
-    )
+    @store_regenerate_api_key_schema
     @action(detail=True, methods=["post"], url_path="regenerate-api-key")
     def regenerate_api_key(self, request, pk=None):
         store = self.get_object()
         new_key = regenerate_store_api_key(store)
         payload = {"api_key": new_key}
         return Response(
-            StoreApiKeyRegenerateResponseSerializer(payload).data, status=201
+            StoreApiKeyRegenerateResponseSerializer(payload).data,
+            status=201,
         )
 
 
@@ -108,7 +105,10 @@ class StoreViewSet(
     retrieve=public_store_retrieve_schema,
 )
 class PublicStoreViewSet(
-    ScopedThrottleByActionMixin, ListModelMixin, RetrieveModelMixin, GenericViewSet
+    ScopedThrottleByActionMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
+    GenericViewSet,
 ):
     permission_classes = [AllowAny]
     serializer_class = PublicStoreSerializer
@@ -121,6 +121,6 @@ class PublicStoreViewSet(
 
     def get_queryset(self):
         return Store.objects.filter(
-            status=2,  # 2=finalized/approved (store_reviewer_verification=1)
+            status=2,
             is_active=True,
         )
