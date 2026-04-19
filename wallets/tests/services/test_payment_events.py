@@ -44,9 +44,9 @@ class TestPaymentEvents:
         return customer_wallet, merchant_wallet, escrow_wallet
 
     def test_create_payment_request_creates_event(
-            self,
-            store,
-            customer_user,
+        self,
+        store,
+        customer_user,
     ):
         payment_request = create_payment_request(
             store=store,
@@ -56,9 +56,9 @@ class TestPaymentEvents:
             external_guid="ORD-EVT-1",
         )
 
-        events = PaymentEvent.objects.filter(
-            payment_request=payment_request
-        ).order_by("created_at", "id")
+        events = PaymentEvent.objects.filter(payment_request=payment_request).order_by(
+            "created_at", "id"
+        )
 
         assert events.count() == 1
 
@@ -72,9 +72,9 @@ class TestPaymentEvents:
         assert event.extra_data["store_id"] == store.id
 
     def test_create_qr_pos_payment_request_with_merchant_actor_creates_event(
-            self,
-            store,
-            merchant_user,
+        self,
+        store,
+        merchant_user,
     ):
         payment_request = create_payment_request(
             store=store,
@@ -84,10 +84,14 @@ class TestPaymentEvents:
             actor=merchant_user,
         )
 
-        event = PaymentEvent.objects.filter(
-            payment_request=payment_request,
-            event_type=PaymentEventType.PAYMENT_REQUEST_CREATED,
-        ).order_by("-created_at", "-id").first()
+        event = (
+            PaymentEvent.objects.filter(
+                payment_request=payment_request,
+                event_type=PaymentEventType.PAYMENT_REQUEST_CREATED,
+            )
+            .order_by("-created_at", "-id")
+            .first()
+        )
 
         assert event is not None
         assert event.actor == merchant_user
@@ -98,10 +102,10 @@ class TestPaymentEvents:
         assert event.extra_data["amount"] == payment_request.amount
 
     def test_online_cash_payment_creates_authorized_and_awaiting_events(
-            self,
-            store,
-            customer_user,
-            ensure_escrow,
+        self,
+        store,
+        customer_user,
+        ensure_escrow,
     ):
         customer_wallet, _, _ = self._make_cash_env(store, customer_user)
 
@@ -121,8 +125,9 @@ class TestPaymentEvents:
         )
 
         events = list(
-            PaymentEvent.objects.filter(payment_request=payment_request)
-            .order_by("created_at", "id")
+            PaymentEvent.objects.filter(payment_request=payment_request).order_by(
+                "created_at", "id"
+            )
         )
 
         event_types = [event.event_type for event in events]
@@ -132,7 +137,8 @@ class TestPaymentEvents:
         assert PaymentEventType.AWAITING_MERCHANT in event_types
 
         authorized_event = next(
-            event for event in events
+            event
+            for event in events
             if event.event_type == PaymentEventType.PAYMENT_AUTHORIZED
         )
         assert authorized_event.payment_id == payment.id
@@ -142,20 +148,24 @@ class TestPaymentEvents:
         assert authorized_event.extra_data["wallet_id"] == customer_wallet.id
 
         awaiting_event = next(
-            event for event in events
+            event
+            for event in events
             if event.event_type == PaymentEventType.AWAITING_MERCHANT
         )
         assert awaiting_event.payment_id == payment.id
         assert awaiting_event.actor_id == customer_user.id
-        assert awaiting_event.to_status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        assert (
+            awaiting_event.to_status
+            == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        )
         assert awaiting_event.extra_data["wallet_id"] == customer_wallet.id
         assert awaiting_event.extra_data["merchant_confirm_expires_at"] is not None
 
     def test_verify_online_cash_payment_creates_verify_settle_and_complete_events(
-            self,
-            store,
-            customer_user,
-            ensure_escrow,
+        self,
+        store,
+        customer_user,
+        ensure_escrow,
     ):
         customer_wallet, merchant_wallet, _ = self._make_cash_env(
             store,
@@ -185,8 +195,9 @@ class TestPaymentEvents:
         )
 
         events = list(
-            PaymentEvent.objects.filter(payment_request=payment_request)
-            .order_by("created_at", "id")
+            PaymentEvent.objects.filter(payment_request=payment_request).order_by(
+                "created_at", "id"
+            )
         )
         event_types = [event.event_type for event in events]
 
@@ -195,7 +206,8 @@ class TestPaymentEvents:
         assert PaymentEventType.PAYMENT_COMPLETED in event_types
 
         verify_event = next(
-            event for event in events
+            event
+            for event in events
             if event.event_type == PaymentEventType.PAYMENT_VERIFY_REQUESTED
         )
         assert verify_event.payment_id == payment.id
@@ -203,26 +215,29 @@ class TestPaymentEvents:
         assert verify_event.extra_data["store_id"] == store.id
 
         settled_event = next(
-            event for event in events
+            event
+            for event in events
             if event.event_type == PaymentEventType.PAYMENT_SETTLED
         )
         assert settled_event.payment_id == verified_payment.id
         assert settled_event.transaction is not None
         assert settled_event.extra_data["amount"] == verified_payment.amount
-        assert settled_event.extra_data[
-                   "transaction_id"] == settled_event.transaction_id
+        assert (
+            settled_event.extra_data["transaction_id"] == settled_event.transaction_id
+        )
 
         completed_event = next(
-            event for event in events
+            event
+            for event in events
             if event.event_type == PaymentEventType.PAYMENT_COMPLETED
         )
         assert completed_event.payment_id == verified_payment.id
         assert completed_event.to_status == PaymentRequestStatus.COMPLETED
 
     def test_expire_created_request_creates_expired_event(
-            self,
-            store,
-            customer_user,
+        self,
+        store,
+        customer_user,
     ):
         payment_request = create_payment_request(
             store=store,
@@ -240,19 +255,23 @@ class TestPaymentEvents:
         payment_request.refresh_from_db()
         assert payment_request.status == PaymentRequestStatus.EXPIRED
 
-        expired_event = PaymentEvent.objects.filter(
-            payment_request=payment_request,
-            event_type=PaymentEventType.PAYMENT_EXPIRED,
-        ).order_by("-created_at", "-id").first()
+        expired_event = (
+            PaymentEvent.objects.filter(
+                payment_request=payment_request,
+                event_type=PaymentEventType.PAYMENT_EXPIRED,
+            )
+            .order_by("-created_at", "-id")
+            .first()
+        )
 
         assert expired_event is not None
         assert expired_event.to_status == PaymentRequestStatus.EXPIRED
 
     def test_expired_cash_payment_rollback_creates_single_rollback_event(
-            self,
-            store,
-            customer_user,
-            ensure_escrow,
+        self,
+        store,
+        customer_user,
+        ensure_escrow,
     ):
         customer_wallet, _, _ = self._make_cash_env(store, customer_user)
 

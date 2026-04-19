@@ -4,10 +4,10 @@ from django.db import models
 from django.utils import timezone
 
 from lib.erp_base.models import BaseModel
+from utils.reference import generate_reference_code
 from wallets.models.transaction import Transaction
 from wallets.models.wallet import Wallet
 from wallets.utils.choices import TransferStatus
-from utils.reference import generate_reference_code
 
 
 class WalletTransferRequest(BaseModel):
@@ -17,20 +17,16 @@ class WalletTransferRequest(BaseModel):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="transfer_request",
-        verbose_name="تراکنش"
+        verbose_name="تراکنش",
     )
     reference_code = models.CharField(
-        max_length=20,
-        unique=True,
-        null=True,
-        blank=True,
-        verbose_name="کد پیگیری"
+        max_length=20, unique=True, null=True, blank=True, verbose_name="کد پیگیری"
     )
     sender_wallet = models.ForeignKey(
         Wallet,
         on_delete=models.CASCADE,
         related_name="sent_transfers",
-        verbose_name="کیف مبدا"
+        verbose_name="کیف مبدا",
     )
     receiver_wallet = models.ForeignKey(
         Wallet,
@@ -38,43 +34,36 @@ class WalletTransferRequest(BaseModel):
         blank=True,
         on_delete=models.CASCADE,
         related_name="received_transfers",
-        verbose_name="کیف مقصد"
+        verbose_name="کیف مقصد",
     )
     receiver_phone_number = models.CharField(
-        max_length=15,
-        null=True,
-        blank=True,
-        verbose_name="شماره موبایل مقصد"
+        max_length=15, null=True, blank=True, verbose_name="شماره موبایل مقصد"
     )
     amount = models.BigIntegerField(verbose_name="مبلغ")
-    description = models.CharField(
-        max_length=255, blank=True, verbose_name="توضیحات"
-    )
+    description = models.CharField(max_length=255, blank=True, verbose_name="توضیحات")
     status = models.CharField(
-        max_length=32, choices=TransferStatus.choices,
-        default=TransferStatus.PENDING_CONFIRMATION, verbose_name="وضعیت"
+        max_length=32,
+        choices=TransferStatus.choices,
+        default=TransferStatus.PENDING_CONFIRMATION,
+        verbose_name="وضعیت",
     )
-    expires_at = models.DateTimeField(
-        null=True, blank=True, verbose_name="انقضا"
-    )
+    expires_at = models.DateTimeField(null=True, blank=True, verbose_name="انقضا")
 
     def save(self, *args, **kwargs):
         if not self.reference_code:
             for _ in range(5):
                 code = generate_reference_code(prefix="WT", random_digits=6)
                 if not WalletTransferRequest.objects.filter(
-                        reference_code=code
+                    reference_code=code
                 ).exists():
                     self.reference_code = code
                     break
             else:
-                raise Exception(
-                    "Reference code generation failed. Please try again."
-                )
+                raise Exception("Reference code generation failed. Please try again.")
         if not self.expires_at:
-            self.expires_at = timezone.localtime(
-                timezone.now()
-                ) + timezone.timedelta(minutes=1)
+            self.expires_at = timezone.localtime(timezone.now()) + timezone.timedelta(
+                minutes=1
+            )
         super().save(*args, **kwargs)
 
     def __str__(self):

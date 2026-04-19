@@ -6,39 +6,43 @@ from rest_framework.exceptions import ValidationError
 
 from wallets.models import Wallet
 from wallets.services.transfer import (
-    create_wallet_transfer_request,
+    check_and_expire_transfer_request,
     confirm_wallet_transfer_request,
+    create_wallet_transfer_request,
+    expire_pending_transfer_requests,
     reject_wallet_transfer_request,
-    check_and_expire_transfer_request, expire_pending_transfer_requests,
 )
-from wallets.utils.choices import OwnerType, WalletKind, TransferStatus
+from wallets.utils.choices import OwnerType, TransferStatus, WalletKind
 
 
 @pytest.mark.django_db
 class TestTransferFlow:
-
     def test_create_and_confirm_phone_transfer(self, user_factory):
         sender = user_factory("sender", phone="09120000001")
         receiver = user_factory("receiver", phone="09120000002")
         w_sender = Wallet.objects.create(
-            user=sender, kind=WalletKind.CASH, owner_type=OwnerType.CUSTOMER,
-            balance=20_000
+            user=sender,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=20_000,
         )
         w_receiver = Wallet.objects.create(
-            user=receiver, kind=WalletKind.CASH, owner_type=OwnerType.CUSTOMER,
-            balance=1_000
+            user=receiver,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=1_000,
         )
 
         tr = create_wallet_transfer_request(
-            sender_wallet=w_sender, amount=5_000, receiver_phone="09120000002"
+            sender_wallet=w_sender,
+            amount=5_000,
+            receiver_phone="09120000002",
         )
         assert tr.status == TransferStatus.PENDING_CONFIRMATION
         w_sender.refresh_from_db()
         assert w_sender.reserved_balance == 5_000
 
-        confirm_wallet_transfer_request(
-            tr, receiver_wallet=w_receiver, user=receiver
-        )
+        confirm_wallet_transfer_request(tr, receiver_wallet=w_receiver, user=receiver)
         tr.refresh_from_db()
         w_sender.refresh_from_db()
         w_receiver.refresh_from_db()
@@ -51,16 +55,22 @@ class TestTransferFlow:
         sender = user_factory("sender2", phone="09120000011")
         receiver = user_factory("receiver2", phone="09120000022")
         w_sender = Wallet.objects.create(
-            user=sender, kind=WalletKind.CASH, owner_type=OwnerType.CUSTOMER,
-            balance=8_000
+            user=sender,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=8_000,
         )
-        w_receiver = Wallet.objects.create(
-            user=receiver, kind=WalletKind.CASH, owner_type=OwnerType.CUSTOMER,
-            balance=0
+        Wallet.objects.create(
+            user=receiver,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=0,
         )
 
         tr = create_wallet_transfer_request(
-            sender_wallet=w_sender, amount=3_000, receiver_phone="09120000022"
+            sender_wallet=w_sender,
+            amount=3_000,
+            receiver_phone="09120000022",
         )
         assert tr.status == TransferStatus.PENDING_CONFIRMATION
 
@@ -74,11 +84,15 @@ class TestTransferFlow:
     def test_expire_pending_transfer(self, user_factory):
         sender = user_factory("sender3", phone="09120000031")
         w_sender = Wallet.objects.create(
-            user=sender, kind=WalletKind.CASH, owner_type=OwnerType.CUSTOMER,
-            balance=4_000
+            user=sender,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=4_000,
         )
         tr = create_wallet_transfer_request(
-            sender_wallet=w_sender, amount=1_000, receiver_phone="09120000099"
+            sender_wallet=w_sender,
+            amount=1_000,
+            receiver_phone="09120000099",
         )
         tr.expires_at = timezone.now().replace(year=2000)
         tr.save(update_fields=["expires_at"])
@@ -88,29 +102,40 @@ class TestTransferFlow:
 
         tr.refresh_from_db()
         w_sender.refresh_from_db()
-        assert tr.status in [TransferStatus.EXPIRED,
-                             TransferStatus.PENDING_CONFIRMATION]
+        assert tr.status in [
+            TransferStatus.EXPIRED,
+            TransferStatus.PENDING_CONFIRMATION,
+        ]
 
     def test_self_transfer_forbidden(self, user_factory):
         u = user_factory("same", phone="09120000055")
         w1 = Wallet.objects.create(
-            user=u, kind=WalletKind.CASH, owner_type=OwnerType.CUSTOMER,
-            balance=1_000
+            user=u,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=1_000,
         )
         with pytest.raises(ValidationError):
             create_wallet_transfer_request(
-                sender_wallet=w1, amount=100, receiver_phone="09120000055"
+                sender_wallet=w1,
+                amount=100,
+                receiver_phone="09120000055",
             )
 
 
 class TestTransferTasks:
     def test_expire_pending_releases_reserved_balance(self, customer_user):
         sender = Wallet.objects.create(
-            user=customer_user, kind=WalletKind.CASH,
-            owner_type=OwnerType.CUSTOMER, balance=50_000, reserved_balance=0
+            user=customer_user,
+            kind=WalletKind.CASH,
+            owner_type=OwnerType.CUSTOMER,
+            balance=50_000,
+            reserved_balance=0,
         )
         tr = create_wallet_transfer_request(
-            sender_wallet=sender, amount=10_000, receiver_phone="09120001111"
+            sender_wallet=sender,
+            amount=10_000,
+            receiver_phone="09120001111",
         )
         assert tr.status == TransferStatus.PENDING_CONFIRMATION
         sender.refresh_from_db()

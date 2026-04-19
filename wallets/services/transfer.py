@@ -4,40 +4,36 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from utils.reference import generate_reference_code
 from wallets.models.transfer import WalletTransferRequest
 from wallets.models.wallet import Wallet
 from wallets.utils.choices import TransferStatus
-from utils.reference import generate_reference_code
 
-ALLOWED_SENDER_KINDS = ['cash']
-ALLOWED_RECEIVER_KINDS = ['cash']
+ALLOWED_SENDER_KINDS = ["cash"]
+ALLOWED_RECEIVER_KINDS = ["cash"]
 
 
 def create_wallet_transfer_request(
-        sender_wallet: Wallet, amount: int, receiver_wallet: Wallet = None,
-        receiver_phone: str = None, description: str = '', creator=None
+    sender_wallet: Wallet,
+    amount: int,
+    receiver_wallet: Wallet = None,
+    receiver_phone: str = None,
+    description: str = "",
+    creator=None,
 ):
     if sender_wallet.kind not in ALLOWED_SENDER_KINDS:
         raise ValidationError("انتقال از این نوع کیف مجاز نیست.")
     if receiver_wallet and receiver_wallet.kind not in ALLOWED_RECEIVER_KINDS:
         raise ValidationError("انتقال به این نوع کیف مجاز نیست.")
 
-    if (
-            (
-                    receiver_wallet and
-                    sender_wallet.user == receiver_wallet.user)
-            or
-            (
-                    receiver_phone and
-                    hasattr(sender_wallet.user, "profile") and
-                    sender_wallet.user.profile.phone_number == receiver_phone
-            )
+    if (receiver_wallet and sender_wallet.user == receiver_wallet.user) or (
+        receiver_phone
+        and hasattr(sender_wallet.user, "profile")
+        and sender_wallet.user.profile.phone_number == receiver_phone
     ):
         raise ValidationError("انتقال بین کیف‌های یک نفر مجاز نیست.")
     with transaction.atomic():
-        sender_wallet = Wallet.objects.select_for_update().get(
-            pk=sender_wallet.pk
-        )
+        sender_wallet = Wallet.objects.select_for_update().get(pk=sender_wallet.pk)
         if sender_wallet.available_balance < amount:
             raise ValidationError("موجودی قابل رزرو کافی نیست.")
 
@@ -52,12 +48,17 @@ def create_wallet_transfer_request(
             amount=amount,
             reference_code=reference_code,
             description=description,
-            status=TransferStatus.SUCCESS if receiver_wallet else TransferStatus.PENDING_CONFIRMATION,
-            creator=creator
+            status=TransferStatus.SUCCESS
+            if receiver_wallet
+            else TransferStatus.PENDING_CONFIRMATION,
+            creator=creator,
         )
 
         if receiver_wallet:
-            if sender_wallet.reserved_balance < amount or sender_wallet.balance < amount:
+            if (
+                sender_wallet.reserved_balance < amount
+                or sender_wallet.balance < amount
+            ):
                 raise ValidationError("موجودی کافی نیست.")
             sender_wallet.reserved_balance -= amount
             sender_wallet.balance -= amount
@@ -68,12 +69,13 @@ def create_wallet_transfer_request(
             receiver_wallet.balance += amount
             receiver_wallet.save()
             from wallets.models.transaction import Transaction
+
             txn = Transaction.objects.create(
                 from_wallet=sender_wallet,
                 to_wallet=receiver_wallet,
                 amount=amount,
                 status="success",
-                description="انتقال مستقیم کیف به کیف"
+                description="انتقال مستقیم کیف به کیف",
             )
             transfer.transaction = txn
             transfer.status = TransferStatus.SUCCESS
@@ -83,8 +85,8 @@ def create_wallet_transfer_request(
 
 def check_and_expire_transfer_request(transfer_request):
     if transfer_request.expires_at and transfer_request.expires_at < timezone.localtime(
-            timezone.now()
-            ):
+        timezone.now()
+    ):
         if transfer_request.status == TransferStatus.PENDING_CONFIRMATION:
             transfer_request.status = TransferStatus.EXPIRED
             transfer_request.save()
@@ -95,19 +97,19 @@ def check_and_expire_transfer_request(transfer_request):
 
 
 def confirm_wallet_transfer_request(
-        transfer: WalletTransferRequest, receiver_wallet: Wallet, user
+    transfer: WalletTransferRequest, receiver_wallet: Wallet, user
 ):
     with transaction.atomic():
         if receiver_wallet.user != user:
             raise ValidationError("کیف پول مقصد متعلق به شما نیست.")
-        if transfer.receiver_phone_number and hasattr(
-                user, "profile"
-        ) and user.profile.phone_number != transfer.receiver_phone_number:
+        if (
+            transfer.receiver_phone_number
+            and hasattr(user, "profile")
+            and user.profile.phone_number != transfer.receiver_phone_number
+        ):
             raise ValidationError("شما مجاز به تایید این انتقال نیستید.")
         if transfer.status != TransferStatus.PENDING_CONFIRMATION:
-            raise ValidationError(
-                "این انتقال قابل تایید نیست یا قبلاً تایید شده است."
-            )
+            raise ValidationError("این انتقال قابل تایید نیست یا قبلاً تایید شده است.")
         sender_wallet = Wallet.objects.select_for_update().get(
             pk=transfer.sender_wallet.pk
         )
@@ -120,19 +122,18 @@ def confirm_wallet_transfer_request(
         sender_wallet.balance -= transfer.amount
         sender_wallet.save()
 
-        receiver_wallet = Wallet.objects.select_for_update().get(
-            pk=receiver_wallet.pk
-        )
+        receiver_wallet = Wallet.objects.select_for_update().get(pk=receiver_wallet.pk)
         receiver_wallet.balance += transfer.amount
         receiver_wallet.save()
 
         from wallets.models.transaction import Transaction
+
         txn = Transaction.objects.create(
             from_wallet=sender_wallet,
             to_wallet=receiver_wallet,
             amount=transfer.amount,
             status="success",
-            description="انتقال تاییدشده با شماره موبایل"
+            description="انتقال تاییدشده با شماره موبایل",
         )
 
         transfer.receiver_wallet = receiver_wallet
@@ -145,6 +146,7 @@ def confirm_wallet_transfer_request(
 
 def reject_wallet_transfer_request(transfer: WalletTransferRequest):
     from django.db import transaction
+
     with transaction.atomic():
         sender_wallet = Wallet.objects.select_for_update().get(
             pk=transfer.sender_wallet.pk

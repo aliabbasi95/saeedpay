@@ -17,12 +17,8 @@ class InstallmentFilter(filters.FilterSet):
 
 class InstallmentPlanFilter(filters.FilterSet):
     status = filters.CharFilter(field_name="status", lookup_expr="exact")
-    created_from = filters.DateTimeFilter(
-        field_name="created_at", lookup_expr="gte"
-    )
-    created_to = filters.DateTimeFilter(
-        field_name="created_at", lookup_expr="lte"
-    )
+    created_from = filters.DateTimeFilter(field_name="created_at", lookup_expr="gte")
+    created_to = filters.DateTimeFilter(field_name="created_at", lookup_expr="lte")
 
     class Meta:
         model = InstallmentPlan

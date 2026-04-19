@@ -16,11 +16,10 @@ from wallets.utils.choices import (
 
 @pytest.mark.django_db
 class TestCancelPaymentRequestService:
-
     def test_cancel_payment_request_success(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -52,9 +51,9 @@ class TestCancelPaymentRequestService:
         assert event.to_status == PaymentRequestStatus.CANCELLED
 
     def test_cancel_payment_request_is_idempotent_for_already_cancelled(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -76,10 +75,10 @@ class TestCancelPaymentRequestService:
         assert payment_request.status == PaymentRequestStatus.CANCELLED
 
     def test_cancel_payment_request_for_other_store_raises_validation_error(
-            self,
-            merchant_user,
-            store,
-            user_factory,
+        self,
+        merchant_user,
+        store,
+        user_factory,
     ):
         other_user = user_factory("other_merchant_for_cancel_service")
         other_merchant = Merchant.objects.create(user=other_user)
@@ -105,9 +104,9 @@ class TestCancelPaymentRequestService:
         assert exc.value.get_codes() == ["forbidden_store"]
 
     def test_cancel_completed_payment_request_raises_validation_error(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -127,9 +126,9 @@ class TestCancelPaymentRequestService:
         assert exc.value.get_codes() == ["not_cancellable"]
 
     def test_cancel_expired_payment_request_raises_validation_error(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,

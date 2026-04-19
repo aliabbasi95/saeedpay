@@ -15,10 +15,10 @@ from wallets.utils.escrow import ensure_escrow_wallet_exists
 @pytest.fixture
 def user_factory(db):
     def _make(
-            username: str,
-            phone: str | None = None,
-            *,
-            create_customer: bool = False,
+        username: str,
+        phone: str | None = None,
+        *,
+        create_customer: bool = False,
     ):
         user_model = get_user_model()
         user = user_model.objects.create(username=username)

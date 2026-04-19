@@ -10,7 +10,6 @@ from wallets.utils.choices import PaymentFlowType
 
 @pytest.mark.django_db
 class TestPaymentRequestCreateSerializer:
-
     def test_valid_data(self):
         data = {
             "amount": 1000,
@@ -101,9 +100,7 @@ class TestPaymentRequestCreateSerializer:
             "external_guid": "ORD-1",
             "national_id": "1234567890",
         }
-        serializer_with_desc = PaymentRequestCreateSerializer(
-            data=data_with_desc
-        )
+        serializer_with_desc = PaymentRequestCreateSerializer(data=data_with_desc)
         assert serializer_with_desc.is_valid(), serializer_with_desc.errors
         assert serializer_with_desc.validated_data["description"] == "test desc"
 

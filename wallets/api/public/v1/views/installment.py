@@ -2,7 +2,7 @@
 # Read-only ViewSet for user's installments with filters.
 
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, mixins
+from rest_framework import mixins, viewsets
 from rest_framework.filters import OrderingFilter
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
@@ -23,6 +23,7 @@ class InstallmentViewSet(
     list:     Paginated list of all user's installments (across plans).
     retrieve: Single installment details (owned by the user).
     """
+
     serializer_class = InstallmentSerializer
     lookup_field = "pk"
     lookup_value_regex = r"\d+"
@@ -42,8 +43,7 @@ class InstallmentViewSet(
         if getattr(self, "swagger_fake_view", False):
             return Installment.objects.none()
         return (
-            Installment.objects
-            .select_related("plan", "transaction")
+            Installment.objects.select_related("plan", "transaction")
             .only(
                 "id",
                 "plan_id",

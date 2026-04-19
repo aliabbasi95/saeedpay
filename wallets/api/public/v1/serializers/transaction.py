@@ -20,5 +20,5 @@ class TransactionSerializer(serializers.ModelSerializer):
             "status",
             "description",
             "created_at",
-            "updated_at"
+            "updated_at",
         ]

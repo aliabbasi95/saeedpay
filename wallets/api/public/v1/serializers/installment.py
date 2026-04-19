@@ -11,6 +11,7 @@ class InstallmentSerializer(serializers.ModelSerializer):
     - current_penalty: calculated on the fly via model method.
     - total_due: principal + current penalty.
     """
+
     is_overdue = serializers.BooleanField(read_only=True)
     current_penalty = serializers.SerializerMethodField()
     total_due = serializers.SerializerMethodField()

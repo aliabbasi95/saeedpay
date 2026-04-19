@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from lib.cas_auth.views import CasAuthAPIView
 from profiles.models import Profile
 from wallets.api.internal.v1.serializers import (
-    WalletSerializer,
     NationalIdInputSerializer,
+    WalletSerializer,
 )
 from wallets.models import Wallet
 from wallets.utils.choices import OwnerType
@@ -19,9 +19,7 @@ class InternalCustomerWalletListByNationalIdView(CasAuthAPIView):
     def post(self, request):
         serializer = NationalIdInputSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         try:
             profile = Profile.objects.get(
                 national_id=serializer.validated_data["national_id"]
@@ -30,7 +28,7 @@ class InternalCustomerWalletListByNationalIdView(CasAuthAPIView):
         except Profile.DoesNotExist:
             return Response(
                 {"detail": "کاربری با این کد ملی پیدا نشد."},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         wallets = Wallet.objects.filter(

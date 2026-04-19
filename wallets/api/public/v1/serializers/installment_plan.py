@@ -10,6 +10,7 @@ class InstallmentPlanSerializer(serializers.ModelSerializer):
     Summary view for an installment plan.
     total_installments is annotated via reverse relation count.
     """
+
     total_installments = serializers.IntegerField(
         source="installments.count", read_only=True
     )

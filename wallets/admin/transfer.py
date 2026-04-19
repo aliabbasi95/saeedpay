@@ -1,7 +1,7 @@
 # wallets/admin/transfer.py
 
 from django.contrib import admin, messages
-from django.urls import reverse, NoReverseMatch
+from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
@@ -46,15 +46,15 @@ class WalletTransferRequestAdmin(BaseAdmin):
     fieldsets = (
         (_("Identifiers"), {"fields": ("reference_code",)}),
         (_("Status & Amount"), {"fields": ("status", "amount")}),
-        (_("Route / Target"), {
-            "fields": ("sender_wallet", "receiver_wallet",
-                       "receiver_phone_number")
-        }),
+        (
+            _("Route / Target"),
+            {"fields": ("sender_wallet", "receiver_wallet", "receiver_phone_number")},
+        ),
         (_("Relations"), {"fields": ("transaction",)}),
-        (_("Timeline"), {
-            "fields": ("expires_at", "jalali_creation_time",
-                       "jalali_update_time")
-        }),
+        (
+            _("Timeline"),
+            {"fields": ("expires_at", "jalali_creation_time", "jalali_update_time")},
+        ),
     )
     list_select_related = ("sender_wallet", "receiver_wallet", "transaction")
     autocomplete_fields = ("sender_wallet", "receiver_wallet", "transaction")
@@ -82,7 +82,7 @@ class WalletTransferRequestAdmin(BaseAdmin):
         return format_html(
             '<span style="color:{};font-weight:600;">{}</span>',
             colors.get(obj.status, "#6c757d"),
-            obj.get_status_display()
+            obj.get_status_display(),
         )
 
     @admin.display(description=_("Amount"), ordering="amount")
@@ -94,37 +94,24 @@ class WalletTransferRequestAdmin(BaseAdmin):
     def sender_wallet_link(self, obj: WalletTransferRequest):
         if not obj.sender_wallet_id:
             return "-"
-        label = getattr(
-            obj.sender_wallet, "wallet_number", f"#{obj.sender_wallet_id}"
-        )
-        return self._change_link(
-            "wallets", "wallet", obj.sender_wallet_id, label
-        )
+        label = getattr(obj.sender_wallet, "wallet_number", f"#{obj.sender_wallet_id}")
+        return self._change_link("wallets", "wallet", obj.sender_wallet_id, label)
 
-    @admin.display(
-        description=_("Receiver / Phone"), ordering="receiver_wallet"
-    )
+    @admin.display(description=_("Receiver / Phone"), ordering="receiver_wallet")
     def receiver_target(self, obj: WalletTransferRequest):
         if obj.receiver_wallet_id:
             label = getattr(
-                obj.receiver_wallet, "wallet_number",
-                f"#{obj.receiver_wallet_id}"
+                obj.receiver_wallet, "wallet_number", f"#{obj.receiver_wallet_id}"
             )
-            return self._change_link(
-                "wallets", "wallet", obj.receiver_wallet_id, label
-            )
+            return self._change_link("wallets", "wallet", obj.receiver_wallet_id, label)
         return obj.receiver_phone_number or "-"
 
     @admin.display(description=_("Transaction"))
     def transaction_link(self, obj: WalletTransferRequest):
         if not obj.transaction_id:
             return "-"
-        label = getattr(
-            obj.transaction, "reference_code", f"#{obj.transaction_id}"
-        )
-        return self._change_link(
-            "wallets", "transaction", obj.transaction_id, label
-        )
+        label = getattr(obj.transaction, "reference_code", f"#{obj.transaction_id}")
+        return self._change_link("wallets", "transaction", obj.transaction_id, label)
 
     # -------- actions (safe, بدون تایید مالی) --------
     def _apply_action(self, request, queryset, target_status, invalid_from):
@@ -144,27 +131,34 @@ class WalletTransferRequestAdmin(BaseAdmin):
                 )
         if done:
             self.message_user(
-                request, _("{done} updated.").format(done=done),
-                level=messages.SUCCESS
+                request, _("{done} updated.").format(done=done), level=messages.SUCCESS
             )
         if failed:
             self.message_user(
-                request, _("{failed} skipped.").format(failed=failed),
-                level=messages.WARNING
+                request,
+                _("{failed} skipped.").format(failed=failed),
+                level=messages.WARNING,
             )
 
     @admin.action(description=_("Mark as Rejected"))
     def mark_rejected_action(self, request, queryset):
         self._apply_action(
-            request, queryset, TransferStatus.REJECTED,
-            invalid_from={TransferStatus.SUCCESS, TransferStatus.REJECTED,
-                          TransferStatus.EXPIRED},
+            request,
+            queryset,
+            TransferStatus.REJECTED,
+            invalid_from={
+                TransferStatus.SUCCESS,
+                TransferStatus.REJECTED,
+                TransferStatus.EXPIRED,
+            },
         )
 
     @admin.action(description=_("Mark as Expired"))
     def mark_expired_action(self, request, queryset):
         self._apply_action(
-            request, queryset, TransferStatus.EXPIRED,
+            request,
+            queryset,
+            TransferStatus.EXPIRED,
             invalid_from={TransferStatus.SUCCESS, TransferStatus.EXPIRED},
         )
 

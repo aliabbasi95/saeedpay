@@ -4,8 +4,8 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from wallets.api.public.v1.views import (
-    InstallmentViewSet,
     InstallmentPlanViewSet,
+    InstallmentViewSet,
     MerchantPosPaymentRequestViewSet,
     PaymentRequestViewSet,
     WalletTransferViewSet,
@@ -15,11 +15,7 @@ from wallets.api.public.v1.views import (
 app_name = "wallets_public_v1"
 
 router = DefaultRouter()
-router.register(
-    "wallets",
-    WalletViewSet,
-    basename="wallet"
-)
+router.register("wallets", WalletViewSet, basename="wallet")
 router.register(
     "payment-requests",
     PaymentRequestViewSet,
@@ -40,11 +36,7 @@ router.register(
     InstallmentPlanViewSet,
     basename="installment-plan",
 )
-router.register(
-    "installments",
-    InstallmentViewSet,
-    basename="installment"
-)
+router.register("installments", InstallmentViewSet, basename="installment")
 
 urlpatterns = [
     path("", include(router.urls)),

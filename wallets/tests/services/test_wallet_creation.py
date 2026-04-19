@@ -11,7 +11,6 @@ from wallets.utils.consts import DEFAULT_WALLETS
 
 @pytest.mark.django_db
 class TestCreateDefaultWalletsService:
-
     def test_wallets_created_for_customer(self):
         user = get_user_model().objects.create(username="cust1")
         create_default_wallets_for_user(user, OwnerType.CUSTOMER)
@@ -28,9 +27,7 @@ class TestCreateDefaultWalletsService:
         create_default_wallets_for_user(user, OwnerType.CUSTOMER)
         create_default_wallets_for_user(user, OwnerType.CUSTOMER)
 
-        wallet_kinds = Wallet.objects.filter(user=user).values_list(
-            "kind", flat=True
-        )
+        wallet_kinds = Wallet.objects.filter(user=user).values_list("kind", flat=True)
         assert len(wallet_kinds) == len(set(wallet_kinds))
 
     def test_store_wallets_empty(self):

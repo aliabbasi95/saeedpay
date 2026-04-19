@@ -50,10 +50,10 @@ class TestPaymentApi:
         return client
 
     def test_payment_request_detail_api_authenticated(
-            self,
-            store,
-            customer_user,
-            customer_cash_wallet,
+        self,
+        store,
+        customer_user,
+        customer_cash_wallet,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -76,8 +76,8 @@ class TestPaymentApi:
         assert response.data["reason"] is None
 
     def test_payment_request_detail_api_unauthenticated_for_qr_is_readable_but_not_payable(
-            self,
-            store,
+        self,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -100,10 +100,10 @@ class TestPaymentApi:
         assert response.data["available_wallets"] == []
 
     def test_payment_request_detail_for_other_customer_is_not_payable(
-            self,
-            store,
-            customer_user,
-            user_factory,
+        self,
+        store,
+        customer_user,
+        user_factory,
     ):
         other_user = user_factory("other_customer_for_detail")
         Profile.objects.create(
@@ -133,10 +133,10 @@ class TestPaymentApi:
         assert response.data["available_wallets"] == []
 
     def test_confirm_and_verify_flow_via_service_verify(
-            self,
-            store,
-            customer_user,
-            customer_cash_wallet,
+        self,
+        store,
+        customer_user,
+        customer_cash_wallet,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -164,12 +164,12 @@ class TestPaymentApi:
         assert response.data["payment_reference_code"] == payment_request.reference_code
         assert response.data["next_action"] == "waiting_for_store_confirmation"
         assert (
-                response.data["payment_status"]
-                == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
+            response.data["payment_status"]
+            == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
         )
         assert (
-                response.data["payment_request_status"]
-                == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+            response.data["payment_request_status"]
+            == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
         )
         assert response.data["merchant_confirmation_required"] is True
         assert response.data["return_url"] == payment_request.return_url
@@ -177,8 +177,8 @@ class TestPaymentApi:
 
         payment_request.refresh_from_db()
         assert (
-                payment_request.status
-                == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+            payment_request.status
+            == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
         )
 
         Wallet.objects.get_or_create(
@@ -193,10 +193,10 @@ class TestPaymentApi:
         assert payment_request.status == PaymentRequestStatus.COMPLETED
 
     def test_qr_confirm_finishes_immediately_for_unbound_request(
-            self,
-            store,
-            customer_user,
-            customer_cash_wallet,
+        self,
+        store,
+        customer_user,
+        customer_cash_wallet,
     ):
         Wallet.objects.get_or_create(
             user=store.merchant.user,
@@ -240,10 +240,10 @@ class TestPaymentApi:
         assert payment_request.paid_wallet == customer_cash_wallet
 
     def test_confirm_bound_request_by_other_customer_is_rejected(
-            self,
-            store,
-            customer_user,
-            user_factory,
+        self,
+        store,
+        customer_user,
+        user_factory,
     ):
         other_user = user_factory("other_customer_confirm")
         Profile.objects.create(
@@ -286,9 +286,9 @@ class TestPaymentApi:
         assert payment_request.status == PaymentRequestStatus.CREATED
 
     def test_payment_request_detail_has_available_wallets_for_authenticated_user(
-            self,
-            store,
-            customer_user,
+        self,
+        store,
+        customer_user,
     ):
         rich_cash_wallet = Wallet.objects.create(
             user=customer_user,
@@ -325,9 +325,9 @@ class TestPaymentApi:
         assert poor_credit_wallet.id not in ids
 
     def test_payment_request_detail_includes_credit_wallet_when_limit_is_enough(
-            self,
-            store,
-            customer_user,
+        self,
+        store,
+        customer_user,
     ):
         Wallet.objects.create(
             user=customer_user,
@@ -357,11 +357,11 @@ class TestPaymentApi:
         assert any(wallet["kind"] == WalletKind.CREDIT for wallet in wallets)
 
     def test_confirm_payment_returns_already_completed_when_completed_payment_exists(
-            self,
-            customer_user,
-            customer_cash_wallet,
-            store,
-            monkeypatch,
+        self,
+        customer_user,
+        customer_cash_wallet,
+        store,
+        monkeypatch,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -406,11 +406,11 @@ class TestPaymentApi:
         assert response.data["code"] == "already_completed"
 
     def test_confirm_payment_returns_payment_in_progress_when_active_payment_exists(
-            self,
-            customer_user,
-            customer_cash_wallet,
-            store,
-            monkeypatch,
+        self,
+        customer_user,
+        customer_cash_wallet,
+        store,
+        monkeypatch,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,

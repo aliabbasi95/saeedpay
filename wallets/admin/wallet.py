@@ -1,7 +1,7 @@
 # wallets/admin/wallet.py
 
 from django.contrib import admin
-from django.urls import reverse, NoReverseMatch
+from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
@@ -26,7 +26,7 @@ class WalletAdmin(BaseAdmin):
         "wallet_number",
         "user__username",
         "user__profile__first_name",
-        "user__profile__last_name"
+        "user__profile__last_name",
     )
     readonly_fields = (
         "wallet_number",
@@ -40,19 +40,11 @@ class WalletAdmin(BaseAdmin):
         (_("شناسه"), {"fields": ("wallet_number",)}),
         (_("مالک"), {"fields": ("user", "owner_type")}),
         (_("نوع"), {"fields": ("kind",)}),
-        (_("مبالغ"), {
-            "fields": (
-                "balance",
-                "reserved_balance",
-                "available_balance_display"
-            )
-        }),
-        (_("زمان‌بندی"), {
-            "fields": (
-                "jalali_creation_time",
-                "jalali_update_time"
-            )
-        }),
+        (
+            _("مبالغ"),
+            {"fields": ("balance", "reserved_balance", "available_balance_display")},
+        ),
+        (_("زمان‌بندی"), {"fields": ("jalali_creation_time", "jalali_update_time")}),
     )
     list_select_related = ("user",)
     autocomplete_fields = ("user",)

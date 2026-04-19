@@ -1,6 +1,6 @@
 # wallets/services/credit.py
 
-from decimal import Decimal, ROUND_HALF_UP, getcontext
+from decimal import ROUND_HALF_UP, Decimal, getcontext
 
 
 def evaluate_user_credit(requested_amount: int, contract) -> int:
@@ -11,10 +11,7 @@ getcontext().prec = 28
 
 
 def calculate_installments(
-        amount: int,
-        duration_months: int,
-        period_months: int,
-        annual_interest_rate: float
+    amount: int, duration_months: int, period_months: int, annual_interest_rate: float
 ) -> dict:
     if period_months == 0:
         raise ValueError("پریود اقساط نمی‌تواند صفر باشد.")

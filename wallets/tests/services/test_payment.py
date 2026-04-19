@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 
 from customers.models import Customer
-from wallets.models import Wallet, PaymentRequest
+from wallets.models import PaymentRequest, Wallet
 from wallets.services.payment import (
     check_and_expire_payment_request,
     create_payment_request,
@@ -27,7 +27,6 @@ from wallets.utils.consts import ESCROW_USER_NAME, ESCROW_WALLET_KIND
 
 @pytest.mark.django_db
 class TestPaymentService:
-
     def make_env(self, store, customer_user, ensure_escrow):
         customer_wallet = Wallet.objects.create(
             user=customer_user,
@@ -64,7 +63,10 @@ class TestPaymentService:
         payment.refresh_from_db()
         escrow_wallet.refresh_from_db()
 
-        assert payment_request.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        assert (
+            payment_request.status
+            == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        )
         assert payment.status == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
         assert escrow_wallet.balance >= 1234
 
@@ -91,7 +93,7 @@ class TestPaymentService:
         assert merchant_wallet.balance == old_balance
 
     def test_qr_cash_payment_is_finalized_immediately(
-            self, store, customer_user, ensure_escrow
+        self, store, customer_user, ensure_escrow
     ):
         customer_wallet, merchant_wallet, _ = self.make_env(
             store, customer_user, ensure_escrow
@@ -121,9 +123,7 @@ class TestPaymentService:
         ).exists()
         assert merchant_wallet.balance >= 2000
 
-    def test_online_payment_without_return_url_fails(
-            self, store, customer_user
-    ):
+    def test_online_payment_without_return_url_fails(self, store, customer_user):
         with pytest.raises(ValidationError) as exc:
             create_payment_request(
                 store=store,
@@ -136,9 +136,7 @@ class TestPaymentService:
 
         assert exc.value.get_codes()[0] == "return_url_required"
 
-    def test_online_payment_without_external_guid_fails(
-            self, store, customer_user
-    ):
+    def test_online_payment_without_external_guid_fails(self, store, customer_user):
         with pytest.raises(ValidationError) as exc:
             create_payment_request(
                 store=store,
@@ -151,9 +149,7 @@ class TestPaymentService:
 
         assert exc.value.get_codes()[0] == "external_guid_required"
 
-    def test_qr_payment_with_return_url_fails(
-            self, store
-    ):
+    def test_qr_payment_with_return_url_fails(self, store):
         with pytest.raises(ValidationError) as exc:
             create_payment_request(
                 store=store,
@@ -166,9 +162,7 @@ class TestPaymentService:
 
         assert exc.value.get_codes()[0] == "return_url_not_allowed"
 
-    def test_qr_payment_with_external_guid_fails(
-            self, store
-    ):
+    def test_qr_payment_with_external_guid_fails(self, store):
         with pytest.raises(ValidationError) as exc:
             create_payment_request(
                 store=store,
@@ -182,7 +176,7 @@ class TestPaymentService:
         assert exc.value.get_codes()[0] == "external_guid_not_allowed"
 
     def test_bound_request_cannot_be_paid_by_other_customer(
-            self, store, customer_user, ensure_escrow, user_factory
+        self, store, customer_user, ensure_escrow, user_factory
     ):
         other_user = user_factory("other_customer_for_service")
         Customer.objects.get_or_create(user=other_user)
@@ -271,7 +265,7 @@ class TestPaymentService:
             verify_payment_request(payment_request, store=store)
 
     def test_double_verify(
-            self, store, customer_user, customer_cash_wallet, ensure_escrow
+        self, store, customer_user, customer_cash_wallet, ensure_escrow
     ):
         Wallet.objects.get_or_create(
             user=store.merchant.user,
@@ -333,7 +327,7 @@ class TestPaymentService:
         assert customer_wallet.balance == before
 
     def test_escrow_wallet_insufficient_on_verify(
-            self, store, customer_user, ensure_escrow
+        self, store, customer_user, ensure_escrow
     ):
         customer_wallet = Wallet.objects.create(
             user=customer_user,
@@ -366,9 +360,8 @@ class TestPaymentService:
 
 @pytest.mark.django_db
 class TestPaymentNegativePaths:
-
     def test_verify_without_merchant_wallet_fails_and_state_unchanged(
-            self, store, customer_user, ensure_escrow
+        self, store, customer_user, ensure_escrow
     ):
         customer_wallet = Wallet.objects.create(
             user=customer_user,
@@ -386,7 +379,10 @@ class TestPaymentNegativePaths:
         payment = pay_payment_request(payment_request, customer_user, customer_wallet)
 
         payment_request.refresh_from_db()
-        assert payment_request.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        assert (
+            payment_request.status
+            == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        )
         payment.refresh_from_db()
         assert payment.status == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
 
@@ -395,7 +391,10 @@ class TestPaymentNegativePaths:
 
         payment_request.refresh_from_db()
         payment.refresh_from_db()
-        assert payment_request.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        assert (
+            payment_request.status
+            == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        )
         assert payment.status == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
 
     def test_verify_awaiting_but_without_related_payment(self, store, customer_user):

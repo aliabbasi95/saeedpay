@@ -3,37 +3,34 @@
 import random
 
 from django.contrib.auth import get_user_model
-from django.db import models, IntegrityError
+from django.db import IntegrityError, models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
-from wallets.utils.choices import WalletKind, OwnerType, WALLET_KIND_PREFIX
+from wallets.utils.choices import WALLET_KIND_PREFIX, OwnerType, WalletKind
 
 
-def generate_wallet_number(kind, length=12):
+def generate_wallet_number(kind: str, length: int = 12) -> str:
     prefix = WALLET_KIND_PREFIX.get(kind, "60")
     number_length = length - len(prefix)
-    while True:
-        random_digits = ''.join(
-            str(random.randint(0, 9)) for _ in range(number_length)
-        )
-        wallet_number = f"{prefix}{random_digits}"
-        if not Wallet.objects.filter(wallet_number=wallet_number).exists():
-            return wallet_number
+    random_digits = "".join(str(random.randint(0, 9)) for _ in range(number_length))
+    return f"{prefix}{random_digits}"
 
 
 class Wallet(BaseModel):
+    WALLET_NUMBER_MAX_RETRIES = 5
+
     user = models.ForeignKey(
         get_user_model(),
         on_delete=models.CASCADE,
         related_name="wallets",
-        verbose_name="کاربر"
+        verbose_name="کاربر",
     )
     owner_type = models.CharField(
         max_length=20,
         choices=OwnerType.choices,
-        verbose_name="نوع کاربر"
+        verbose_name="نوع کاربر",
     )
     kind = models.CharField(
         max_length=20,
@@ -46,14 +43,14 @@ class Wallet(BaseModel):
     )
     reserved_balance = models.BigIntegerField(
         verbose_name=_("مبلغ رزروشده"),
-        default=0
+        default=0,
     )
     wallet_number = models.CharField(
         max_length=12,
         unique=True,
         db_index=True,
         verbose_name=_("شماره کیف پول"),
-        blank=True
+        blank=True,
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -63,23 +60,35 @@ class Wallet(BaseModel):
     def available_balance(self) -> int:
         return self.balance - self.reserved_balance
 
+    def _save_with_generated_wallet_number(self, *args, **kwargs):
+        for _attempt in range(self.WALLET_NUMBER_MAX_RETRIES):
+            self.wallet_number = generate_wallet_number(self.kind)
+
+            try:
+                super().save(*args, **kwargs)
+                return
+            except IntegrityError as exc:
+                if "wallet_number" not in str(exc).lower():
+                    raise
+
+                self.wallet_number = ""
+
+        raise IntegrityError("Failed to generate unique wallet number after retries.")
+
     def save(self, *args, **kwargs):
-        if not self.wallet_number:
-            for _ in range(5):
-                number = generate_wallet_number(self.kind)
-                self.wallet_number = number
-                try:
-                    super().save(*args, **kwargs)
-                    break
-                except IntegrityError:
-                    self.wallet_number = None
-            else:
-                raise Exception("Failed to generate unique wallet number.")
-        else:
+        if self.wallet_number:
             super().save(*args, **kwargs)
+            return
+
+        self._save_with_generated_wallet_number(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user.username} - {self.get_kind_display()} ({self.get_owner_type_display()}) | {self.wallet_number}"
+        return (
+            f"{self.user.username} - "
+            f"{self.get_kind_display()} "
+            f"({self.get_owner_type_display()}) | "
+            f"{self.wallet_number}"
+        )
 
     class Meta:
         unique_together = ("user", "owner_type", "kind")

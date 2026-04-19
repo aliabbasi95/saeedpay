@@ -4,7 +4,7 @@ import pytest
 
 from wallets.models import Wallet
 from wallets.utils.choices import OwnerType
-from wallets.utils.consts import ESCROW_WALLET_KIND, ESCROW_USER_NAME
+from wallets.utils.consts import ESCROW_USER_NAME, ESCROW_WALLET_KIND
 from wallets.utils.escrow import ensure_escrow_wallet_exists
 
 

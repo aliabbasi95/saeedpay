@@ -18,13 +18,12 @@ from wallets.utils.choices import (
 
 @pytest.mark.django_db
 class TestPaymentConcurrencyApi:
-
     def test_qr_confirm_returns_payment_in_progress_when_active_payment_exists(
-            self,
-            store,
-            customer_user,
-            customer_cash_wallet,
-            monkeypatch,
+        self,
+        store,
+        customer_user,
+        customer_cash_wallet,
+        monkeypatch,
     ):
         merchant_wallet, _ = Wallet.objects.get_or_create(
             user=store.merchant.user,

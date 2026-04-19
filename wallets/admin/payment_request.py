@@ -58,37 +58,46 @@ class PaymentRequestAdmin(BaseAdmin):
     )
     fieldsets = (
         (_("شناسه"), {"fields": ("reference_code",)}),
-        (_("جزئیات"), {
-            "fields": (
-                "status",
-                "flow_type",
-                "amount",
-                "description",
-                "external_guid",
-                "return_url",
-            )
-        }),
-        (_("ارتباطات"), {
-            "fields": (
-                "store",
-                "customer",
-                "paid_by",
-                "paid_wallet",
-            )
-        }),
-        (_("زمان‌بندی"), {
-            "fields": (
-                "expires_at",
-                "created_expires_at",
-                "merchant_confirm_expires_at",
-                "paid_at",
-                "completed_at",
-                "cancelled_at",
-                "expired_at",
-                "jalali_creation_time",
-                "jalali_update_time",
-            )
-        }),
+        (
+            _("جزئیات"),
+            {
+                "fields": (
+                    "status",
+                    "flow_type",
+                    "amount",
+                    "description",
+                    "external_guid",
+                    "return_url",
+                )
+            },
+        ),
+        (
+            _("ارتباطات"),
+            {
+                "fields": (
+                    "store",
+                    "customer",
+                    "paid_by",
+                    "paid_wallet",
+                )
+            },
+        ),
+        (
+            _("زمان‌بندی"),
+            {
+                "fields": (
+                    "expires_at",
+                    "created_expires_at",
+                    "merchant_confirm_expires_at",
+                    "paid_at",
+                    "completed_at",
+                    "cancelled_at",
+                    "expired_at",
+                    "jalali_creation_time",
+                    "jalali_update_time",
+                )
+            },
+        ),
     )
     list_select_related = ("store", "customer", "paid_by", "paid_wallet")
     autocomplete_fields = ("store", "customer", "paid_by", "paid_wallet")

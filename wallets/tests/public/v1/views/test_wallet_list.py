@@ -17,10 +17,8 @@ class TestWalletListView:
     def _no_throttle(self):
         cache.clear()
 
-        settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"][
-            "anon"] = "100000/hour"
-        settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"][
-            "user"] = "100000/hour"
+        settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["anon"] = "100000/hour"
+        settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]["user"] = "100000/hour"
 
     @pytest.fixture
     def client(self):
@@ -33,27 +31,34 @@ class TestWalletListView:
     @pytest.fixture
     def wallets(self, user):
         Wallet.objects.create(
-            user=user, kind=WalletKind.CASH, owner_type=OwnerType.CUSTOMER,
-            balance=100
+            user=user, kind=WalletKind.CASH, owner_type=OwnerType.CUSTOMER, balance=100
         )
         Wallet.objects.create(
-            user=user, kind=WalletKind.CREDIT, owner_type=OwnerType.CUSTOMER,
-            balance=200
+            user=user,
+            kind=WalletKind.CREDIT,
+            owner_type=OwnerType.CUSTOMER,
+            balance=200,
         )
         Wallet.objects.create(
-            user=user, kind=WalletKind.CASHBACK, owner_type=OwnerType.MERCHANT,
-            balance=300
+            user=user,
+            kind=WalletKind.CASHBACK,
+            owner_type=OwnerType.MERCHANT,
+            balance=300,
         )
 
     def _payload(self, resp):
-        return resp.data["results"] if isinstance(
-            resp.data, dict
-        ) and "results" in resp.data else resp.data
+        return (
+            resp.data["results"]
+            if isinstance(resp.data, dict) and "results" in resp.data
+            else resp.data
+        )
 
     def test_requires_authentication(self, client):
         response = client.get("/saeedpay/api/wallets/public/v1/wallets/")
-        assert response.status_code in (status.HTTP_401_UNAUTHORIZED,
-                                        status.HTTP_403_FORBIDDEN)
+        assert response.status_code in (
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN,
+        )
 
     def test_list_wallets_success_customer(self, client, user, wallets):
         client.force_authenticate(user=user)
@@ -113,8 +118,8 @@ class TestWalletListView:
 
     def test_wallet_list_post_not_allowed(self, client, user):
         client.force_authenticate(user=user)
-        response = client.post(
-            "/saeedpay/api/wallets/public/v1/wallets/", data={}
-        )
-        assert response.status_code in [status.HTTP_403_FORBIDDEN,
-                                        status.HTTP_405_METHOD_NOT_ALLOWED]
+        response = client.post("/saeedpay/api/wallets/public/v1/wallets/", data={})
+        assert response.status_code in [
+            status.HTTP_403_FORBIDDEN,
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+        ]

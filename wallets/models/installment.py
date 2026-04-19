@@ -14,14 +14,12 @@ class Installment(BaseModel):
         InstallmentPlan,
         on_delete=models.CASCADE,
         related_name="installments",
-        verbose_name=_("برنامه اقساط")
+        verbose_name=_("برنامه اقساط"),
     )
 
     due_date = models.DateField(verbose_name=_("تاریخ سررسید"))
     amount = models.BigIntegerField(verbose_name=_("مبلغ قسط"))
-    amount_paid = models.BigIntegerField(
-        default=0, verbose_name=_("مبلغ پرداخت‌شده")
-    )
+    amount_paid = models.BigIntegerField(default=0, verbose_name=_("مبلغ پرداخت‌شده"))
     penalty_amount = models.BigIntegerField(
         default=0, verbose_name=_("جریمه پرداخت‌شده")
     )
@@ -30,12 +28,10 @@ class Installment(BaseModel):
         max_length=16,
         choices=InstallmentStatus.choices,
         default=InstallmentStatus.UNPAID,
-        verbose_name=_("وضعیت")
+        verbose_name=_("وضعیت"),
     )
 
-    paid_at = models.DateTimeField(
-        null=True, blank=True, verbose_name=_("زمان پرداخت")
-    )
+    paid_at = models.DateTimeField(null=True, blank=True, verbose_name=_("زمان پرداخت"))
 
     transaction = models.ForeignKey(
         Transaction,
@@ -43,16 +39,17 @@ class Installment(BaseModel):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="installments",
-        verbose_name=_("تراکنش پرداخت")
+        verbose_name=_("تراکنش پرداخت"),
     )
 
     note = models.TextField(blank=True, verbose_name=_("یادداشت"))
 
     @property
     def is_overdue(self) -> bool:
-        return self.status == InstallmentStatus.UNPAID and self.due_date < timezone.localtime(
-            timezone.now()
-            ).date()
+        return (
+            self.status == InstallmentStatus.UNPAID
+            and self.due_date < timezone.localtime(timezone.now()).date()
+        )
 
     @property
     def current_penalty(self) -> int:
@@ -67,9 +64,7 @@ class Installment(BaseModel):
         overdue_days = (today - self.due_date).days
         return int(self.amount * daily_rate * overdue_days)
 
-    def mark_paid(
-            self, amount_paid: int, penalty_paid: int, transaction: Transaction
-    ):
+    def mark_paid(self, amount_paid: int, penalty_paid: int, transaction: Transaction):
         self.amount_paid = amount_paid
         self.penalty_amount = penalty_paid
         self.transaction = transaction
@@ -83,9 +78,7 @@ class Installment(BaseModel):
     class Meta:
         ordering = ["due_date"]
         indexes = [
-            models.Index(
-                fields=["plan", "due_date"], name="inst_plan_due_idx"
-            ),
+            models.Index(fields=["plan", "due_date"], name="inst_plan_due_idx"),
             models.Index(fields=["status"], name="inst_status_idx"),
         ]
         verbose_name = _("قسط")

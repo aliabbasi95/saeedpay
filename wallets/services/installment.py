@@ -3,15 +3,15 @@
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 
-from wallets.models import Transaction, Installment, InstallmentPlan
+from wallets.models import Installment, InstallmentPlan, Transaction
 from wallets.utils.choices import InstallmentStatus
 
 
 def pay_installment(
-        installment: Installment,
-        amount: int,
-        transaction: Transaction,
-        penalty_rate: float = 0.005
+    installment: Installment,
+    amount: int,
+    transaction: Transaction,
+    penalty_rate: float = 0.005,
 ):
     if installment.status == InstallmentStatus.PAID:
         raise Exception("این قسط قبلاً پرداخت شده است.")
@@ -23,9 +23,7 @@ def pay_installment(
         raise Exception("مبلغ پرداخت‌شده کمتر از مجموع قسط و جریمه است.")
 
     installment.mark_paid(
-        amount_paid=installment.amount,
-        penalty_paid=penalty,
-        transaction=transaction
+        amount_paid=installment.amount, penalty_paid=penalty, transaction=transaction
     )
 
 

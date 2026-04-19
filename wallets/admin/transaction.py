@@ -48,21 +48,27 @@ class TransactionAdmin(BaseAdmin):
     )
     fieldsets = (
         (_("اطلاعات پیگیری"), {"fields": ("reference_code",)}),
-        (_("جزئیات تراکنش"), {
-            "fields": (
-                "status",
-                "purpose",
-                "amount",
-                "description",
-            )
-        }),
-        (_("ارتباطات"), {
-            "fields": (
-                "payment",
-                "payment_request",
-                "related_transaction",
-            )
-        }),
+        (
+            _("جزئیات تراکنش"),
+            {
+                "fields": (
+                    "status",
+                    "purpose",
+                    "amount",
+                    "description",
+                )
+            },
+        ),
+        (
+            _("ارتباطات"),
+            {
+                "fields": (
+                    "payment",
+                    "payment_request",
+                    "related_transaction",
+                )
+            },
+        ),
         (_("مسیر انتقال"), {"fields": ("from_wallet", "to_wallet")}),
         (_("زمان‌بندی"), {"fields": ("jalali_creation_time", "jalali_update_time")}),
     )

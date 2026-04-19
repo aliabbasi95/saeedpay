@@ -5,11 +5,8 @@ from wallets.utils.choices import OwnerType
 
 
 class TestWalletListQuerySerializer:
-
     def test_valid_owner_type(self):
-        serializer = WalletListQuerySerializer(
-            data={"owner_type": OwnerType.CUSTOMER}
-        )
+        serializer = WalletListQuerySerializer(data={"owner_type": OwnerType.CUSTOMER})
         assert serializer.is_valid()
         assert serializer.validated_data["owner_type"] == OwnerType.CUSTOMER
 
@@ -19,9 +16,7 @@ class TestWalletListQuerySerializer:
         assert "owner_type" in serializer.errors
 
     def test_invalid_owner_type(self):
-        serializer = WalletListQuerySerializer(
-            data={"owner_type": "INVALID"}
-        )
+        serializer = WalletListQuerySerializer(data={"owner_type": "INVALID"})
         assert not serializer.is_valid()
         assert "owner_type" in serializer.errors
 

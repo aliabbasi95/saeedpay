@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from django.utils import timezone
 
 from wallets.models import PaymentRequest
@@ -12,10 +13,11 @@ from wallets.utils.choices import PaymentRequestStatus
 
 @pytest.mark.django_db
 class TestPaymentRequestModel:
-
     def test_reference_code_generated_on_save(self, store):
         pr = PaymentRequest.objects.create(
-            store=store, amount=1000, return_url="https://example.com"
+            store=store,
+            amount=1000,
+            return_url="https://example.com",
         )
         assert pr.reference_code
         assert pr.status == PaymentRequestStatus.CREATED
@@ -23,7 +25,9 @@ class TestPaymentRequestModel:
 
     def test_mark_methods_and_rollback_calls(self, store):
         pr = PaymentRequest.objects.create(
-            store=store, amount=2000, return_url="https://site.com"
+            store=store,
+            amount=2000,
+            return_url="https://site.com",
         )
         pr.mark_awaiting_merchant()
         assert pr.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
@@ -37,7 +41,9 @@ class TestPaymentRequestModel:
 
     def test_invalid_transition_from_completed_to_cancelled_raises(self, store):
         pr = PaymentRequest.objects.create(
-            store=store, amount=2000, return_url="https://site.com"
+            store=store,
+            amount=2000,
+            return_url="https://site.com",
         )
         pr.mark_awaiting_merchant()
         pr.mark_completed()
@@ -49,7 +55,9 @@ class TestPaymentRequestModel:
 
     def test_invalid_transition_from_completed_to_expired_raises(self, store):
         pr = PaymentRequest.objects.create(
-            store=store, amount=2000, return_url="https://site.com"
+            store=store,
+            amount=2000,
+            return_url="https://site.com",
         )
         pr.mark_awaiting_merchant()
         pr.mark_completed()
@@ -61,7 +69,9 @@ class TestPaymentRequestModel:
 
     def test_invalid_transition_from_created_to_completed_raises(self, store):
         pr = PaymentRequest.objects.create(
-            store=store, amount=2000, return_url="https://site.com"
+            store=store,
+            amount=2000,
+            return_url="https://site.com",
         )
 
         with pytest.raises(ValidationError) as exc:
@@ -96,7 +106,9 @@ class TestPaymentRequestModel:
 
     def test_str(self, store):
         pr = PaymentRequest.objects.create(
-            store=store, amount=12345, return_url="https://test.com"
+            store=store,
+            amount=12345,
+            return_url="https://test.com",
         )
         s = str(pr)
         assert "درخواست پرداخت #" in s
@@ -106,7 +118,9 @@ class TestPaymentRequestModel:
         codes = set()
         for i in range(10):
             pr = PaymentRequest.objects.create(
-                store=store, amount=1000 + i, return_url=f"https://{i}.com"
+                store=store,
+                amount=1000 + i,
+                return_url=f"https://{i}.com",
             )
             assert pr.reference_code not in codes
             codes.add(pr.reference_code)
@@ -123,7 +137,9 @@ class TestPaymentRequestModel:
 
     def test_reference_code_persists_after_save(self, store):
         pr = PaymentRequest.objects.create(
-            store=store, amount=3000, return_url="https://persist.com"
+            store=store,
+            amount=3000,
+            return_url="https://persist.com",
         )
         orig = pr.reference_code
         pr.amount = 4000
@@ -156,7 +172,9 @@ class TestPaymentRequestModel:
 
     def test_store_cascade_delete(self, store):
         pr = PaymentRequest.objects.create(
-            store=store, amount=1300, return_url="https://del.com"
+            store=store,
+            amount=1300,
+            return_url="https://del.com",
         )
         pr_id = pr.id
         store.delete()
@@ -182,7 +200,7 @@ class TestPaymentRequestModel:
             return_url="https://dup.com",
             reference_code="DUPLICATECODE",
         )
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             PaymentRequest.objects.create(
                 store=store,
                 amount=1001,
@@ -191,7 +209,10 @@ class TestPaymentRequestModel:
             )
 
     def test_paid_by_and_paid_wallet_fields(
-            self, store, customer_user, customer_cash_wallet
+        self,
+        store,
+        customer_user,
+        customer_cash_wallet,
     ):
         pr = PaymentRequest.objects.create(
             store=store,
@@ -231,7 +252,7 @@ class TestPaymentRequestModel:
             external_guid="GUID-1",
         )
         assert pr1.external_guid == "GUID-1"
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             PaymentRequest.objects.create(
                 store=store,
                 amount=200,
@@ -239,9 +260,7 @@ class TestPaymentRequestModel:
                 external_guid="GUID-1",
             )
 
-    def test_external_guid_can_repeat_on_other_store(
-            self, store, merchant_user
-    ):
+    def test_external_guid_can_repeat_on_other_store(self, store, merchant_user):
         from store.models import Store
 
         store2 = Store.objects.create(name="store-2", merchant=store.merchant)

@@ -13,5 +13,5 @@ def ensure_escrow_wallet_exists():
         user=user,
         kind=ESCROW_WALLET_KIND,
         owner_type=OwnerType.SYSTEM,
-        defaults={"balance": 0}
+        defaults={"balance": 0},
     )

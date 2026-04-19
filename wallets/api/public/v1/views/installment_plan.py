@@ -2,22 +2,22 @@
 # Read-only ViewSet for user's installment plans + nested installments action.
 
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, mixins
+from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from wallets.api.public.v1.schema import (
-    plan_installments_action_schema,
     installment_plans_schema,
+    plan_installments_action_schema,
 )
 from wallets.api.public.v1.serializers import (
     InstallmentPlanSerializer,
     InstallmentSerializer,
 )
 from wallets.filters import InstallmentPlanFilter
-from wallets.models import InstallmentPlan, Installment
+from wallets.models import Installment, InstallmentPlan
 
 
 @installment_plans_schema
@@ -25,13 +25,14 @@ class InstallmentPlanViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
 ):
     """
     list:     Paginated list of user's installment plans.
     retrieve: Details of a single installment plan.
     installments: GET /installment-plans/{id}/installments/ -> installments in that plan.
     """
+
     serializer_class = InstallmentPlanSerializer
     lookup_field = "pk"
     lookup_value_regex = r"\d+"
@@ -51,15 +52,17 @@ class InstallmentPlanViewSet(
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return InstallmentPlan.objects.none()
-        return (
-            InstallmentPlan.objects
-            .only(
-                "id", "user_id", "total_amount", "status",
-                "duration_months", "period_months", "interest_rate",
-                "created_at", "closed_at",
-            )
-            .filter(user=self.request.user)
-        )
+        return InstallmentPlan.objects.only(
+            "id",
+            "user_id",
+            "total_amount",
+            "status",
+            "duration_months",
+            "period_months",
+            "interest_rate",
+            "created_at",
+            "closed_at",
+        ).filter(user=self.request.user)
 
     @plan_installments_action_schema
     @action(detail=True, methods=["get"], url_path="installments")
@@ -70,8 +73,7 @@ class InstallmentPlanViewSet(
             ordering = "due_date"
 
         qs = (
-            Installment.objects
-            .select_related("plan", "transaction")
+            Installment.objects.select_related("plan", "transaction")
             .only(
                 "id",
                 "plan_id",
@@ -90,6 +92,8 @@ class InstallmentPlanViewSet(
         )
         page = self.paginate_queryset(qs)
         ser = InstallmentSerializer(page or qs, many=True)
-        return self.get_paginated_response(
-            ser.data
-        ) if page is not None else Response(ser.data)
+        return (
+            self.get_paginated_response(ser.data)
+            if page is not None
+            else Response(ser.data)
+        )

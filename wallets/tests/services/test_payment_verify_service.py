@@ -10,10 +10,9 @@ from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
 
 @pytest.mark.django_db
 class TestVerifyPaymentRequestService:
-
     def test_verify_payment_request_rejects_qr_pos_flow(
-            self,
-            store,
+        self,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,

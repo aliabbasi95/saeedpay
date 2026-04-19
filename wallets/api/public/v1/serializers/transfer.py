@@ -15,11 +15,10 @@ class WalletTransferCreateSerializer(serializers.Serializer):
     - No self-transfer between wallets of the same user.
     - Sender has enough spendable funds (balance - reserved).
     """
+
     sender_wallet_id = serializers.IntegerField()
     receiver_wallet_id = serializers.IntegerField(required=False)
-    receiver_phone_number = serializers.CharField(
-        required=False, allow_blank=True
-    )
+    receiver_phone_number = serializers.CharField(required=False, allow_blank=True)
     amount = serializers.IntegerField(min_value=1)
     description = serializers.CharField(
         max_length=255, required=False, allow_blank=True
@@ -29,9 +28,7 @@ class WalletTransferCreateSerializer(serializers.Serializer):
         request = self.context.get("request")
         user = getattr(request, "user", None)
 
-        sender_wallet = Wallet.objects.filter(
-            id=data["sender_wallet_id"]
-        ).first()
+        sender_wallet = Wallet.objects.filter(id=data["sender_wallet_id"]).first()
         if not sender_wallet:
             raise serializers.ValidationError("کیف پول مبدا پیدا نشد.")
         if sender_wallet.user_id != getattr(user, "id", None):
@@ -45,9 +42,7 @@ class WalletTransferCreateSerializer(serializers.Serializer):
             if not receiver_wallet:
                 raise serializers.ValidationError("کیف پول مقصد پیدا نشد.")
             if receiver_wallet.user_id == sender_wallet.user_id:
-                raise serializers.ValidationError(
-                    "انتقال بین کیف‌های یک نفر مجاز نیست."
-                )
+                raise serializers.ValidationError("انتقال بین کیف‌های یک نفر مجاز نیست.")
 
         receiver_phone = (data.get("receiver_phone_number") or "").strip()
         if not receiver_wallet and not receiver_phone:
@@ -67,6 +62,7 @@ class WalletTransferCreateSerializer(serializers.Serializer):
 
 class WalletTransferDetailSerializer(serializers.ModelSerializer):
     """Read-only representation of a transfer request."""
+
     sender_wallet = serializers.StringRelatedField()
     receiver_wallet = serializers.StringRelatedField()
     transaction = TransactionSerializer(read_only=True)
@@ -93,15 +89,14 @@ class WalletTransferConfirmSerializer(serializers.Serializer):
     Used only when the transfer was created for a phone number
     and the receiver must select a wallet to accept it.
     """
+
     receiver_wallet_id = serializers.IntegerField()
 
     def validate(self, data):
         request = self.context["request"]
         user = request.user
 
-        receiver_wallet = Wallet.objects.filter(
-            id=data["receiver_wallet_id"]
-        ).first()
+        receiver_wallet = Wallet.objects.filter(id=data["receiver_wallet_id"]).first()
         if not receiver_wallet:
             raise serializers.ValidationError("کیف پول مقصد پیدا نشد.")
         if receiver_wallet.user_id != user.id:

@@ -21,9 +21,9 @@ from wallets.utils.choices import (
 @pytest.mark.django_db
 class TestPaymentTasks:
     def test_expire_created_requests_only_marks_expired(
-            self,
-            store,
-            customer_user,
+        self,
+        store,
+        customer_user,
     ):
         from wallets.services.payment import create_payment_request
 
@@ -60,10 +60,10 @@ class TestPaymentTasks:
         assert expire_event.extra_data["reason_code"] == "expired_by_deadline"
 
     def test_expire_awaiting_request_also_rolls_back_cash_payment_without_extra_cleanup(
-            self,
-            store,
-            customer_user,
-            ensure_escrow,
+        self,
+        store,
+        customer_user,
+        ensure_escrow,
     ):
         from wallets.services.payment import create_payment_request
 
@@ -97,8 +97,8 @@ class TestPaymentTasks:
         customer_wallet.refresh_from_db()
 
         assert (
-                payment_request.status
-                == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+            payment_request.status
+            == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
         )
         assert customer_wallet.balance == 50_000 - 12_345
 
@@ -124,10 +124,10 @@ class TestPaymentTasks:
         assert rollback_event.extra_data["rollback_type"] == "cash_reversal"
 
     def test_cleanup_cancelled_and_expired_requests_is_idempotent_after_expire_batch(
-            self,
-            store,
-            customer_user,
-            ensure_escrow,
+        self,
+        store,
+        customer_user,
+        ensure_escrow,
     ):
         from wallets.services.payment import create_payment_request
 

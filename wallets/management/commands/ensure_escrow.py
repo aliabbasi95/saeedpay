@@ -9,6 +9,4 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         ensure_escrow_wallet_exists()
-        self.stdout.write(
-            self.style.SUCCESS('Escrow user and wallet ensured!')
-            )
+        self.stdout.write(self.style.SUCCESS("Escrow user and wallet ensured!"))

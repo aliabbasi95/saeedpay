@@ -56,29 +56,35 @@ class PaymentAdmin(BaseAdmin):
 
     fieldsets = (
         (_("شناسه"), {"fields": ("reference_code",)}),
-        (_("جزئیات"), {
-            "fields": (
-                "payment_request",
-                "payer",
-                "payer_wallet",
-                "amount",
-                "method",
-                "flow_type",
-                "status",
-                "failure_reason",
-            )
-        }),
-        (_("زمان‌بندی"), {
-            "fields": (
-                "authorization_expires_at",
-                "merchant_confirm_expires_at",
-                "completed_at",
-                "cancelled_at",
-                "expired_at",
-                "jalali_creation_time",
-                "jalali_update_time",
-            )
-        }),
+        (
+            _("جزئیات"),
+            {
+                "fields": (
+                    "payment_request",
+                    "payer",
+                    "payer_wallet",
+                    "amount",
+                    "method",
+                    "flow_type",
+                    "status",
+                    "failure_reason",
+                )
+            },
+        ),
+        (
+            _("زمان‌بندی"),
+            {
+                "fields": (
+                    "authorization_expires_at",
+                    "merchant_confirm_expires_at",
+                    "completed_at",
+                    "cancelled_at",
+                    "expired_at",
+                    "jalali_creation_time",
+                    "jalali_update_time",
+                )
+            },
+        ),
     )
 
     def _admin_change_link(self, app_label, model_name, pk, text):

@@ -14,12 +14,11 @@ from wallets.utils.choices import (
 
 @pytest.mark.django_db
 class TestPaymentConstraints:
-
     def test_cannot_create_second_active_payment_for_same_request(
-            self,
-            customer_user,
-            customer_cash_wallet,
-            store,
+        self,
+        customer_user,
+        customer_cash_wallet,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,

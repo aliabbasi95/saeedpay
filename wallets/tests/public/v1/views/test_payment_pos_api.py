@@ -18,18 +18,15 @@ from wallets.utils.choices import (
 
 @pytest.mark.django_db
 class TestMerchantPosPaymentRequestApi:
-
     def test_create_pos_payment_request_success(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         client = APIClient()
         client.force_authenticate(user=merchant_user)
 
-        url = reverse(
-            "wallets_public_v1:merchant-pos-payment-request-list"
-        )
+        url = reverse("wallets_public_v1:merchant-pos-payment-request-list")
         response = client.post(
             url,
             {
@@ -60,10 +57,10 @@ class TestMerchantPosPaymentRequestApi:
         assert payment_request.return_url is None
 
     def test_list_pos_payment_requests_only_returns_owned_qr_requests(
-            self,
-            merchant_user,
-            store,
-            user_factory,
+        self,
+        merchant_user,
+        store,
+        user_factory,
     ):
         other_user = user_factory("other_merchant_for_pos_list")
         other_merchant = Merchant.objects.create(user=other_user)
@@ -96,9 +93,7 @@ class TestMerchantPosPaymentRequestApi:
         client = APIClient()
         client.force_authenticate(user=merchant_user)
 
-        url = reverse(
-            "wallets_public_v1:merchant-pos-payment-request-list"
-        )
+        url = reverse("wallets_public_v1:merchant-pos-payment-request-list")
         response = client.get(url)
 
         assert response.status_code == 200, response.data
@@ -108,9 +103,9 @@ class TestMerchantPosPaymentRequestApi:
         assert response.data["results"][0]["flow_type"] == PaymentFlowType.QR_POS
 
     def test_retrieve_pos_payment_request_success(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -148,10 +143,10 @@ class TestMerchantPosPaymentRequestApi:
         assert "paid_wallet_kind_display" not in response.data
 
     def test_retrieve_completed_pos_payment_request_exposes_recreate_policy_without_payer_data(
-            self,
-            merchant_user,
-            store,
-            customer_user,
+        self,
+        merchant_user,
+        store,
+        customer_user,
     ):
         paid_wallet = Wallet.objects.create(
             user=customer_user,
@@ -192,9 +187,9 @@ class TestMerchantPosPaymentRequestApi:
         assert "paid_wallet_kind_display" not in response.data
 
     def test_retrieve_cancelled_pos_payment_request_exposes_recreate_policy(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -221,9 +216,9 @@ class TestMerchantPosPaymentRequestApi:
         assert response.data["is_paid"] is False
 
     def test_retrieve_expired_pos_payment_request_exposes_recreate_policy(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -250,10 +245,10 @@ class TestMerchantPosPaymentRequestApi:
         assert response.data["is_expired"] is True
 
     def test_retrieve_pos_payment_request_of_other_merchant_returns_404(
-            self,
-            merchant_user,
-            store,
-            user_factory,
+        self,
+        merchant_user,
+        store,
+        user_factory,
     ):
         other_user = user_factory("other_merchant_for_pos_detail")
         other_merchant = Merchant.objects.create(user=other_user)
@@ -280,10 +275,10 @@ class TestMerchantPosPaymentRequestApi:
         assert response.status_code == 404
 
     def test_create_pos_payment_request_for_not_owned_store_returns_404(
-            self,
-            merchant_user,
-            store,
-            user_factory,
+        self,
+        merchant_user,
+        store,
+        user_factory,
     ):
         other_user = user_factory("other_merchant_for_pos")
         other_merchant = Merchant.objects.create(user=other_user)
@@ -295,9 +290,7 @@ class TestMerchantPosPaymentRequestApi:
         client = APIClient()
         client.force_authenticate(user=merchant_user)
 
-        url = reverse(
-            "wallets_public_v1:merchant-pos-payment-request-list"
-        )
+        url = reverse("wallets_public_v1:merchant-pos-payment-request-list")
         response = client.post(
             url,
             {
@@ -311,9 +304,9 @@ class TestMerchantPosPaymentRequestApi:
         assert response.data["code"] == "store_not_found"
 
     def test_create_pos_payment_request_for_inactive_store_returns_400(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         store.is_active = False
         store.save(update_fields=["is_active"])
@@ -321,9 +314,7 @@ class TestMerchantPosPaymentRequestApi:
         client = APIClient()
         client.force_authenticate(user=merchant_user)
 
-        url = reverse(
-            "wallets_public_v1:merchant-pos-payment-request-list"
-        )
+        url = reverse("wallets_public_v1:merchant-pos-payment-request-list")
         response = client.post(
             url,
             {
@@ -337,16 +328,14 @@ class TestMerchantPosPaymentRequestApi:
         assert response.data["code"] == "inactive_store"
 
     def test_create_pos_payment_request_requires_merchant_user(
-            self,
-            customer_user,
-            store,
+        self,
+        customer_user,
+        store,
     ):
         client = APIClient()
         client.force_authenticate(user=customer_user)
 
-        url = reverse(
-            "wallets_public_v1:merchant-pos-payment-request-list"
-        )
+        url = reverse("wallets_public_v1:merchant-pos-payment-request-list")
         response = client.post(
             url,
             {
@@ -359,9 +348,9 @@ class TestMerchantPosPaymentRequestApi:
         assert response.status_code == 403
 
     def test_cancel_pos_payment_request_success(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -401,10 +390,10 @@ class TestMerchantPosPaymentRequestApi:
         assert event.to_status == PaymentRequestStatus.CANCELLED
 
     def test_cancel_pos_payment_request_of_other_merchant_returns_404(
-            self,
-            merchant_user,
-            store,
-            user_factory,
+        self,
+        merchant_user,
+        store,
+        user_factory,
     ):
         other_user = user_factory("other_merchant_for_pos_cancel")
         other_merchant = Merchant.objects.create(user=other_user)
@@ -432,9 +421,9 @@ class TestMerchantPosPaymentRequestApi:
         assert response.status_code == 404
 
     def test_cancel_completed_pos_payment_request_returns_400(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -460,9 +449,9 @@ class TestMerchantPosPaymentRequestApi:
         assert payment_request.status == PaymentRequestStatus.COMPLETED
 
     def test_cancel_expired_pos_payment_request_returns_400(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -485,9 +474,9 @@ class TestMerchantPosPaymentRequestApi:
         assert response.data["code"] == "not_cancellable"
 
     def test_cancel_pos_payment_request_requires_merchant_user(
-            self,
-            customer_user,
-            store,
+        self,
+        customer_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,

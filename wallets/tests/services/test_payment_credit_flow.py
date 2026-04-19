@@ -22,7 +22,6 @@ from wallets.utils.choices import (
 
 @pytest.mark.django_db
 class TestPaymentCreditFlow:
-
     def setup_credit_limit(self, customer_user, approved=1_000_000):
         from django.utils import timezone
 
@@ -37,9 +36,7 @@ class TestPaymentCreditFlow:
         limit.activate()
         return limit
 
-    def test_credit_purchase_records_statement_after_verify(
-            self, store, customer_user
-    ):
+    def test_credit_purchase_records_statement_after_verify(self, store, customer_user):
         credit_wallet = Wallet.objects.create(
             user=customer_user,
             kind=WalletKind.CREDIT,
@@ -61,7 +58,10 @@ class TestPaymentCreditFlow:
         payment_request.refresh_from_db()
 
         assert payment.status == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
-        assert payment_request.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        assert (
+            payment_request.status
+            == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+        )
 
         auth = CreditAuthorization.objects.get(payment=payment)
         assert auth.status == CreditAuthorization.Status.ACTIVE
@@ -78,7 +78,7 @@ class TestPaymentCreditFlow:
         assert auth.status == CreditAuthorization.Status.SETTLED
 
     def test_credit_rollback_before_verify_releases_authorization(
-            self, store, customer_user
+        self, store, customer_user
     ):
         credit_wallet = Wallet.objects.create(
             user=customer_user,
@@ -108,9 +108,7 @@ class TestPaymentCreditFlow:
         assert auth.status == CreditAuthorization.Status.RELEASED
         assert payment.status == PaymentStatus.EXPIRED
 
-    def test_qr_credit_purchase_is_finalized_immediately(
-            self, store, customer_user
-    ):
+    def test_qr_credit_purchase_is_finalized_immediately(self, store, customer_user):
         credit_wallet = Wallet.objects.create(
             user=customer_user,
             kind=WalletKind.CREDIT,

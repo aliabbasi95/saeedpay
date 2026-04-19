@@ -17,12 +17,11 @@ from wallets.utils.choices import (
 
 @pytest.mark.django_db
 class TestPaymentRequestPaymentGuardService:
-
     def test_ensure_no_active_payment_exists_raises_for_completed_payment(
-            self,
-            customer_user,
-            customer_cash_wallet,
-            store,
+        self,
+        customer_user,
+        customer_cash_wallet,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -49,10 +48,10 @@ class TestPaymentRequestPaymentGuardService:
         assert exc.value.get_codes() == ["already_completed"]
 
     def test_ensure_no_active_payment_exists_raises_for_active_payment(
-            self,
-            customer_user,
-            customer_cash_wallet,
-            store,
+        self,
+        customer_user,
+        customer_cash_wallet,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -79,9 +78,9 @@ class TestPaymentRequestPaymentGuardService:
         assert exc.value.get_codes() == ["payment_in_progress"]
 
     def test_ensure_no_active_payment_exists_passes_when_no_blocking_payment(
-            self,
-            store,
-            customer,
+        self,
+        store,
+        customer,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,

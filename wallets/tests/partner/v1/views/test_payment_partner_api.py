@@ -3,22 +3,21 @@
 import pytest
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APIClient
-from rest_framework.test import APIRequestFactory, force_authenticate
+from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
 from merchants.models import Merchant
 from store.authentication import StoreApiKeyAuthentication
 from store.models import Store
 from wallets.api.partner.v1.views.payment import PartnerPaymentRequestViewSet
-from wallets.models import PaymentRequest
-from wallets.models import Wallet
+from wallets.models import PaymentRequest, Wallet
 from wallets.services.payment import pay_payment_request
 from wallets.utils.choices import (
     OwnerType,
+    PaymentFlowType,
+    PaymentRequestStatus,
     PaymentStatus,
     WalletKind,
 )
-from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
 from wallets.utils.escrow import ensure_escrow_wallet_exists
 
 
@@ -40,11 +39,11 @@ class TestPartnerPaymentRequestApi:
         return client
 
     def test_create_online_payment_request_success(
-            self,
-            monkeypatch,
-            store,
-            merchant_user,
-            customer_user,
+        self,
+        monkeypatch,
+        store,
+        merchant_user,
+        customer_user,
     ):
         customer_user.profile.national_id = "1234567890"
         customer_user.profile.save(update_fields=["national_id"])
@@ -77,7 +76,7 @@ class TestPartnerPaymentRequestApi:
         assert response.data["payment_reference_code"]
         assert response.data["merchant_confirmation_required"] is True
         assert response.data["payment_url"].endswith(
-            f'{response.data["payment_reference_code"]}/'
+            f"{response.data['payment_reference_code']}/"
         )
 
         payment_request = PaymentRequest.objects.get(
@@ -90,11 +89,11 @@ class TestPartnerPaymentRequestApi:
         assert payment_request.return_url == "https://merchant.example.com/callback"
 
     def test_create_qr_payment_request_from_partner_api_returns_400(
-            self,
-            monkeypatch,
-            store,
-            merchant_user,
-            customer_user,
+        self,
+        monkeypatch,
+        store,
+        merchant_user,
+        customer_user,
     ):
         customer_user.profile.national_id = "2222222222"
         customer_user.profile.save(update_fields=["national_id"])
@@ -123,10 +122,10 @@ class TestPartnerPaymentRequestApi:
         assert "flow_type" in response.data
 
     def test_create_payment_request_customer_not_found_returns_404(
-            self,
-            monkeypatch,
-            store,
-            merchant_user,
+        self,
+        monkeypatch,
+        store,
+        merchant_user,
     ):
         client = self._build_partner_client(
             monkeypatch,
@@ -153,11 +152,11 @@ class TestPartnerPaymentRequestApi:
         assert response.data["detail"] == "مشتری با این کد ملی یافت نشد."
 
     def test_retrieve_payment_request_detail_success(
-            self,
-            monkeypatch,
-            store,
-            merchant_user,
-            customer_user,
+        self,
+        monkeypatch,
+        store,
+        merchant_user,
+        customer_user,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -190,11 +189,11 @@ class TestPartnerPaymentRequestApi:
         assert response.data["store_name"] == store.name
 
     def test_retrieve_expired_payment_request_marks_it_expired(
-            self,
-            monkeypatch,
-            store,
-            merchant_user,
-            customer_user,
+        self,
+        monkeypatch,
+        store,
+        merchant_user,
+        customer_user,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,
@@ -202,9 +201,8 @@ class TestPartnerPaymentRequestApi:
             amount=33000,
             return_url="https://merchant.example.com/callback",
             external_guid="ORD-EXPIRED-1",
-            expires_at=timezone.localtime(timezone.now()) - timezone.timedelta(
-                minutes=5
-            ),
+            expires_at=timezone.localtime(timezone.now())
+            - timezone.timedelta(minutes=5),
             flow_type=PaymentFlowType.ONLINE,
         )
 
@@ -227,12 +225,12 @@ class TestPartnerPaymentRequestApi:
         assert response.data["status"] == PaymentRequestStatus.EXPIRED
 
     def test_verify_online_payment_success(
-            self,
-            monkeypatch,
-            store,
-            merchant_user,
-            customer_user,
-            customer_cash_wallet,
+        self,
+        monkeypatch,
+        store,
+        merchant_user,
+        customer_user,
+        customer_cash_wallet,
     ):
         ensure_escrow_wallet_exists()
 
@@ -262,8 +260,8 @@ class TestPartnerPaymentRequestApi:
 
         assert payment.status == PaymentStatus.AWAITING_MERCHANT_CONFIRMATION
         assert (
-                payment_request.status
-                == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+            payment_request.status
+            == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
         )
 
         client = self._build_partner_client(
@@ -283,10 +281,7 @@ class TestPartnerPaymentRequestApi:
         assert response.data["code"] == "payment_verified"
         assert response.data["payment_reference_code"] == payment_request.reference_code
         assert response.data["payment_status"] == PaymentStatus.COMPLETED
-        assert (
-                response.data["payment_request_status"]
-                == PaymentRequestStatus.COMPLETED
-        )
+        assert response.data["payment_request_status"] == PaymentRequestStatus.COMPLETED
         assert response.data["next_action"] == "none"
         assert response.data["merchant_confirmation_required"] is True
         assert response.data["amount"] == payment_request.amount
@@ -297,13 +292,13 @@ class TestPartnerPaymentRequestApi:
         assert payment_request.status == PaymentRequestStatus.COMPLETED
 
     def test_verify_with_wrong_store_returns_404(
-            self,
-            monkeypatch,
-            store,
-            merchant_user,
-            customer_user,
-            customer_cash_wallet,
-            user_factory,
+        self,
+        monkeypatch,
+        store,
+        merchant_user,
+        customer_user,
+        customer_cash_wallet,
+        user_factory,
     ):
         ensure_escrow_wallet_exists()
 
@@ -350,9 +345,9 @@ class TestPartnerPaymentRequestApi:
         assert response.status_code == 404
 
     def test_verify_qr_pos_payment_request_returns_400(
-            self,
-            merchant_user,
-            store,
+        self,
+        merchant_user,
+        store,
     ):
         payment_request = PaymentRequest.objects.create(
             store=store,

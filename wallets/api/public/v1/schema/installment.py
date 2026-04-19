@@ -1,11 +1,11 @@
 # wallets/api/public/v1/schema/installment.py
 
 from drf_spectacular.utils import (
-    extend_schema,
-    OpenApiParameter,
-    OpenApiTypes,
-    OpenApiResponse,
     OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiTypes,
+    extend_schema,
 )
 
 from wallets.api.public.v1.serializers import InstallmentSerializer
@@ -19,25 +19,25 @@ installments_schema = extend_schema(
             name="status",
             type=OpenApiTypes.STR,
             location=OpenApiParameter.QUERY,
-            description="unpaid | paid"
+            description="unpaid | paid",
         ),
         OpenApiParameter(
             name="due_from",
             type=OpenApiTypes.DATE,
             location=OpenApiParameter.QUERY,
-            description="YYYY-MM-DD"
+            description="YYYY-MM-DD",
         ),
         OpenApiParameter(
             name="due_to",
             type=OpenApiTypes.DATE,
             location=OpenApiParameter.QUERY,
-            description="YYYY-MM-DD"
+            description="YYYY-MM-DD",
         ),
         OpenApiParameter(
             name="ordering",
             type=OpenApiTypes.STR,
             location=OpenApiParameter.QUERY,
-            description="due_date | -due_date"
+            description="due_date | -due_date",
         ),
     ],
     responses={
@@ -48,10 +48,15 @@ installments_schema = extend_schema(
     examples=[
         OpenApiExample(
             "نمونه پاسخ",
-            value=[{
-                "id": 10, "due_date": "2025-11-12", "amount": 500000,
-                "status": "unpaid", "current_penalty": 0
-            }],
+            value=[
+                {
+                    "id": 10,
+                    "due_date": "2025-11-12",
+                    "amount": 500000,
+                    "status": "unpaid",
+                    "current_penalty": 0,
+                }
+            ],
             response_only=True,
         )
     ],

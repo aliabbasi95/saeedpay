@@ -4,8 +4,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from wallets.models import Wallet
-from wallets.utils.choices import OwnerType
-from wallets.utils.choices import WalletKind
+from wallets.utils.choices import OwnerType, WalletKind
 
 
 class WalletSerializer(serializers.ModelSerializer):
@@ -14,9 +13,8 @@ class WalletSerializer(serializers.ModelSerializer):
     - For CREDIT: use active CreditLimit.available_limit (if valid, non-expired).
     - For CASH: use max(0, available_balance).
     """
-    kind_display = serializers.CharField(
-        source="get_kind_display", read_only=True
-    )
+
+    kind_display = serializers.CharField(source="get_kind_display", read_only=True)
     owner_type_display = serializers.CharField(
         source="get_owner_type_display", read_only=True
     )
@@ -43,14 +41,13 @@ class WalletSerializer(serializers.ModelSerializer):
             return 0
         try:
             from credit.models.credit_limit import CreditLimit
+
             cl = CreditLimit.objects.get_user_credit_limit(obj.user)
         except Exception:
             return 0
         if not cl or not getattr(cl, "is_active", False):
             return 0
-        if getattr(
-                cl, "expiry_date", None
-        ) and cl.expiry_date <= timezone.localdate():
+        if getattr(cl, "expiry_date", None) and cl.expiry_date <= timezone.localdate():
             return 0
         return int(getattr(cl, "available_limit", 0) or 0)
 

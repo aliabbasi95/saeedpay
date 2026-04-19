@@ -1,7 +1,7 @@
 # wallets/api/public/v1/views/wallet.py
 # Read-only ViewSet for user's wallets with validated owner_type filter.
 
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import mixins, viewsets
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
@@ -34,6 +34,7 @@ class WalletViewSet(
     """
     list: Paginated list of the current user's wallets.
     """
+
     serializer_class = WalletSerializer
 
     throttle_scope_map = {
@@ -53,8 +54,7 @@ class WalletViewSet(
         owner_type = query_serializer.validated_data["owner_type"]
 
         return (
-            Wallet.objects
-            .only(
+            Wallet.objects.only(
                 "id",
                 "wallet_number",
                 "kind",

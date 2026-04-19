@@ -42,29 +42,38 @@ class PaymentEventAdmin(BaseAdmin):
     ordering = ("-created_at", "-id")
 
     fieldsets = (
-        (_("اطلاعات اصلی"), {
-            "fields": (
-                "payment_request",
-                "payment",
-                "transaction",
-                "actor",
-                "event_type",
-            )
-        }),
-        (_("تغییر وضعیت"), {
-            "fields": (
-                "from_status",
-                "to_status",
-                "description",
-                "extra_data",
-            )
-        }),
-        (_("زمان"), {
-            "fields": (
-                "jalali_creation_time",
-                "jalali_update_time",
-            )
-        }),
+        (
+            _("اطلاعات اصلی"),
+            {
+                "fields": (
+                    "payment_request",
+                    "payment",
+                    "transaction",
+                    "actor",
+                    "event_type",
+                )
+            },
+        ),
+        (
+            _("تغییر وضعیت"),
+            {
+                "fields": (
+                    "from_status",
+                    "to_status",
+                    "description",
+                    "extra_data",
+                )
+            },
+        ),
+        (
+            _("زمان"),
+            {
+                "fields": (
+                    "jalali_creation_time",
+                    "jalali_update_time",
+                )
+            },
+        ),
     )
 
     def has_add_permission(self, request):

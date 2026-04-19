@@ -1,10 +1,10 @@
 # wallets/api/public/v1/schema/installment_plan.py
 
 from drf_spectacular.utils import (
-    extend_schema,
     OpenApiParameter,
-    OpenApiTypes,
     OpenApiResponse,
+    OpenApiTypes,
+    extend_schema,
 )
 
 from wallets.api.public.v1.serializers import (
@@ -25,7 +25,7 @@ plan_installments_action_schema = extend_schema(
             name="ordering",
             type=OpenApiTypes.STR,
             location=OpenApiParameter.QUERY,
-            description="due_date | -due_date"
+            description="due_date | -due_date",
         )
     ],
     responses={

@@ -44,14 +44,21 @@ class InstallmentAdmin(BaseAdmin):
     )
     fieldsets = (
         (_("Plan"), {"fields": ("plan",)}),
-        (_("Amounts & Dates"), {
-            "fields": ("due_date", "amount", "amount_paid", "penalty_amount",
-                       "paid_at")
-        }),
+        (
+            _("Amounts & Dates"),
+            {
+                "fields": (
+                    "due_date",
+                    "amount",
+                    "amount_paid",
+                    "penalty_amount",
+                    "paid_at",
+                )
+            },
+        ),
         (_("Status & Txn"), {"fields": ("status", "transaction")}),
         (_("Note"), {"fields": ("note",)}),
-        (_("Timestamps"),
-         {"fields": ("jalali_creation_time", "jalali_update_time")}),
+        (_("Timestamps"), {"fields": ("jalali_creation_time", "jalali_update_time")}),
     )
     list_select_related = ("plan", "transaction")
     autocomplete_fields = ("plan", "transaction")
@@ -60,7 +67,8 @@ class InstallmentAdmin(BaseAdmin):
 
     # ------- helpers -------
     def _link(self, app, model, pk, label):
-        from django.urls import reverse, NoReverseMatch
+        from django.urls import NoReverseMatch, reverse
+
         try:
             url = reverse(f"admin:{app}_{model}_change", args=[pk])
             return format_html('<a href="{}">{}</a>', url, label)
@@ -69,20 +77,14 @@ class InstallmentAdmin(BaseAdmin):
 
     @admin.display(description=_("Plan"), ordering="plan")
     def plan_link(self, obj: Installment):
-        return self._link(
-            "wallets", "installmentplan", obj.plan_id, f"#{obj.plan_id}"
-        )
+        return self._link("wallets", "installmentplan", obj.plan_id, f"#{obj.plan_id}")
 
     @admin.display(description=_("Transaction"))
     def transaction_link(self, obj: Installment):
         if not obj.transaction_id:
             return "-"
-        from_code = getattr(
-            obj.transaction, "reference_code", f"#{obj.transaction_id}"
-        )
-        return self._link(
-            "wallets", "transaction", obj.transaction_id, from_code
-        )
+        from_code = getattr(obj.transaction, "reference_code", f"#{obj.transaction_id}")
+        return self._link("wallets", "transaction", obj.transaction_id, from_code)
 
     @admin.display(description=_("Status"), ordering="status")
     def status_badge(self, obj: Installment):
@@ -93,7 +95,7 @@ class InstallmentAdmin(BaseAdmin):
         return format_html(
             '<span style="color:{};font-weight:600;">{}</span>',
             colors.get(obj.status, "#6c757d"),
-            obj.get_status_display()
+            obj.get_status_display(),
         )
 
     @admin.display(description=_("Amount"), ordering="amount")
@@ -105,23 +107,20 @@ class InstallmentAdmin(BaseAdmin):
     @admin.display(description=_("Paid"))
     def amount_paid_display(self, obj: Installment):
         return format_html(
-            '<span style="direction:ltr;">{:,}</span>',
-            int(obj.amount_paid or 0)
+            '<span style="direction:ltr;">{:,}</span>', int(obj.amount_paid or 0)
         )
 
     @admin.display(description=_("Penalty"))
     def penalty_display(self, obj: Installment):
         return format_html(
-            '<span style="direction:ltr;">{:,}</span>',
-            int(obj.penalty_amount or 0)
+            '<span style="direction:ltr;">{:,}</span>', int(obj.penalty_amount or 0)
         )
 
     @admin.display(description=_("Overdue?"))
     def is_overdue_badge(self, obj: Installment):
         if obj.is_overdue:
             return format_html(
-                '<span style="color:#dc3545;font-weight:600;">{}</span>',
-                _("Yes")
+                '<span style="color:#dc3545;font-weight:600;">{}</span>', _("Yes")
             )
         return format_html(
             '<span style="color:#28a745;font-weight:600;">{}</span>', _("No")
