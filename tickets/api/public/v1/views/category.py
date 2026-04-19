@@ -1,32 +1,18 @@
 # tickets/api/public/v1/views/category.py
 
-from drf_spectacular.utils import (
-    extend_schema,
-    extend_schema_view,
-)
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import AllowAny
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from tickets.api.public.v1.serializers import (
+from tickets.api.public.v1.schema import ticket_category_viewset_schema
+from tickets.api.public.v1.serializers.category import (
     TicketCategoryDetailSerializer,
     TicketCategoryListSerializer,
 )
 from tickets.models import TicketCategory
 
 
-@extend_schema_view(
-    list=extend_schema(
-        tags=["Tickets"],
-        summary="لیست دسته‌بندی‌های تیکت",
-        description="دریافت لیست تمام دسته‌بندی‌های تیکت با فیلد‌های محدود",
-    ),
-    retrieve=extend_schema(
-        tags=["Tickets"],
-        summary="جزئیات دسته‌بندی تیکت",
-        description="دریافت اطلاعات کامل یک دسته‌بندی تیکت",
-    ),
-)
+@ticket_category_viewset_schema
 class TicketCategoryViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,

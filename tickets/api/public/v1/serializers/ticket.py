@@ -1,7 +1,5 @@
 # tickets/api/public/v1/serializers/ticket.py
 
-from typing import List
-
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -14,10 +12,10 @@ from tickets.models import (
 )
 
 ALLOWED_MIME_TYPES = {
+    "application/pdf",
+    "image/gif",
     "image/jpeg",
     "image/png",
-    "image/gif",
-    "application/pdf",
     "text/plain",
 }
 MAX_ATTACHMENT_COUNT = 2
@@ -68,10 +66,12 @@ class TicketCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get("request")
         user = getattr(request, "user", None)
+
         if not user or not user.is_authenticated:
             raise serializers.ValidationError(
                 {"non_field_errors": [_("کاربر احراز نشده است.")]}
             )
+
         open_statuses = [
             Ticket.Status.OPEN,
             Ticket.Status.IN_PROGRESS,
@@ -83,6 +83,7 @@ class TicketCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"non_field_errors": [_("شما بیش از ۱۵ تیکت باز دارید.")]}
             )
+
         return attrs
 
     def create(self, validated_data):
@@ -129,7 +130,8 @@ class TicketMessageSerializer(serializers.ModelSerializer):
 
 class TicketMessageCreateSerializer(serializers.ModelSerializer):
     sender = serializers.ChoiceField(
-        choices=TicketMessage.Sender.choices, required=False
+        choices=TicketMessage.Sender.choices,
+        required=False,
     )
     files = serializers.ListField(
         child=serializers.FileField(),
@@ -142,21 +144,27 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
         model = TicketMessage
         fields = ["sender", "content", "reply_to", "files"]
 
-    def validate_files(self, files: List):
+    def validate_files(self, files: list):
         if not files:
             return files
+
         if len(files) > MAX_ATTACHMENT_COUNT:
             raise serializers.ValidationError(_("حداکثر ۲ فایل می‌توانید ارسال کنید."))
-        for f in files:
-            if getattr(f, "size", 0) > MAX_ATTACHMENT_SIZE:
+
+        for uploaded_file in files:
+            if getattr(uploaded_file, "size", 0) > MAX_ATTACHMENT_SIZE:
                 raise serializers.ValidationError(
                     _("حجم هر فایل باید حداکثر ۵ مگابایت باشد.")
                 )
-            ct = getattr(f, "content_type", None) or getattr(
-                getattr(f, "file", None), "content_type", None
+
+            content_type = getattr(uploaded_file, "content_type", None) or getattr(
+                getattr(uploaded_file, "file", None),
+                "content_type",
+                None,
             )
-            if ct not in ALLOWED_MIME_TYPES:
+            if content_type not in ALLOWED_MIME_TYPES:
                 raise serializers.ValidationError(_("نوع فایل مجاز نیست."))
+
         return files
 
     def validate(self, attrs):
@@ -178,6 +186,7 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"non_field_errors": [_("کاربر احراز نشده است.")]}
             )
+
         if user == ticket.user:
             attrs.setdefault("sender", TicketMessage.Sender.USER)
             if sender and sender != TicketMessage.Sender.USER:
@@ -199,9 +208,14 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
         ticket = self.context.get("ticket")
         files = validated_data.pop("files", [])
         message = TicketMessage.objects.create(ticket=ticket, **validated_data)
-        for f in files:
+
+        for uploaded_file in files:
             try:
-                TicketMessageAttachment.objects.create(message=message, file=f)
-            except DjangoValidationError as e:
-                raise serializers.ValidationError({"files": e.messages})
+                TicketMessageAttachment.objects.create(
+                    message=message,
+                    file=uploaded_file,
+                )
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError({"files": exc.messages}) from exc
+
         return message

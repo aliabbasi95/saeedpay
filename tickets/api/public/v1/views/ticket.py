@@ -4,11 +4,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
-from rest_framework.mixins import (
-    CreateModelMixin,
-    ListModelMixin,
-    RetrieveModelMixin,
-)
+from rest_framework.mixins import CreateModelMixin, ListModelMixin, RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -16,6 +12,7 @@ from rest_framework.viewsets import GenericViewSet
 from lib.cas_auth.erp.pagination import CustomPagination
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from tickets.api.public.v1.schema import (
+    add_message_schema,
     messages_list_schema,
     ticket_viewset_schema,
 )
@@ -75,6 +72,7 @@ class TicketViewSet(
         serializer.save()
 
     @messages_list_schema
+    @add_message_schema
     @action(detail=True, methods=["get", "post"], url_path="messages")
     def messages(self, request, pk=None):
         ticket = self.get_object()
@@ -86,9 +84,9 @@ class TicketViewSet(
             serializer = TicketMessageSerializer(page, many=True)
             return paginator.get_paginated_response(serializer.data)
 
-        # POST
         ser = TicketMessageCreateSerializer(
-            data=request.data, context={"request": request, "ticket": ticket}
+            data=request.data,
+            context={"request": request, "ticket": ticket},
         )
         ser.is_valid(raise_exception=True)
         message = ser.save()
