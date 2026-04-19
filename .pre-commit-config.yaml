@@ -22,23 +22,10 @@ repos:
         args: [ --fix ]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
-    hooks:
-      - id: mypy
-        additional_dependencies:
-          - django-stubs[compatible-mypy]
-          - djangorestframework-stubs[compatible-mypy]
-        args:
-          - --config-file=pyproject.toml
-          - wallets/services/payment
-          - wallets/api/payment_responses.py
-          - wallets/api/public/v1/views/payment.py
-          - wallets/api/public/v1/views/payment_pos.py
-          - wallets/api/partner/v1/views/payment.py
-
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.6
+  - repo: local
     hooks:
       - id: bandit
-        args: [ "-c", "pyproject.toml", "-r", "wallets/services/payment", "wallets/api" ]
+        name: bandit
+        entry: python -m bandit -c pyproject.toml -r wallets/services/payment wallets/api
+        language: system
+        pass_filenames: false

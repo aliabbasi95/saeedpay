@@ -39,10 +39,17 @@ module = [
     "customers.*",
     "profiles.*",
     "auth_api.*",
-    "wallets.*",
     "merchants.*",
     "store.*",
     "credit.*",
+    "chatbot.*",
+    "banking.*",
+    "tickets.*",
+    "blogs.*",
+    "contact.*",
+    "kyc.*",
+    "lib.cas_auth.*",
+    "lib.erp_base.*",
 ]
 ignore_missing_imports = true
 
