@@ -1,3 +1,4 @@
+# customers/api/public/v1/schema.py
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 

@@ -1,3 +1,4 @@
+# customers/api/public/v1/views/simple_status.py
 from django.db import models
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response

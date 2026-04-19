@@ -1,21 +1,21 @@
-# customers/models/__init__.py
+# customers/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 __all__ = [
-    "Customer",
+    "simple_status_schema",
 ]
 
 _MODULE_MAP = {
-    "Customer": (
-        "customers.models.customer",
-        "Customer",
+    "simple_status_schema": (
+        "customers.api.public.v1.schema.simple_status",
+        "simple_status_schema",
     ),
 }
 
 if TYPE_CHECKING:
-    from .customer import Customer
+    from .simple_status import simple_status_schema
 
 
 def __getattr__(name: str) -> Any:
