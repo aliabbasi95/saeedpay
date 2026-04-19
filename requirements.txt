@@ -1,3 +1,7 @@
+# requirements.txt
+-r lib/cas_auth/requirements.txt
+-r lib/erp_base/requirements.txt
+
 # Django and core dependencies
 dj-database-url
 psycopg2-binary

@@ -1,0 +1,54 @@
+# pyproject.toml
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+extend-exclude = ["migrations"]
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"saeedpay/settings.py" = ["F403", "F405", "E402"]
+"saeedpay/local_settings.py" = ["F403", "F405", "E402"]
+"saeedpay/local_settings_template.py" = ["F403", "F405", "E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.10"
+plugins = [
+    "mypy_django_plugin.main",
+    "mypy_drf_plugin.main",
+]
+warn_return_any = true
+warn_unused_configs = true
+check_untyped_defs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+no_implicit_optional = true
+exclude = ["migrations"]
+
+[[tool.mypy.overrides]]
+module = [
+    "customers.*",
+    "profiles.*",
+    "auth_api.*",
+    "wallets.*",
+    "merchants.*",
+    "store.*",
+    "credit.*",
+]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "saeedpay.settings"
+
+[tool.bandit]
+exclude_dirs = ["migrations", "tests", "venv", ".venv"]
+skips = ["B101"]
