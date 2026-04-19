@@ -1,5 +1,7 @@
 # wallets/api/public/v1/views/payment.py
 
+import logging
+
 from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -8,8 +10,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
+from saeedpay.logging import log_event
 from wallets.api.payment_responses import (
     payment_error_response,
+    payment_internal_error_response,
     payment_success_response,
 )
 from wallets.api.public.v1.schema import (
@@ -33,31 +37,39 @@ from wallets.services.payment.payment_request_service import (
 )
 from wallets.utils.choices import OwnerType
 
+logger = logging.getLogger("saeedpay.wallets.payment")
+
 _ALLOWED_ORDERING = {"created_at", "-created_at", "amount", "-amount"}
 
 
 def _parse_dt_maybe(value):
     if not value:
         return None
+
     dt = parse_datetime(value)
     if dt:
         return dt
+
     return parse_date(value)
 
 
 def _extract_validation_code(exc, default="validation_error"):
     if hasattr(exc, "get_codes"):
         codes = exc.get_codes()
+
         if isinstance(codes, list) and codes:
             return codes[0]
+
         if isinstance(codes, str):
             return codes
+
         if isinstance(codes, dict):
             first_value = next(iter(codes.values()), default)
             if isinstance(first_value, list) and first_value:
                 return first_value[0]
             if isinstance(first_value, str):
                 return first_value
+
     return getattr(exc, "code", default)
 
 
@@ -80,6 +92,30 @@ class PaymentRequestViewSet(
     def _require_authenticated_user(self, request):
         if not request.user or not request.user.is_authenticated:
             raise NotAuthenticated("احراز هویت الزامی است.")
+
+    def _log_unexpected_error(
+            self,
+            *,
+            action: str,
+            exc: Exception,
+            payment_request=None,
+    ):
+        log_event(
+            logger,
+            level="error",
+            event="payment_api_unexpected_error",
+            message="Unexpected error in public payment API.",
+            module="wallets.payment",
+            action=action,
+            payment_request_id=getattr(payment_request, "id", None),
+            payment_request_reference=getattr(
+                payment_request,
+                "reference_code",
+                None,
+            ),
+            store_id=getattr(payment_request, "store_id", None),
+            error=str(exc),
+        )
 
     def get_queryset(self):
         if self.action in {"retrieve", "confirm"}:
@@ -159,6 +195,7 @@ class PaymentRequestViewSet(
         ordering = params.get("ordering") or "-created_at"
         if ordering not in _ALLOWED_ORDERING:
             ordering = "-created_at"
+
         return qs.order_by(ordering)
 
     @payment_list_schema
@@ -207,10 +244,12 @@ class PaymentRequestViewSet(
                 payment_request=payment_request,
             )
         except Exception as exc:
-            return payment_error_response(
-                detail=str(exc),
-                code="unknown_error",
-                http_status=status.HTTP_400_BAD_REQUEST,
+            self._log_unexpected_error(
+                action="confirm_precheck",
+                exc=exc,
+                payment_request=payment_request,
+            )
+            return payment_internal_error_response(
                 payment_request=payment_request,
             )
 
@@ -247,10 +286,12 @@ class PaymentRequestViewSet(
                 payment_request=payment_request,
             )
         except Exception as exc:
-            return payment_error_response(
-                detail=str(exc),
-                code="business_rule",
-                http_status=status.HTTP_400_BAD_REQUEST,
+            self._log_unexpected_error(
+                action="confirm_pay_payment_request",
+                exc=exc,
+                payment_request=payment_request,
+            )
+            return payment_internal_error_response(
                 payment_request=payment_request,
             )
 

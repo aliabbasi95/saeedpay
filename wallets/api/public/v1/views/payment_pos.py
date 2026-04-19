@@ -1,5 +1,7 @@
 # wallets/api/public/v1/views/payment_pos.py
 
+import logging
+
 from django.conf import settings
 from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import mixins, status, viewsets
@@ -10,10 +12,12 @@ from rest_framework.response import Response
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from merchants.permissions import IsMerchant
+from saeedpay.logging import log_event
 from store.models import Store
 from wallets.api.payment_responses import (
     build_payment_response_payload,
     payment_error_response,
+    payment_internal_error_response,
     payment_success_response,
 )
 from wallets.api.public.v1.schema import (
@@ -36,6 +40,8 @@ from wallets.services.payment.payment_request_service import (
 )
 from wallets.utils.choices import PaymentFlowType
 from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
+
+logger = logging.getLogger("saeedpay.wallets.payment")
 
 _ALLOWED_ORDERING = {"created_at", "-created_at", "amount", "-amount"}
 
@@ -88,6 +94,35 @@ class MerchantPosPaymentRequestViewSet(
         "retrieve": "merchant-pos-payment-read",
         "cancel": "merchant-pos-payment-write",
     }
+
+    def _log_unexpected_error(
+            self,
+            *,
+            action: str,
+            exc: Exception,
+            payment_request=None,
+            store=None,
+    ):
+        log_event(
+            logger,
+            level="error",
+            event="payment_pos_api_unexpected_error",
+            message="Unexpected error in merchant POS payment API.",
+            module="wallets.payment",
+            action=action,
+            payment_request_id=getattr(payment_request, "id", None),
+            payment_request_reference=getattr(
+                payment_request,
+                "reference_code",
+                None,
+            ),
+            store_id=(
+                getattr(store, "id", None)
+                if store is not None
+                else getattr(payment_request, "store_id", None)
+            ),
+            error=str(exc),
+        )
 
     def _get_merchant(self):
         return getattr(self.request.user, "merchant", None)
@@ -249,10 +284,13 @@ class MerchantPosPaymentRequestViewSet(
                 payment_request=payment_request,
             )
         except Exception as exc:
-            return payment_error_response(
-                detail=str(exc),
-                code="business_rule",
-                http_status=status.HTTP_400_BAD_REQUEST,
+            self._log_unexpected_error(
+                action="merchant_pos_cancel",
+                exc=exc,
+                payment_request=payment_request,
+                store=payment_request.store,
+            )
+            return payment_internal_error_response(
                 payment_request=payment_request,
             )
 

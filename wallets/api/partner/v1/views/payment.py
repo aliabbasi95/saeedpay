@@ -1,5 +1,7 @@
 # wallets/api/partner/v1/views/payment.py
 
+import logging
+
 from django.conf import settings
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import mixins, status, viewsets
@@ -10,6 +12,7 @@ from rest_framework.response import Response
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from merchants.permissions import IsMerchant
 from profiles.models import Profile
+from saeedpay.logging import log_event
 from store.authentication import StoreApiKeyAuthentication
 from wallets.api.partner.v1.serializers import (
     PaymentActionResponseSerializer,
@@ -20,6 +23,7 @@ from wallets.api.partner.v1.serializers import (
 from wallets.api.payment_responses import (
     build_payment_response_payload,
     payment_error_response,
+    payment_internal_error_response,
     payment_success_response,
 )
 from wallets.models import PaymentRequest
@@ -30,6 +34,8 @@ from wallets.services.payment import (
 )
 from wallets.utils.choices import PaymentFlowType
 from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
+
+logger = logging.getLogger("saeedpay.wallets.payment")
 
 
 def _extract_validation_code(exc, default="validation_error"):
@@ -74,6 +80,31 @@ class PartnerPaymentRequestViewSet(
         "verify": "partner-payment-write",
     }
 
+    def _log_unexpected_error(
+            self,
+            *,
+            action: str,
+            exc: Exception,
+            payment_request=None,
+    ):
+        log_event(
+            logger,
+            level="error",
+            event="partner_payment_api_unexpected_error",
+            message="Unexpected error in partner payment API.",
+            module="wallets.payment",
+            action=action,
+            payment_request_id=getattr(payment_request, "id", None),
+            payment_request_reference=getattr(
+                payment_request,
+                "reference_code",
+                None,
+            ),
+            store_id=getattr(payment_request, "store_id", None)
+                     or getattr(getattr(self.request, "store", None), "id", None),
+            error=str(exc),
+        )
+
     def get_queryset(self):
         return (
             PaymentRequest.objects.select_related("store", "paid_by", "paid_wallet")
@@ -83,7 +114,17 @@ class PartnerPaymentRequestViewSet(
     @extend_schema(
         summary="ایجاد درخواست پرداخت",
         request=PaymentRequestCreateSerializer,
-        responses={201: PaymentRequestCreateResponseSerializer},
+        responses={
+            201: PaymentRequestCreateResponseSerializer,
+            400: OpenApiResponse(
+                response=PaymentActionResponseSerializer,
+                description="Validation or business rule error.",
+            ),
+            404: OpenApiResponse(
+                response=PaymentActionResponseSerializer,
+                description="Customer not found.",
+            ),
+        },
     )
     def create(self, request, *args, **kwargs):
         serializer = PaymentRequestCreateSerializer(
@@ -111,7 +152,11 @@ class PartnerPaymentRequestViewSet(
                 code="customer_not_found",
                 http_status=status.HTTP_404_NOT_FOUND,
             )
-        except Exception:
+        except Exception as exc:
+            self._log_unexpected_error(
+                action="partner_create_customer_lookup",
+                exc=exc,
+            )
             return payment_error_response(
                 detail="مشتری با این کد ملی یافت نشد.",
                 code="customer_not_found",
@@ -165,8 +210,14 @@ class PartnerPaymentRequestViewSet(
         description="پس از پرداخت موفق توسط مشتری، فروشگاه پرداخت را نهایی می‌کند.",
         responses={
             200: PaymentActionResponseSerializer,
-            400: OpenApiResponse(description="Validation error"),
-            404: OpenApiResponse(description="Payment request not found"),
+            400: OpenApiResponse(
+                response=PaymentActionResponseSerializer,
+                description="Validation or internal error response.",
+            ),
+            404: OpenApiResponse(
+                response=PaymentActionResponseSerializer,
+                description="Payment request not found.",
+            ),
         },
     )
     @action(detail=True, methods=["post"], url_path="verify")
@@ -196,10 +247,12 @@ class PartnerPaymentRequestViewSet(
                 payment_request=payment_request,
             )
         except Exception as exc:
-            return payment_error_response(
-                detail=str(exc),
-                code="business_rule",
-                http_status=status.HTTP_400_BAD_REQUEST,
+            self._log_unexpected_error(
+                action="partner_verify",
+                exc=exc,
+                payment_request=payment_request,
+            )
+            return payment_internal_error_response(
                 payment_request=payment_request,
             )
 

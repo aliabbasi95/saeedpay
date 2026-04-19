@@ -5,6 +5,8 @@ from rest_framework.response import Response
 
 from wallets.utils.choices import PaymentFlowType, PaymentStatus
 
+GENERIC_INTERNAL_ERROR_DETAIL = "خطایی رخ داد. لطفاً مجدداً تلاش کنید."
+
 
 def _resolve_payment_request_status(payment_request):
     return getattr(payment_request, "status", None) if payment_request else None
@@ -161,5 +163,22 @@ def payment_error_response(
         transaction_reference_code=transaction_reference_code,
         next_action=next_action,
         merchant_confirmation_required=merchant_confirmation_required,
+        extra=extra,
+    )
+
+
+def payment_internal_error_response(
+        *,
+        payment_request=None,
+        payment=None,
+        http_status=status.HTTP_400_BAD_REQUEST,
+        extra=None,
+):
+    return payment_error_response(
+        detail=GENERIC_INTERNAL_ERROR_DETAIL,
+        code="internal_error",
+        http_status=http_status,
+        payment_request=payment_request,
+        payment=payment,
         extra=extra,
     )
