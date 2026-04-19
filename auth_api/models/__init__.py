@@ -1,1 +1,29 @@
-from .otp import PhoneOTP
+# auth_api/models/__init__.py
+
+from importlib import import_module
+from typing import TYPE_CHECKING, Any
+
+__all__ = ["PhoneOTP"]
+
+_MODULE_MAP = {
+    "PhoneOTP": ("auth_api.models.otp", "PhoneOTP"),
+}
+
+if TYPE_CHECKING:
+    from .otp import PhoneOTP
+
+
+def __getattr__(name: str) -> Any:
+    try:
+        module_path, attr_name = _MODULE_MAP[name]
+    except KeyError as exc:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from exc
+
+    module = import_module(module_path)
+    value = getattr(module, attr_name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(__all__)

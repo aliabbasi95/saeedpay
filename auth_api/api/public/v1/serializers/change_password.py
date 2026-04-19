@@ -1,3 +1,5 @@
+# auth_api/api/public/v1/serializers/change_password.py
+
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
@@ -18,7 +20,7 @@ class ChangePasswordSerializer(PersianValidationErrorMessages, serializers.Seria
                 password=value, user=self.context["request"].user
             )
         except DjangoValidationError as e:
-            raise serializers.ValidationError(e.messages)
+            raise serializers.ValidationError(e.messages) from e
         return value
 
     def validate(self, data):
