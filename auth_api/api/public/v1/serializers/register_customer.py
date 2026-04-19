@@ -39,7 +39,7 @@ class RegisterCustomerSerializer(
         try:
             password_validation.validate_password(password=password)
         except DjangoValidationError as e:
-            raise serializers.ValidationError(e.messages)
+            raise serializers.ValidationError(e.messages) from e
         return password
 
     def validate(self, data):

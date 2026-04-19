@@ -23,8 +23,10 @@ class LoginSerializer(
 
         try:
             user = User.objects.get(username=phone)
-        except User.DoesNotExist:
-            raise serializers.ValidationError(_("شماره تلفن یا رمز عبور اشتباه است."))
+        except User.DoesNotExist as e:
+            raise serializers.ValidationError(
+                _("شماره تلفن یا رمز عبور اشتباه است.")
+            ) from e
 
         if not user.check_password(password):
             raise serializers.ValidationError(_("شماره تلفن یا رمز عبور اشتباه است."))

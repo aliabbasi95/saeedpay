@@ -158,16 +158,16 @@ class TestSendOtpThrottlingTests:
         otp_throttle_found = any(
             isinstance(throttle, OTPPhoneRateThrottle) for throttle in throttle_classes
         )
-        assert (
-            otp_throttle_found
-        ), f"OTPPhoneRateThrottle not found in {[type(t).__name__ for t in throttle_classes]}"
+        assert otp_throttle_found, (
+            f"OTPPhoneRateThrottle not found in {[type(t).__name__ for t in throttle_classes]}"
+        )
 
         # Verify the throttle is configured correctly
         config = self.throttle_config
         assert config["scope"] == "otp-by-phone"
-        assert (
-            config["requests_allowed"] > 0
-        ), "Throttle should allow at least 1 request"
+        assert config["requests_allowed"] > 0, (
+            "Throttle should allow at least 1 request"
+        )
         assert config["period_seconds"] > 0, "Throttle period should be positive"
 
         print(
@@ -191,9 +191,9 @@ class TestSendOtpThrottlingTests:
                 # Should allow up to the configured limit
                 for i in range(requests_allowed):
                     response = self.client.post(SEND_OTP_URL, {"phone_number": phone})
-                    assert (
-                        response.status_code == status.HTTP_200_OK
-                    ), f"Request {i + 1}/{requests_allowed} should succeed but got {response.status_code}: {response.data}"
+                    assert response.status_code == status.HTTP_200_OK, (
+                        f"Request {i + 1}/{requests_allowed} should succeed but got {response.status_code}: {response.data}"
+                    )
 
                     # Move forward to avoid model-level duplicate prevention
                     frozen_time.tick(
@@ -205,7 +205,9 @@ class TestSendOtpThrottlingTests:
                 assert response.status_code in (
                     status.HTTP_429_TOO_MANY_REQUESTS,
                     status.HTTP_400_BAD_REQUEST,
-                ), f"Request {requests_allowed + 1} should be throttled but got {response.status_code}: {response.data}"
+                ), (
+                    f"Request {requests_allowed + 1} should be throttled but got {response.status_code}: {response.data}"
+                )
                 assert "throttled" in response.data.get("detail", "").lower()
 
     def test_phone_throttle_resets_after_period(self):
@@ -262,7 +264,7 @@ class TestSendOtpThrottlingTests:
         with freeze_time("2024-01-01 12:00:00") as frozen_time:
             with patch(PHONE_OTP_SEND_PATH, return_value=True):
                 # Make all allowed requests quickly (all at the same time)
-                for i in range(requests_allowed):
+                for _ in range(requests_allowed):
                     response = self.client.post(SEND_OTP_URL, {"phone_number": phone})
                     assert response.status_code == status.HTTP_200_OK
 
@@ -293,7 +295,7 @@ class TestSendOtpThrottlingTests:
         with freeze_time("2024-01-01 12:00:00") as frozen_time:
             with patch(PHONE_OTP_SEND_PATH, return_value=True):
                 # Exhaust limit for phone1
-                for i in range(requests_allowed):
+                for _ in range(requests_allowed):
                     response = self.client.post(SEND_OTP_URL, {"phone_number": phone1})
                     assert response.status_code == status.HTTP_200_OK
                     frozen_time.tick(
@@ -342,9 +344,9 @@ class TestSendOtpThrottlingTests:
                     frozen_time.tick(delta=timezone.timedelta(seconds=10))
 
                 # Should hit the global limit around 100 requests
-                assert (
-                    throttled or request_count >= 95
-                ), f"Expected throttling or high request count, got {request_count}"
+                assert throttled or request_count >= 95, (
+                    f"Expected throttling or high request count, got {request_count}"
+                )
 
     def test_throttle_retry_after_header(self):
         """Test that throttled responses include appropriate Retry-After header."""
@@ -360,7 +362,7 @@ class TestSendOtpThrottlingTests:
         with freeze_time("2024-01-01 12:00:00") as frozen_time:
             with patch(PHONE_OTP_SEND_PATH, return_value=True):
                 # Exhaust the phone-specific limit
-                for i in range(requests_allowed):
+                for _ in range(requests_allowed):
                     response = self.client.post(SEND_OTP_URL, {"phone_number": phone})
                     assert response.status_code == status.HTTP_200_OK
                     frozen_time.tick(
@@ -419,7 +421,7 @@ class TestSendOtpThrottlingTests:
                 success_count = 0
 
                 # Make exactly the configured number of requests
-                for i in range(requests_allowed):
+                for _ in range(requests_allowed):
                     response = self.client.post(SEND_OTP_URL, {"phone_number": phone})
                     if response.status_code == status.HTTP_200_OK:
                         success_count += 1
@@ -427,9 +429,9 @@ class TestSendOtpThrottlingTests:
                         delta=timezone.timedelta(seconds=time_between_requests)
                     )
 
-                assert (
-                    success_count == requests_allowed
-                ), f"Expected exactly {requests_allowed} successful requests, got {success_count}"
+                assert success_count == requests_allowed, (
+                    f"Expected exactly {requests_allowed} successful requests, got {success_count}"
+                )
 
                 # Next request should definitely be throttled
                 response = self.client.post(SEND_OTP_URL, {"phone_number": phone})
@@ -454,7 +456,7 @@ class TestSendOtpThrottlingTests:
             with patch(PHONE_OTP_SEND_PATH, return_value=True):
                 # Both phones should be able to make their full quota independently
                 for phone in [phone1, phone2]:
-                    for i in range(requests_allowed):
+                    for _ in range(requests_allowed):
                         response = self.client.post(
                             SEND_OTP_URL, {"phone_number": phone}
                         )
@@ -495,9 +497,9 @@ class TestSendOtpThrottlingTests:
                 # Test that we can make all allowed requests
                 for i in range(config["requests_allowed"]):
                     response = self.client.post(SEND_OTP_URL, {"phone_number": phone})
-                    assert (
-                        response.status_code == status.HTTP_200_OK
-                    ), f"Request {i + 1} failed"
+                    assert response.status_code == status.HTTP_200_OK, (
+                        f"Request {i + 1} failed"
+                    )
 
                 # Test that the next request is throttled
                 response = self.client.post(SEND_OTP_URL, {"phone_number": phone})

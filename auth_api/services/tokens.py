@@ -1,7 +1,6 @@
 # auth_api/services/tokens.py
 
 from datetime import datetime, timedelta, timezone
-from typing import Tuple
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -15,7 +14,7 @@ def rotate_refresh_cookie(
     *,
     max_session_lifetime: timedelta,
     cookie_name: str = None,
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """
     Validate current refresh cookie, enforce max session lifetime, blacklist it,
     and return (access_token_str, new_refresh_token_str).
@@ -38,8 +37,8 @@ def rotate_refresh_cookie(
         # 1) blacklist check
         try:
             old_refresh.check_blacklist()
-        except TokenError:
-            raise _err("رفرش‌توکن نامعتبر یا بلاک شده است.")
+        except TokenError as e:
+            raise _err("رفرش‌توکن نامعتبر یا بلاک شده است.") from e
 
         # 2) lifetime check
         orig_iat = old_refresh.payload.get("orig_iat")
@@ -57,8 +56,8 @@ def rotate_refresh_cookie(
         User = get_user_model()
         try:
             user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            raise _err("کاربر مربوط به توکن یافت نشد.")
+        except User.DoesNotExist as e:
+            raise _err("کاربر مربوط به توکن یافت نشد.") from e
 
         issued_is_active = bool(
             old_refresh.payload.get(
@@ -87,5 +86,5 @@ def rotate_refresh_cookie(
         access = str(new_refresh.access_token)
         return access, str(new_refresh)
 
-    except TokenError:
-        raise _err("رفرش‌توکن نامعتبر یا منقضی است.")
+    except TokenError as e:
+        raise _err("رفرش‌توکن نامعتبر یا منقضی است.") from e

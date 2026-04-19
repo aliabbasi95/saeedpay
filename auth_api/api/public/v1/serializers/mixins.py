@@ -27,10 +27,10 @@ class OTPValidationMixin:
     def validate_phone_otp(self, phone_number: str, code: str):
         try:
             otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
-        except PhoneOTP.DoesNotExist:
+        except PhoneOTP.DoesNotExist as e:
             raise serializers.ValidationError(
                 {"code": "کد تایید یافت نشد یا منقضی شده است."}
-            )
+            ) from e
         if not otp_instance.verify(code):
             raise serializers.ValidationError(
                 {"code": "کد تایید اشتباه یا منقضی شده است."}

@@ -18,7 +18,7 @@ class ChangePasswordSerializer(PersianValidationErrorMessages, serializers.Seria
                 password=value, user=self.context["request"].user
             )
         except DjangoValidationError as e:
-            raise serializers.ValidationError(e.messages)
+            raise serializers.ValidationError(e.messages) from e
         return value
 
     def validate(self, data):

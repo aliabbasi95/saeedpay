@@ -25,7 +25,7 @@ class ResetPasswordSerializer(PersianValidationErrorMessages, serializers.Serial
         try:
             password_validation.validate_password(password=password)
         except DjangoValidationError as e:
-            raise serializers.ValidationError(e.messages)
+            raise serializers.ValidationError(e.messages) from e
         return password
 
     def validate(self, data):
@@ -51,10 +51,10 @@ class ResetPasswordSerializer(PersianValidationErrorMessages, serializers.Serial
         code = data.get("code")
         try:
             otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
-        except PhoneOTP.DoesNotExist:
+        except PhoneOTP.DoesNotExist as e:
             raise serializers.ValidationError(
                 {"code": "کد تایید یافت نشد یا منقضی شده است."}
-            )
+            ) from e
 
         if not otp_instance.verify(code):
             raise serializers.ValidationError(
