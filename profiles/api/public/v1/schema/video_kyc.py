@@ -1,24 +1,22 @@
 # profiles/api/public/v1/schema/video_kyc.py
 
-from drf_spectacular.utils import (
-    OpenApiExample,
-    OpenApiResponse,
-    extend_schema,
-)
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 
 from profiles.api.public.v1.serializers.video_kyc import VideoKYCSerializer
 
+PROFILE_TAG = "Profile"
+
 VIDEO_KYC_SUBMIT_SCHEMA = extend_schema(
-    tags=["Profile"],
-    summary="ارسال ویدیو برای احراز هویت",
+    tags=[PROFILE_TAG],
+    summary="Submit video KYC",
     description=(
-        "آپلود ویدیو سلفی برای احراز هویت ویدیویی کاربر. این عملیات غیرهمزمان است "
-        "و شناسه‌ی تسک Celery برمی‌گرداند."
+        "Upload a selfie video for video-based identity verification. "
+        "This operation is asynchronous and returns a Celery task id."
     ),
-    request=VideoKYCSerializer,  # multipart/form-data
+    request=VideoKYCSerializer,
     responses={
         202: OpenApiResponse(
-            description="درخواست ثبت شد (غیرهمزمان)",
+            description="Video KYC request accepted.",
             examples=[
                 OpenApiExample(
                     "Accepted",
@@ -31,10 +29,10 @@ VIDEO_KYC_SUBMIT_SCHEMA = extend_schema(
             ],
         ),
         400: OpenApiResponse(
-            description="خطای اعتبارسنجی",
+            description="Validation error.",
             examples=[
                 OpenApiExample(
-                    "BadRequest",
+                    "InvalidVideo",
                     value={
                         "success": False,
                         "errors": {
@@ -47,7 +45,7 @@ VIDEO_KYC_SUBMIT_SCHEMA = extend_schema(
             ],
         ),
         500: OpenApiResponse(
-            description="خطای داخلی",
+            description="Internal server error.",
             examples=[
                 OpenApiExample(
                     "ServerError",

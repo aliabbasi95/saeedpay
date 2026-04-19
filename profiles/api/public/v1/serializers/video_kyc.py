@@ -15,14 +15,6 @@ class VideoKYCSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError("فایل ویدیو الزامی است.")
 
-        # Check file extension
-        #        allowed_extensions = [".mp4", ".mov", ".avi", ".mkv"]
-        #        if not any(value.name.lower().endswith(ext) for ext in allowed_extensions):
-        #            raise serializers.ValidationError(
-        #                "فایل باید یک ویدیو باشد (mp4, mov, avi, mkv)"
-        #            )
-
-        # Check file size (max 50MB)
         max_size = 50 * 1024 * 1024  # 50MB
         if value.size > max_size:
             raise serializers.ValidationError(
@@ -39,15 +31,13 @@ class VideoKYCSerializer(serializers.Serializer):
                 {"non_field_errors": ["کاربر احراز هویت نشده است."]}
             )
 
-        # Get or validate profile exists
         try:
             profile = Profile.objects.get(user=request.user)
-        except Profile.DoesNotExist:
+        except Profile.DoesNotExist as exc:
             raise serializers.ValidationError(
                 {"non_field_errors": ["پروفایل کاربری یافت نشد."]}
-            )
+            ) from exc
 
-        # Check required profile fields
         if not profile.national_id:
             raise serializers.ValidationError(
                 {"non_field_errors": ["کد ملی در پروفایل شما ثبت نشده است."]}
@@ -58,7 +48,6 @@ class VideoKYCSerializer(serializers.Serializer):
                 {"non_field_errors": ["تاریخ تولد در پروفایل شما ثبت نشده است."]}
             )
 
-        # Validate auth stage
         if not profile.can_submit_video_auth():
             raise serializers.ValidationError(
                 {
@@ -68,7 +57,6 @@ class VideoKYCSerializer(serializers.Serializer):
                 }
             )
 
-        # Check if already in progress
         if profile.is_video_auth_in_progress():
             raise serializers.ValidationError(
                 {
@@ -78,12 +66,10 @@ class VideoKYCSerializer(serializers.Serializer):
                 }
             )
 
-        # Check if already accepted
         if profile.video_auth_status == KYCStatus.ACCEPTED:
             raise serializers.ValidationError(
                 {"non_field_errors": ["احراز هویت شما قبلاً تایید شده است."]}
             )
 
-        # Store profile in validated data for use in view
         data["_profile"] = profile
         return data
