@@ -4,16 +4,16 @@ from wallets.models import PaymentEvent
 
 
 def create_payment_event(
-        *,
-        payment_request,
-        event_type,
-        payment=None,
-        transaction=None,
-        actor=None,
-        from_status=None,
-        to_status=None,
-        description="",
-        extra_data=None,
+    *,
+    payment_request,
+    event_type,
+    payment=None,
+    transaction=None,
+    actor=None,
+    from_status=None,
+    to_status=None,
+    description="",
+    extra_data=None,
 ):
     """
     Thin wrapper around PaymentEvent.log to keep service-layer callers

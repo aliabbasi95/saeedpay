@@ -70,17 +70,17 @@ class PaymentEvent(BaseModel):
 
     @classmethod
     def log(
-            cls,
-            *,
-            payment_request,
-            event_type,
-            payment=None,
-            transaction=None,
-            actor=None,
-            from_status=None,
-            to_status=None,
-            description="",
-            extra_data=None,
+        cls,
+        *,
+        payment_request,
+        event_type,
+        payment=None,
+        transaction=None,
+        actor=None,
+        from_status=None,
+        to_status=None,
+        description="",
+        extra_data=None,
     ):
         return cls.objects.create(
             payment_request=payment_request,

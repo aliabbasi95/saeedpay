@@ -3,7 +3,7 @@
 import re
 
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiTypes, extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
 
 from auth_api.models import PhoneOTP
@@ -69,10 +69,10 @@ class PaymentConfirmSerializer(serializers.Serializer):
 
         try:
             otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
-        except PhoneOTP.DoesNotExist:
+        except PhoneOTP.DoesNotExist as exc:
             raise serializers.ValidationError(
                 {"code": "کد تایید یافت نشد یا منقضی شده است."}
-            )
+            ) from exc
 
         if not otp_instance.verify(data.get("code")):
             raise serializers.ValidationError(
@@ -81,7 +81,7 @@ class PaymentConfirmSerializer(serializers.Serializer):
 
         return data
 
-@extend_schema_serializer(component_name="PublicPaymentActionResponse")
+
 class PaymentActionResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
     code = serializers.CharField()
@@ -128,6 +128,7 @@ class PaymentConfirmResponseSerializer(PaymentActionResponseSerializer):
     """
     Backward-compatible alias for older imports/schemas.
     """
+
     pass
 
 

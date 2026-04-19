@@ -1,7 +1,8 @@
 # wallets/api/partner/v1/serializers/payment.py
 
-from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_serializer
+from rest_framework import serializers
+
 from wallets.models import PaymentRequest
 from wallets.utils.choices import PaymentFlowType
 from wallets.utils.validators import https_only_validator
@@ -73,6 +74,7 @@ class PaymentRequestPartnerDetailSerializer(serializers.ModelSerializer):
     def get_merchant_confirmation_required(self, obj: PaymentRequest) -> bool:
         return obj.flow_type == PaymentFlowType.ONLINE
 
+
 @extend_schema_serializer(component_name="PartnerPaymentActionResponse")
 class PaymentActionResponseSerializer(serializers.Serializer):
     detail = serializers.CharField()
@@ -120,7 +122,9 @@ class PaymentVerifyResponseSerializer(PaymentActionResponseSerializer):
     """
     Backward-compatible alias for older imports/schemas.
     """
+
     pass
+
 
 @extend_schema_serializer(component_name="PartnerPaymentRequestCreateResponse")
 class PaymentRequestCreateResponseSerializer(PaymentActionResponseSerializer):

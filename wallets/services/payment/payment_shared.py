@@ -54,27 +54,27 @@ def get_latest_payment_for_request(payment_request):
 
 
 def ensure_payment_request_status(
-        payment_request,
-        *,
-        allowed_statuses: set[str],
-        error_message: str,
-        error_code: str = "invalid_state",
+    payment_request,
+    *,
+    allowed_statuses: set[str],
+    error_message: str,
+    error_code: str = "invalid_state",
 ):
     if payment_request.status not in allowed_statuses:
         raise ValidationError(error_message, code=error_code)
 
 
 def create_event(
-        *,
-        payment_request,
-        event_type,
-        payment=None,
-        transaction=None,
-        actor=None,
-        from_status=None,
-        to_status=None,
-        description="",
-        extra_data=None,
+    *,
+    payment_request,
+    event_type,
+    payment=None,
+    transaction=None,
+    actor=None,
+    from_status=None,
+    to_status=None,
+    description="",
+    extra_data=None,
 ):
     return create_payment_event(
         payment_request=payment_request,

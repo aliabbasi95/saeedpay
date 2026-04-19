@@ -51,15 +51,15 @@ def _resolve_next_action(payment):
 
 
 def build_payment_response_payload(
-        *,
-        detail,
-        code,
-        payment_request=None,
-        payment=None,
-        transaction_reference_code=None,
-        next_action=None,
-        merchant_confirmation_required=None,
-        extra=None,
+    *,
+    detail,
+    code,
+    payment_request=None,
+    payment=None,
+    transaction_reference_code=None,
+    next_action=None,
+    merchant_confirmation_required=None,
+    extra=None,
 ):
     payload = {
         "detail": detail,
@@ -73,9 +73,7 @@ def build_payment_response_payload(
             else transaction_reference_code
         ),
         "next_action": (
-            _resolve_next_action(payment)
-            if next_action is None
-            else next_action
+            _resolve_next_action(payment) if next_action is None else next_action
         ),
         "merchant_confirmation_required": (
             _resolve_merchant_confirmation_required(payment_request)
@@ -93,16 +91,16 @@ def build_payment_response_payload(
 
 
 def _build_payment_response(
-        *,
-        detail,
-        code,
-        http_status,
-        payment_request=None,
-        payment=None,
-        transaction_reference_code=None,
-        next_action=None,
-        merchant_confirmation_required=None,
-        extra=None,
+    *,
+    detail,
+    code,
+    http_status,
+    payment_request=None,
+    payment=None,
+    transaction_reference_code=None,
+    next_action=None,
+    merchant_confirmation_required=None,
+    extra=None,
 ):
     payload = build_payment_response_payload(
         detail=detail,
@@ -118,16 +116,16 @@ def _build_payment_response(
 
 
 def payment_success_response(
-        *,
-        detail,
-        code,
-        payment_request=None,
-        payment=None,
-        http_status=status.HTTP_200_OK,
-        transaction_reference_code=None,
-        next_action=None,
-        merchant_confirmation_required=None,
-        extra=None,
+    *,
+    detail,
+    code,
+    payment_request=None,
+    payment=None,
+    http_status=status.HTTP_200_OK,
+    transaction_reference_code=None,
+    next_action=None,
+    merchant_confirmation_required=None,
+    extra=None,
 ):
     return _build_payment_response(
         detail=detail,
@@ -143,16 +141,16 @@ def payment_success_response(
 
 
 def payment_error_response(
-        *,
-        detail,
-        code,
-        http_status,
-        payment_request=None,
-        payment=None,
-        transaction_reference_code=None,
-        next_action=None,
-        merchant_confirmation_required=None,
-        extra=None,
+    *,
+    detail,
+    code,
+    http_status,
+    payment_request=None,
+    payment=None,
+    transaction_reference_code=None,
+    next_action=None,
+    merchant_confirmation_required=None,
+    extra=None,
 ):
     return _build_payment_response(
         detail=detail,
@@ -168,11 +166,11 @@ def payment_error_response(
 
 
 def payment_internal_error_response(
-        *,
-        payment_request=None,
-        payment=None,
-        http_status=status.HTTP_400_BAD_REQUEST,
-        extra=None,
+    *,
+    payment_request=None,
+    payment=None,
+    http_status=status.HTTP_400_BAD_REQUEST,
+    extra=None,
 ):
     return payment_error_response(
         detail=GENERIC_INTERNAL_ERROR_DETAIL,

@@ -167,12 +167,12 @@ class Payment(BaseModel):
         )
 
     def _transition_to(
-            self,
-            to_status: str,
-            *,
-            datetime_field: str | None = None,
-            failure_reason: str | None = None,
-            extra_update_fields: list[str] | None = None,
+        self,
+        to_status: str,
+        *,
+        datetime_field: str | None = None,
+        failure_reason: str | None = None,
+        extra_update_fields: list[str] | None = None,
     ):
         self._validate_status_transition(to_status)
 

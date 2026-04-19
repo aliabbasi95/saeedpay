@@ -71,16 +71,16 @@ class Transaction(BaseModel):
 
     @classmethod
     def create_success(
-            cls,
-            *,
-            from_wallet,
-            to_wallet,
-            amount,
-            purpose,
-            payment=None,
-            payment_request=None,
-            description="",
-            related_transaction=None,
+        cls,
+        *,
+        from_wallet,
+        to_wallet,
+        amount,
+        purpose,
+        payment=None,
+        payment_request=None,
+        description="",
+        related_transaction=None,
     ):
         return cls.objects.create(
             from_wallet=from_wallet,

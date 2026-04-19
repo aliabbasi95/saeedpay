@@ -45,13 +45,13 @@ logger = logging.getLogger("saeedpay.wallets.payment")
 
 
 def _create_payment_safely(
-        *,
-        payment_request: PaymentRequest,
-        payer,
-        payer_wallet: Wallet,
-        amount,
-        method,
-        flow_type,
+    *,
+    payment_request: PaymentRequest,
+    payer,
+    payer_wallet: Wallet,
+    amount,
+    method,
+    flow_type,
 ):
     try:
         return Payment.objects.create(
@@ -92,12 +92,12 @@ def _mark_payment_awaiting_merchant(payment: Payment):
 
 
 def _move_request_to_awaiting_merchant(
-        *,
-        payment_request: PaymentRequest,
-        user,
-        wallet,
-        merchant_deadline,
-        payment: Payment,
+    *,
+    payment_request: PaymentRequest,
+    user,
+    wallet,
+    merchant_deadline,
+    payment: Payment,
 ):
     from_status = payment_request.status
 
@@ -143,12 +143,12 @@ def _move_request_to_awaiting_merchant(
 
 
 def _log_request_completed_event(
-        *,
-        payment_request: PaymentRequest,
-        user,
-        wallet,
-        payment: Payment,
-        from_status,
+    *,
+    payment_request: PaymentRequest,
+    user,
+    wallet,
+    payment: Payment,
+    from_status,
 ):
     create_event(
         payment_request=payment_request,
@@ -182,11 +182,11 @@ def _log_request_completed_event(
 
 
 def _complete_qr_payment(
-        *,
-        payment_request: PaymentRequest,
-        payment: Payment,
-        user,
-        wallet,
+    *,
+    payment_request: PaymentRequest,
+    payment: Payment,
+    user,
+    wallet,
 ):
     if payment.method == PaymentMethod.CASH:
         settle_cash_payment(payment)
@@ -213,11 +213,11 @@ def _complete_qr_payment(
 
 
 def _move_online_payment_forward(
-        *,
-        payment_request: PaymentRequest,
-        payment: Payment,
-        user,
-        wallet,
+    *,
+    payment_request: PaymentRequest,
+    payment: Payment,
+    user,
+    wallet,
 ):
     _mark_payment_awaiting_merchant(payment)
     _move_request_to_awaiting_merchant(

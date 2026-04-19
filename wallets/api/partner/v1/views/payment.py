@@ -81,11 +81,11 @@ class PartnerPaymentRequestViewSet(
     }
 
     def _log_unexpected_error(
-            self,
-            *,
-            action: str,
-            exc: Exception,
-            payment_request=None,
+        self,
+        *,
+        action: str,
+        exc: Exception,
+        payment_request=None,
     ):
         log_event(
             logger,
@@ -101,15 +101,14 @@ class PartnerPaymentRequestViewSet(
                 None,
             ),
             store_id=getattr(payment_request, "store_id", None)
-                     or getattr(getattr(self.request, "store", None), "id", None),
+            or getattr(getattr(self.request, "store", None), "id", None),
             error=str(exc),
         )
 
     def get_queryset(self):
-        return (
-            PaymentRequest.objects.select_related("store", "paid_by", "paid_wallet")
-            .filter(store=self.request.store)
-        )
+        return PaymentRequest.objects.select_related(
+            "store", "paid_by", "paid_wallet"
+        ).filter(store=self.request.store)
 
     @extend_schema(
         summary="ایجاد درخواست پرداخت",

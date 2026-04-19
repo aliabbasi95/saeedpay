@@ -9,6 +9,8 @@ from saeedpay.logging import log_event
 from wallets.models import Payment, Transaction, Wallet
 from wallets.services.payment.payment_shared import (
     create_event,
+)
+from wallets.services.payment.payment_shared import (
     logger as shared_logger,
 )
 from wallets.utils.choices import (

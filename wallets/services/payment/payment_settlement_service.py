@@ -13,6 +13,8 @@ from wallets.models import Payment, Transaction, Wallet
 from wallets.services.payment.payment_shared import (
     create_event,
     get_merchant_gateway_wallet,
+)
+from wallets.services.payment.payment_shared import (
     logger as shared_logger,
 )
 from wallets.utils.choices import (
@@ -141,9 +143,7 @@ def settle_credit_payment(payment: Payment):
     auth.status = CreditAuthorization.Status.SETTLED
     auth.save(update_fields=["status"])
 
-    statement, _ = Statement.objects.get_or_create_current_statement(
-        payment.payer
-    )
+    statement, _ = Statement.objects.get_or_create_current_statement(payment.payer)
     existing_line = StatementLine.all_objects.filter(
         payment=payment,
         type=StatementLineType.PURCHASE,

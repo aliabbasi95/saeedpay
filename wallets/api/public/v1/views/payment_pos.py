@@ -96,12 +96,12 @@ class MerchantPosPaymentRequestViewSet(
     }
 
     def _log_unexpected_error(
-            self,
-            *,
-            action: str,
-            exc: Exception,
-            payment_request=None,
-            store=None,
+        self,
+        *,
+        action: str,
+        exc: Exception,
+        payment_request=None,
+        store=None,
     ):
         log_event(
             logger,

@@ -94,11 +94,11 @@ class PaymentRequestViewSet(
             raise NotAuthenticated("احراز هویت الزامی است.")
 
     def _log_unexpected_error(
-            self,
-            *,
-            action: str,
-            exc: Exception,
-            payment_request=None,
+        self,
+        *,
+        action: str,
+        exc: Exception,
+        payment_request=None,
     ):
         log_event(
             logger,
@@ -119,23 +119,20 @@ class PaymentRequestViewSet(
 
     def get_queryset(self):
         if self.action in {"retrieve", "confirm"}:
-            return (
-                PaymentRequest.objects.select_related("store")
-                .only(
-                    "reference_code",
-                    "amount",
-                    "description",
-                    "status",
-                    "flow_type",
-                    "expires_at",
-                    "created_at",
-                    "store_id",
-                    "store__id",
-                    "store__name",
-                    "customer_id",
-                    "return_url",
-                    "paid_at",
-                )
+            return PaymentRequest.objects.select_related("store").only(
+                "reference_code",
+                "amount",
+                "description",
+                "status",
+                "flow_type",
+                "expires_at",
+                "created_at",
+                "store_id",
+                "store__id",
+                "store__name",
+                "customer_id",
+                "return_url",
+                "paid_at",
             )
 
         user = self.request.user

@@ -29,10 +29,10 @@ logger = logging.getLogger("saeedpay.wallets.payment")
 
 
 def _validate_payment_request_creation(
-        *,
-        flow_type,
-        return_url,
-        external_guid,
+    *,
+    flow_type,
+    return_url,
+    external_guid,
 ):
     if flow_type == PaymentFlowType.ONLINE:
         if not return_url:
@@ -62,14 +62,14 @@ def _validate_payment_request_creation(
 
 
 def create_payment_request(
-        store,
-        amount,
-        return_url=None,
-        customer=None,
-        description="",
-        external_guid=None,
-        flow_type=PaymentFlowType.ONLINE,
-        actor=None,
+    store,
+    amount,
+    return_url=None,
+    customer=None,
+    description="",
+    external_guid=None,
+    flow_type=PaymentFlowType.ONLINE,
+    actor=None,
 ):
     _validate_payment_request_creation(
         flow_type=flow_type,
@@ -141,11 +141,10 @@ def list_eligible_wallets_for_payment_request(user, payment_request):
 
             credit_limit = CreditLimit.objects.get_user_credit_limit(user)
             if (
-                    credit_limit
-                    and getattr(credit_limit, "is_active", False)
-                    and getattr(credit_limit, "available_limit", 0) >= int(
-                payment_request.amount
-            )
+                credit_limit
+                and getattr(credit_limit, "is_active", False)
+                and getattr(credit_limit, "available_limit", 0)
+                >= int(payment_request.amount)
             ):
                 eligible_ids.append(wallet.id)
 
@@ -153,9 +152,9 @@ def list_eligible_wallets_for_payment_request(user, payment_request):
 
 
 def check_and_expire_payment_request(
-        payment_request: PaymentRequest,
-        *,
-        raise_exception: bool = True,
+    payment_request: PaymentRequest,
+    *,
+    raise_exception: bool = True,
 ) -> bool:
     payment_request = PaymentRequest.objects.get(pk=payment_request.pk)
 
@@ -247,10 +246,10 @@ def expire_payment_request(payment_request: PaymentRequest):
 
 
 def cancel_payment_request(
-        payment_request: PaymentRequest,
-        *,
-        store=None,
-        actor=None,
+    payment_request: PaymentRequest,
+    *,
+    store=None,
+    actor=None,
 ):
     from wallets.services.payment.payment_processing_service import rollback_payment
 
@@ -339,8 +338,8 @@ def validate_wallet_ownership(*, user, wallet):
     customer_wallet = Wallet.objects.select_for_update().get(pk=wallet.pk)
 
     if (
-            customer_wallet.user_id != user.id
-            or customer_wallet.owner_type != OwnerType.CUSTOMER
+        customer_wallet.user_id != user.id
+        or customer_wallet.owner_type != OwnerType.CUSTOMER
     ):
         log_event(
             logger,

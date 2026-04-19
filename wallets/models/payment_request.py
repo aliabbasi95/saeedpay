@@ -196,11 +196,11 @@ class PaymentRequest(BaseModel):
         )
 
     def _transition_to(
-            self,
-            to_status: str,
-            *,
-            datetime_field: str | None = None,
-            extra_updates: dict | None = None,
+        self,
+        to_status: str,
+        *,
+        datetime_field: str | None = None,
+        extra_updates: dict | None = None,
     ) -> bool:
         self._validate_status_transition(to_status)
 
@@ -225,11 +225,11 @@ class PaymentRequest(BaseModel):
         return True
 
     def mark_awaiting_merchant(
-            self,
-            *,
-            user=None,
-            wallet=None,
-            merchant_deadline=None,
+        self,
+        *,
+        user=None,
+        wallet=None,
+        merchant_deadline=None,
     ) -> bool:
         extra_updates = {}
 
@@ -252,10 +252,10 @@ class PaymentRequest(BaseModel):
         )
 
     def mark_completed(
-            self,
-            *,
-            user=None,
-            wallet=None,
+        self,
+        *,
+        user=None,
+        wallet=None,
     ) -> bool:
         extra_updates = {}
 
@@ -266,9 +266,9 @@ class PaymentRequest(BaseModel):
             extra_updates["paid_wallet"] = wallet
 
         if (
-                user is not None
-                or wallet is not None
-                or self.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
+            user is not None
+            or wallet is not None
+            or self.status == PaymentRequestStatus.AWAITING_MERCHANT_CONFIRMATION
         ):
             extra_updates["paid_at"] = self.paid_at or self._now()
 
@@ -279,10 +279,10 @@ class PaymentRequest(BaseModel):
         )
 
     def mark_completed_direct(
-            self,
-            *,
-            user=None,
-            wallet=None,
+        self,
+        *,
+        user=None,
+        wallet=None,
     ) -> bool:
         if self.status == PaymentRequestStatus.COMPLETED:
             return False
