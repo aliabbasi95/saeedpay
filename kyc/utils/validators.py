@@ -1,7 +1,7 @@
 # kyc/utils/validators.py
 
 import re
-from typing import Any, Dict
+from typing import Any
 
 from django.core.exceptions import ValidationError
 
@@ -74,7 +74,7 @@ def validate_phone_number(phone: str) -> bool:
     return False
 
 
-def validate_user_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
+def validate_user_data(user_data: dict[str, Any]) -> dict[str, Any]:
     """
     Validate user data for identity verification.
 
@@ -144,7 +144,7 @@ def validate_user_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
     return cleaned_data
 
 
-def sanitize_user_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
+def sanitize_user_data(user_data: dict[str, Any]) -> dict[str, Any]:
     """
     Sanitize user data by removing sensitive information and normalizing format.
 

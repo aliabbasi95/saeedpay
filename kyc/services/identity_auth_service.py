@@ -3,7 +3,6 @@
 import logging
 import time
 from json import JSONDecodeError
-from typing import Dict, Optional, Tuple
 from urllib.parse import urljoin
 
 import jwt
@@ -137,7 +136,7 @@ class IdentityAuthService:
             logger.error(f"Unexpected error during {context}: {e}")
         return None, None
 
-    def _authenticate(self) -> Tuple[Optional[str], Optional[str]]:
+    def _authenticate(self) -> tuple[str | None, str | None]:
         if not all(
             [
                 self.base_url,
@@ -160,7 +159,7 @@ class IdentityAuthService:
 
     def _refresh_token(
         self, refresh_token: str, access_token: str = None
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None]:
         if not refresh_token or not self.base_url:
             return None, None
         refresh_url = urljoin(self.base_url.rstrip("/") + "/", "api/ums/token/refresh")
@@ -170,7 +169,7 @@ class IdentityAuthService:
             headers["Authorization"] = f"Bearer {access_token}"
         return self._request_token(refresh_url, payload, headers, "Token refresh")
 
-    def get_valid_tokens(self) -> Tuple[Optional[str], Optional[str]]:
+    def get_valid_tokens(self) -> tuple[str | None, str | None]:
         access_token = cache.get(self._get_cache_key("access_token"))
         refresh_token = cache.get(self._get_cache_key("refresh_token"))
 
@@ -221,7 +220,7 @@ class IdentityAuthService:
 
     # ---------------- public KYC methods ---------------- #
 
-    def verify_identity(self, user_data: Dict) -> Dict:
+    def verify_identity(self, user_data: dict) -> dict:
         access_token, refresh_token = self.get_valid_tokens()
         if not access_token:
             return {
@@ -335,7 +334,7 @@ class IdentityAuthService:
 
         return self.video_verification.get_verification_result(unique_id, access_token)
 
-    def verify_mobile_national_id(self, national_code: str, mobile_number: str) -> Dict:
+    def verify_mobile_national_id(self, national_code: str, mobile_number: str) -> dict:
         """
         Verify mobile number and national code matching using Shahkar API.
         Returns: dict with 'success' and 'is_matched' on success; rich error info on failure.
@@ -449,7 +448,7 @@ class IdentityAuthService:
         logger.info("KYC Identity tokens cleared from cache")
 
     # Loan Validation Service Methods (with automatic token management)
-    def loan_send_otp(self, national_code: str, mobile_number: str) -> Dict:
+    def loan_send_otp(self, national_code: str, mobile_number: str) -> dict:
         """
         Send OTP for loan validation with automatic token management.
 
@@ -471,7 +470,7 @@ class IdentityAuthService:
 
         return self.loan_validation.send_otp(national_code, mobile_number, access_token)
 
-    def loan_verify_otp_and_request_report(self, otp_code: str, unique_id: str) -> Dict:
+    def loan_verify_otp_and_request_report(self, otp_code: str, unique_id: str) -> dict:
         """
         Verify OTP and request credit report with automatic token management.
 
@@ -495,7 +494,7 @@ class IdentityAuthService:
             otp_code, unique_id, access_token
         )
 
-    def loan_get_report_result(self, unique_id: str) -> Dict:
+    def loan_get_report_result(self, unique_id: str) -> dict:
         """
         Get credit report result with automatic token management.
 

@@ -1,7 +1,6 @@
 # kyc/services/loan_validation_service.py
 
 import logging
-from typing import Dict
 from urllib.parse import urljoin
 
 import requests
@@ -35,7 +34,7 @@ class LoanValidationService:
 
     def send_otp(
         self, national_code: str, mobile_number: str, access_token: str
-    ) -> Dict:
+    ) -> dict:
         """
         Send OTP to user's mobile for loan validation.
 
@@ -181,7 +180,7 @@ class LoanValidationService:
 
     def verify_otp_and_request_report(
         self, otp_code: str, unique_id: str, access_token: str
-    ) -> Dict:
+    ) -> dict:
         """
         Verify OTP and request credit report generation.
 
@@ -321,7 +320,7 @@ class LoanValidationService:
                 "error_code": "UNEXPECTED_ERROR",
             }
 
-    def get_report_result(self, unique_id: str, access_token: str) -> Dict:
+    def get_report_result(self, unique_id: str, access_token: str) -> dict:
         """
         Retrieve the credit report result.
 

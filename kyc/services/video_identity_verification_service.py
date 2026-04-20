@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 from urllib.parse import urljoin
 
 import requests
@@ -33,9 +33,9 @@ class VideoIdentityVerificationService:
         selfie_video_path: str,
         rand_action: str,
         access_token: str,
-        matching_thr: Optional[int] = None,
-        liveness_thr: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        matching_thr: int | None = None,
+        liveness_thr: int | None = None,
+    ) -> dict[str, Any]:
         """
         Send video-based identity verification request.
         Args:
@@ -95,7 +95,6 @@ class VideoIdentityVerificationService:
 
         try:
             with open(selfie_video_path, "rb") as video_file:
-
                 files = {
                     "selfieVideo": (
                         os.path.basename(selfie_video_path),
@@ -147,7 +146,7 @@ class VideoIdentityVerificationService:
 
     def get_verification_result(
         self, unique_id: str, access_token: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Fetch the result of a video-based identity verification by uniqueId.
         Args:

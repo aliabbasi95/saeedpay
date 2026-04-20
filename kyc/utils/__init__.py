@@ -1,10 +1,10 @@
 # kyc/utils/__init__.py
 
 from .validators import (
+    sanitize_user_data,
     validate_national_id,
     validate_phone_number,
     validate_user_data,
-    sanitize_user_data,
 )
 
 __all__ = [
