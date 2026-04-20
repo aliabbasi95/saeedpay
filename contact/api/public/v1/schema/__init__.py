@@ -1,21 +1,21 @@
-# contact/api/public/v1/serializers/__init__.py
+# contact/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 __all__ = [
-    "ContactCreateSerializer",
+    "contact_create_schema",
 ]
 
 _MODULE_MAP = {
-    "ContactCreateSerializer": (
-        "contact.api.public.v1.serializers.contact",
-        "ContactCreateSerializer",
+    "contact_create_schema": (
+        "contact.api.public.v1.schema.contact",
+        "contact_create_schema",
     ),
 }
 
 if TYPE_CHECKING:
-    from .contact import ContactCreateSerializer
+    from .contact import contact_create_schema
 
 
 def __getattr__(name: str) -> Any:
