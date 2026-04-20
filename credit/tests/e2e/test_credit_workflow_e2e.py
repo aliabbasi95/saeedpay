@@ -18,9 +18,8 @@ pytestmark = pytest.mark.django_db
 
 # ───────────────────────────── Helpers ───────────────────────────── #
 
-def _to_greg_dt(
-        jy: int, jm: int, jd: int, hour=9, minute=0, second=0, tz=None
-):
+
+def _to_greg_dt(jy: int, jm: int, jd: int, hour=9, minute=0, second=0, tz=None):
     """Convert a Jalali Y/M/D to a timezone-aware Gregorian datetime."""
     g = JalaliDate(jy, jm, jd).to_gregorian()
     naive = dt.datetime(g.year, g.month, g.day, hour, minute, second)
@@ -47,9 +46,9 @@ def _freeze_to_first_of_next_jmonth(hour=9):
 def _freeze_after_due_date(stmt: Statement, days=1, hour=10):
     """Freeze time to a moment after the given pending statement's due_date."""
     when = stmt.due_date + dt.timedelta(days=days)
-    when = timezone.make_aware(
-        when.replace(tzinfo=None)
-    ) if when.tzinfo is None else when
+    when = (
+        timezone.make_aware(when.replace(tzinfo=None)) if when.tzinfo is None else when
+    )
     when = when.replace(hour=hour, minute=0, second=0, microsecond=0)
     with freeze_time(when):
         yield
@@ -71,7 +70,7 @@ def _latest_line(stmt: Statement):
 
 
 def _add_payment_in_window(
-        current_stmt: Statement, amount: int, start, end, at="middle"
+    current_stmt: Statement, amount: int, start, end, at="middle"
 ):
     """
     Add a PAYMENT on CURRENT whose created_at falls within [start..end] (inclusive).
@@ -87,9 +86,11 @@ def _add_payment_in_window(
         created_at = end
     else:
         created_at = start + (end - start) / 2
-    created_at = timezone.make_aware(
-        created_at.replace(tzinfo=None)
-    ) if created_at.tzinfo is None else created_at
+    created_at = (
+        timezone.make_aware(created_at.replace(tzinfo=None))
+        if created_at.tzinfo is None
+        else created_at
+    )
     line.created_at = created_at
     line.save(update_fields=["created_at"])
     current_stmt.refresh_from_db()
@@ -103,9 +104,7 @@ def _count_lines(stmt: Statement, type_):
 def _latest_pending(user):
     """Return most recent PENDING_PAYMENT snapshot for a user."""
     return (
-        Statement.objects.filter(
-            user=user, status=StatementStatus.PENDING_PAYMENT
-        )
+        Statement.objects.filter(user=user, status=StatementStatus.PENDING_PAYMENT)
         .order_by("-closed_at", "-id")
         .first()
     )
@@ -118,9 +117,10 @@ def _current_stmt(user):
 
 # ───────────────────────────── Test Classes ───────────────────────────── #
 
+
 class TestE2EStandardFlow:
     def test_full_flow_with_sufficient_payments_no_penalty(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """
         month_end_rollover → make sufficient in-window payments → finalize_due_windows.
@@ -143,8 +143,11 @@ class TestE2EStandardFlow:
 
         minimum = pending.calculate_minimum_payment_amount()
         _add_payment_in_window(
-            current, amount=minimum, start=pending.closed_at,
-            end=pending.due_date, at="middle"
+            current,
+            amount=minimum,
+            start=pending.closed_at,
+            end=pending.due_date,
+            at="middle",
         )
 
         with _freeze_after_due_date(pending, days=1):
@@ -157,16 +160,16 @@ class TestE2EStandardFlow:
         assert _count_lines(current, StatementLineType.PENALTY) == 0
 
         assert pending.closing_balance < 0
-        assert current.closing_balance >= 0 or abs(
-            current.closing_balance
-        ) < abs(pending.closing_balance)
+        assert current.closing_balance >= 0 or abs(current.closing_balance) < abs(
+            pending.closing_balance
+        )
 
         avail = getattr(current, "available_limit", None)
         if avail is not None:
             assert avail <= cl.limit_amount  # sanity ceiling
 
     def test_full_flow_with_insufficient_payments_penalty_applied(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """Insufficient window payments → CLOSED_WITH_PENALTY and PENALTY line on CURRENT."""
         active_credit_limit_factory(
@@ -184,8 +187,11 @@ class TestE2EStandardFlow:
 
         minimum = pending.calculate_minimum_payment_amount()
         _add_payment_in_window(
-            current, amount=max(1, minimum - 10_000), start=pending.closed_at,
-            end=pending.due_date, at="left"
+            current,
+            amount=max(1, minimum - 10_000),
+            start=pending.closed_at,
+            end=pending.due_date,
+            at="left",
         )
 
         with _freeze_after_due_date(pending, days=1):
@@ -198,7 +204,7 @@ class TestE2EStandardFlow:
         assert _count_lines(current, StatementLineType.PENALTY) >= 1
 
     def test_exact_minimum_on_due_date_counts_inside_window(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """Paying exactly the minimum at created_at == due_date must close without penalty."""
         active_credit_limit_factory(
@@ -215,20 +221,21 @@ class TestE2EStandardFlow:
 
         minimum = pending.calculate_minimum_payment_amount()
         _add_payment_in_window(
-            current, amount=minimum, start=pending.closed_at,
-            end=pending.due_date, at="right"
+            current,
+            amount=minimum,
+            start=pending.closed_at,
+            end=pending.due_date,
+            at="right",
         )
 
-        with _freeze_after_due_date(
-                pending, days=0
-        ):  # same day, after due hour
+        with _freeze_after_due_date(pending, days=0):  # same day, after due hour
             _ = task_finalize_due_windows.apply().result
 
         pending.refresh_from_db()
         assert pending.status == StatementStatus.CLOSED_NO_PENALTY
 
     def test_payment_outside_window_not_counted(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """A payment strictly after due_date must not count toward the window."""
         active_credit_limit_factory(
@@ -247,9 +254,7 @@ class TestE2EStandardFlow:
             StatementLineType.PAYMENT, 1_000_000, description="late payment"
         )
         late = current.lines.order_by("-id").first()
-        late.created_at = pending.due_date + dt.timedelta(
-            hours=1
-        )  # outside window
+        late.created_at = pending.due_date + dt.timedelta(hours=1)  # outside window
         late.save(update_fields=["created_at"])
 
         with _freeze_after_due_date(pending, days=1):
@@ -259,7 +264,7 @@ class TestE2EStandardFlow:
         assert pending.status == StatementStatus.CLOSED_WITH_PENALTY
 
     def test_finalize_creates_current_if_missing_e2e(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """Finalize must auto-create CURRENT if it doesn't exist."""
         active_credit_limit_factory(
@@ -273,9 +278,7 @@ class TestE2EStandardFlow:
         pending = _latest_pending(user)
         assert pending is not None
 
-        Statement.objects.filter(
-            user=user, status=StatementStatus.CURRENT
-        ).delete()
+        Statement.objects.filter(user=user, status=StatementStatus.CURRENT).delete()
         with _freeze_after_due_date(pending, days=1):
             _ = task_finalize_due_windows.apply().result
 
@@ -284,7 +287,7 @@ class TestE2EStandardFlow:
         ).exists()
 
     def test_exact_minimum_on_closed_at_counts_inside_window(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """Paying exactly the minimum at created_at == closed_at must close without penalty (left boundary inclusive)."""
         active_credit_limit_factory(
@@ -301,8 +304,11 @@ class TestE2EStandardFlow:
 
         minimum = pending.calculate_minimum_payment_amount()
         _add_payment_in_window(
-            current, amount=minimum, start=pending.closed_at,
-            end=pending.due_date, at="left"
+            current,
+            amount=minimum,
+            start=pending.closed_at,
+            end=pending.due_date,
+            at="left",
         )
 
         with _freeze_after_due_date(pending, days=0):
@@ -312,7 +318,7 @@ class TestE2EStandardFlow:
         assert pending.status == StatementStatus.CLOSED_NO_PENALTY
 
     def test_multiple_window_payments_sum_towards_minimum(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """Multiple in-window payments whose sum reaches the minimum must close without penalty."""
         active_credit_limit_factory(
@@ -330,12 +336,18 @@ class TestE2EStandardFlow:
         minimum = pending.calculate_minimum_payment_amount()
         half = max(1, minimum // 2)
         _add_payment_in_window(
-            current, amount=half, start=pending.closed_at,
-            end=pending.due_date, at="middle"
+            current,
+            amount=half,
+            start=pending.closed_at,
+            end=pending.due_date,
+            at="middle",
         )
         _add_payment_in_window(
-            current, amount=minimum - half, start=pending.closed_at,
-            end=pending.due_date, at="right"
+            current,
+            amount=minimum - half,
+            start=pending.closed_at,
+            end=pending.due_date,
+            at="right",
         )
 
         with _freeze_after_due_date(pending, days=1):
@@ -347,7 +359,7 @@ class TestE2EStandardFlow:
 
 class TestE2EThresholdAndInterest:
     def test_below_minimum_threshold_closes_without_penalty(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """Debt below MINIMUM_PAYMENT_THRESHOLD should close without penalty."""
         from credit.utils.constants import MINIMUM_PAYMENT_THRESHOLD
@@ -370,19 +382,18 @@ class TestE2EThresholdAndInterest:
         assert pending.status == StatementStatus.CLOSED_NO_PENALTY
 
     def test_zero_interest_rate_no_interest_line_but_carryover_reflected(
-            self, user, active_credit_limit_factory, monkeypatch
+        self, user, active_credit_limit_factory, monkeypatch
     ):
         """
         With MONTHLY_INTEREST_RATE = 0, rollover must not add an effective INTEREST amount.
         Implementation detail: some paths try to insert INTEREST(0); patch add_line to no-op for that case.
         """
         try:
-            import credit.utils.constants as cc
             import credit.models.statement as stmt_mod
+            import credit.utils.constants as cc
+
             monkeypatch.setattr(cc, "MONTHLY_INTEREST_RATE", 0, raising=False)
-            monkeypatch.setattr(
-                stmt_mod, "MONTHLY_INTEREST_RATE", 0, raising=False
-            )
+            monkeypatch.setattr(stmt_mod, "MONTHLY_INTEREST_RATE", 0, raising=False)
 
             orig_add_line = stmt_mod.Statement.add_line
 
@@ -395,16 +406,12 @@ class TestE2EThresholdAndInterest:
                 stmt_mod.Statement, "add_line", _safe_add_line, raising=False
             )
         except Exception:
-            pytest.skip(
-                "MONTHLY_INTEREST_RATE binding not found; skip interest=0 test"
-            )
+            pytest.skip("MONTHLY_INTEREST_RATE binding not found; skip interest=0 test")
 
         active_credit_limit_factory(
             user=user, is_active=True, expiry_days=60, grace_days=7
         )
-        _seed_purchases_on_current(
-            user, [300_000]
-        )  # negative carry-over exists
+        _seed_purchases_on_current(user, [300_000])  # negative carry-over exists
 
         with _freeze_to_first_of_next_jmonth():
             r = task_month_end_rollover.apply().result
@@ -416,16 +423,17 @@ class TestE2EThresholdAndInterest:
 
         # Either no INTEREST line or zero total INTEREST amount.
         interest_qs = new_current.lines.filter(type=StatementLineType.INTEREST)
-        total_interest = \
-            interest_qs.aggregate(total_amount=models.Sum("amount"))[
-                "total_amount"] or 0
+        total_interest = (
+            interest_qs.aggregate(total_amount=models.Sum("amount"))["total_amount"]
+            or 0
+        )
         assert total_interest == 0
 
         # Carry-over still reflected on new CURRENT balance.
         assert new_current.closing_balance <= 0 or new_current.opening_balance <= 0
 
     def test_penalty_amount_stable_on_second_finalize(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """Second finalize must not duplicate or alter penalty amount."""
         active_credit_limit_factory(
@@ -443,24 +451,23 @@ class TestE2EThresholdAndInterest:
         with _freeze_after_due_date(pending, days=1):
             _ = task_finalize_due_windows.apply().result
             first_amount = (
-                current.lines.filter(type=StatementLineType.PENALTY).order_by(
-                    "-id"
-                ).values_list("amount", flat=True).first()
+                current.lines.filter(type=StatementLineType.PENALTY)
+                .order_by("-id")
+                .values_list("amount", flat=True)
+                .first()
             )
 
             # Run again: idempotent and stable amount
             _ = task_finalize_due_windows.apply().result
             pens = list(
-                current.lines.filter(
-                    type=StatementLineType.PENALTY
-                ).values_list("amount", flat=True)
+                current.lines.filter(type=StatementLineType.PENALTY).values_list(
+                    "amount", flat=True
+                )
             )
             assert pens.count(first_amount) >= 1
             assert len(pens) == 1
 
-    def test_penalty_line_sign_is_negative(
-            self, user, active_credit_limit_factory
-    ):
+    def test_penalty_line_sign_is_negative(self, user, active_credit_limit_factory):
         """Penalty line amounts on CURRENT must be negative (increase debt)."""
         active_credit_limit_factory(
             user=user, is_active=True, expiry_days=90, grace_days=5
@@ -477,16 +484,16 @@ class TestE2EThresholdAndInterest:
         with _freeze_after_due_date(pending, days=1):
             _ = task_finalize_due_windows.apply().result
 
-        pen = current.lines.filter(
-            type=StatementLineType.PENALTY
-        ).order_by("-id").first()
+        pen = (
+            current.lines.filter(type=StatementLineType.PENALTY).order_by("-id").first()
+        )
         assert pen is not None
         assert pen.amount < 0  # penalty should increase debt (negative amount)
 
 
 class TestE2EMultiMonthChaining:
     def test_consecutive_months_carryover_and_idempotency(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """
         Two consecutive rollovers:
@@ -517,25 +524,20 @@ class TestE2EMultiMonthChaining:
 
         # Last two pendings must be consecutive months.
         pendings = list(
-            Statement.objects.filter(
-                user=user, status=StatementStatus.PENDING_PAYMENT
-            )
+            Statement.objects.filter(user=user, status=StatementStatus.PENDING_PAYMENT)
             .order_by("year", "month")
             .values_list("year", "month")
         )
-        assert len(
-            pendings
-        ) >= 2, f"Expected >= 2 pending snapshots, got: {pendings}"
+        assert len(pendings) >= 2, f"Expected >= 2 pending snapshots, got: {pendings}"
 
         def _next_jalali(y, m):
             return (y + 1, 1) if m == 12 else (y, m + 1)
 
         last2 = pendings[-2:]
-        assert _next_jalali(*last2[0]) == last2[
-            1], f"Non-consecutive months: {last2}"
+        assert _next_jalali(*last2[0]) == last2[1], f"Non-consecutive months: {last2}"
 
     def test_penalty_line_is_single_and_descriptive(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """
         After insufficient payments, CURRENT must contain at least one PENALTY line,
@@ -563,13 +565,11 @@ class TestE2EMultiMonthChaining:
         )
         assert len(penalties) >= 1
         assert any(
-            f"{pending.year}/{pending.month:02d}" in (desc or "") for _, desc
-            in penalties
+            f"{pending.year}/{pending.month:02d}" in (desc or "")
+            for _, desc in penalties
         )
 
-    def test_year_boundary_esfand_to_farvardin(
-            self, user, active_credit_limit_factory
-    ):
+    def test_year_boundary_esfand_to_farvardin(self, user, active_credit_limit_factory):
         """Rollovers across Esfand → Farvardin must keep consecutive month logic correct."""
         active_credit_limit_factory(
             user=user, is_active=True, expiry_days=90, grace_days=7
@@ -585,9 +585,7 @@ class TestE2EMultiMonthChaining:
             _ = task_month_end_rollover.apply().result
 
         pendings = list(
-            Statement.objects.filter(
-                user=user, status=StatementStatus.PENDING_PAYMENT
-            )
+            Statement.objects.filter(user=user, status=StatementStatus.PENDING_PAYMENT)
             .order_by("year", "month")
             .values_list("year", "month")
         )
@@ -601,9 +599,7 @@ class TestE2EMultiMonthChaining:
 
 
 class TestE2EMultiUserIsolation:
-    def test_two_users_isolated(
-            self, user_factory, active_credit_limit_factory
-    ):
+    def test_two_users_isolated(self, user_factory, active_credit_limit_factory):
         """Two users' workflows must be isolated (no cross-contamination)."""
         u1 = user_factory()
         u2 = user_factory()

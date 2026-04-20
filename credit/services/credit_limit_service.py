@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Optional
 
 from django.conf import settings
 from django.db import transaction
@@ -16,21 +15,21 @@ from profiles.utils.choices import AuthenticationStage
 logger = logging.getLogger(__name__)
 
 
-def _resolve_default_limit(approved_limit: Optional[int]) -> int:
+def _resolve_default_limit(approved_limit: int | None) -> int:
     """Resolve approved limit from argument or settings."""
     if approved_limit is not None:
         return max(int(approved_limit), 0)
     return max(int(getattr(settings, "CREDIT_DEFAULT_APPROVED_LIMIT", 0)), 0)
 
 
-def _resolve_expiry_days(expiry_days: Optional[int]) -> int:
+def _resolve_expiry_days(expiry_days: int | None) -> int:
     """Resolve expiry days from argument or settings (min=1)."""
     if expiry_days is not None:
         return max(int(expiry_days), 1)
     return max(int(getattr(settings, "CREDIT_DEFAULT_EXPIRY_DAYS", 365)), 1)
 
 
-def _resolve_grace_days(grace_days: Optional[int]) -> Optional[int]:
+def _resolve_grace_days(grace_days: int | None) -> int | None:
     """Resolve grace days; None means use system default per model logic."""
     if grace_days is None:
         return getattr(settings, "CREDIT_DEFAULT_GRACE_DAYS", None)
@@ -39,12 +38,12 @@ def _resolve_grace_days(grace_days: Optional[int]) -> Optional[int]:
 
 @transaction.atomic
 def grant_default_credit_limit(
-        user,
-        *,
-        approved_limit: Optional[int] = None,
-        expiry_days: Optional[int] = None,
-        grace_days: Optional[int] = None,
-        activate: bool = True,
+    user,
+    *,
+    approved_limit: int | None = None,
+    expiry_days: int | None = None,
+    grace_days: int | None = None,
+    activate: bool = True,
 ) -> dict:
     """
     Create (or reuse) an active credit limit for the given user.
@@ -108,12 +107,12 @@ def grant_default_credit_limit(
 
 @transaction.atomic
 def grant_or_upgrade_credit_limit(
-        user,
-        *,
-        approved_limit: int,
-        expiry_days: Optional[int] = None,
-        grace_days: Optional[int] = None,
-        activate: bool = True,
+    user,
+    *,
+    approved_limit: int,
+    expiry_days: int | None = None,
+    grace_days: int | None = None,
+    activate: bool = True,
 ) -> dict:
     """
     Grant a NEW credit limit if the proposed approved_limit is STRICTLY HIGHER
@@ -272,12 +271,17 @@ def maybe_grant_credit_after_risk_report(*, profile, risk_level: str) -> dict:
             )
             logger.info(
                 "credit.auto_grant | user_id=%s risk=%s amount=%s result=%s",
-                profile.user_id, risk_level, amount, result.get("reason")
+                profile.user_id,
+                risk_level,
+                amount,
+                result.get("reason"),
             )
         except Exception as e:
             logger.error(
                 "credit.auto_grant.failed | user_id=%s risk=%s err=%s",
-                profile.user_id, risk_level, e
+                profile.user_id,
+                risk_level,
+                e,
             )
 
     transaction.on_commit(_grant)

@@ -7,12 +7,13 @@ from persiantools.jdatetime import JalaliDate
 
 from credit.models.statement import Statement
 from credit.models.statement_line import StatementLine
-from credit.utils.choices import StatementStatus, StatementLineType
+from credit.utils.choices import StatementLineType, StatementStatus
 
 pytestmark = pytest.mark.django_db
 
 
 # ───────────────────────────── Helpers ───────────────────────────── #
+
 
 def _shift_month(year: int, month: int, delta: int):
     """Shift a Jalali (year, month) by delta months; return normalized (year, month)."""
@@ -31,6 +32,7 @@ def _make_statement(user, status, opening=0, y=None, m=None):
 
 
 # ───────────────────────────── Test Classes ───────────────────────────── #
+
 
 class TestAmountValidationAndNormalization:
     def test_line_cannot_have_zero_amount(self, user):
@@ -68,33 +70,27 @@ class TestAllowedTypesVsStatus:
         today = JalaliDate.today()
         cy, cm = today.year, today.month
         py, pm = _shift_month(cy, cm, -1)
-        current_stmt = _make_statement(
-            user, StatementStatus.CURRENT, y=cy, m=cm
-        )
+        current_stmt = _make_statement(user, StatementStatus.CURRENT, y=cy, m=cm)
         pending_stmt = _make_statement(
             user, StatementStatus.PENDING_PAYMENT, y=py, m=pm
         )
 
         # PURCHASE
         StatementLine.objects.create(
-            statement=current_stmt, type=StatementLineType.PURCHASE,
-            amount=10_000
+            statement=current_stmt, type=StatementLineType.PURCHASE, amount=10_000
         )
         with pytest.raises(ValidationError):
             StatementLine.objects.create(
-                statement=pending_stmt, type=StatementLineType.PURCHASE,
-                amount=10_000
+                statement=pending_stmt, type=StatementLineType.PURCHASE, amount=10_000
             )
 
         # PAYMENT
         StatementLine.objects.create(
-            statement=current_stmt, type=StatementLineType.PAYMENT,
-            amount=5_000
+            statement=current_stmt, type=StatementLineType.PAYMENT, amount=5_000
         )
         with pytest.raises(ValidationError):
             StatementLine.objects.create(
-                statement=pending_stmt, type=StatementLineType.PAYMENT,
-                amount=5_000
+                statement=pending_stmt, type=StatementLineType.PAYMENT, amount=5_000
             )
 
         # FEE
@@ -103,30 +99,25 @@ class TestAllowedTypesVsStatus:
         )
         with pytest.raises(ValidationError):
             StatementLine.objects.create(
-                statement=pending_stmt, type=StatementLineType.FEE,
-                amount=7_000
+                statement=pending_stmt, type=StatementLineType.FEE, amount=7_000
             )
 
         # INTEREST
         StatementLine.objects.create(
-            statement=current_stmt, type=StatementLineType.INTEREST,
-            amount=9_000
+            statement=current_stmt, type=StatementLineType.INTEREST, amount=9_000
         )
         with pytest.raises(ValidationError):
             StatementLine.objects.create(
-                statement=pending_stmt, type=StatementLineType.INTEREST,
-                amount=9_000
+                statement=pending_stmt, type=StatementLineType.INTEREST, amount=9_000
             )
 
         # PENALTY
         StatementLine.objects.create(
-            statement=current_stmt, type=StatementLineType.PENALTY,
-            amount=11_000
+            statement=current_stmt, type=StatementLineType.PENALTY, amount=11_000
         )
         with pytest.raises(ValidationError):
             StatementLine.objects.create(
-                statement=pending_stmt, type=StatementLineType.PENALTY,
-                amount=11_000
+                statement=pending_stmt, type=StatementLineType.PENALTY, amount=11_000
             )
 
 
@@ -150,13 +141,19 @@ class TestParentBalanceRecompute:
         )
         stmt.refresh_from_db()
         assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            10_000, 0, -10_000)
+            10_000,
+            0,
+            -10_000,
+        )
 
         line.amount = 20_000  # normalized to -20_000
         line.save(update_fields=["amount"])
         stmt.refresh_from_db()
         assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            20_000, 0, -20_000)
+            20_000,
+            0,
+            -20_000,
+        )
 
     def test_on_type_change_purchase_to_payment(self, user):
         stmt = _make_statement(user, StatementStatus.CURRENT, opening=0)
@@ -165,13 +162,19 @@ class TestParentBalanceRecompute:
         )
         stmt.refresh_from_db()
         assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            10_000, 0, -10_000)
+            10_000,
+            0,
+            -10_000,
+        )
 
         line.type = StatementLineType.PAYMENT
         line.save(update_fields=["type"])
         stmt.refresh_from_db()
         assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            0, 10_000, 10_000)
+            0,
+            10_000,
+            10_000,
+        )
 
     def test_on_type_change_payment_to_purchase(self, user):
         stmt = _make_statement(user, StatementStatus.CURRENT, opening=0)
@@ -180,13 +183,19 @@ class TestParentBalanceRecompute:
         )
         stmt.refresh_from_db()
         assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            0, 10_000, 10_000)
+            0,
+            10_000,
+            10_000,
+        )
 
         line.type = StatementLineType.PURCHASE
         line.save(update_fields=["type"])
         stmt.refresh_from_db()
         assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            10_000, 0, -10_000)
+            10_000,
+            0,
+            -10_000,
+        )
 
 
 class TestDBCheckConstraintsBulkPaths:
@@ -196,49 +205,51 @@ class TestDBCheckConstraintsBulkPaths:
         stmt = _make_statement(user, StatementStatus.CURRENT)
         with pytest.raises(IntegrityError):
             StatementLine.objects.bulk_create(
-                [StatementLine(
-                    statement=stmt, type=StatementLineType.PAYMENT,
-                    amount=-1000
-                )]
+                [
+                    StatementLine(
+                        statement=stmt, type=StatementLineType.PAYMENT, amount=-1000
+                    )
+                ]
             )
 
     def test_rejects_positive_purchase_on_bulk_create(self, user):
         stmt = _make_statement(user, StatementStatus.CURRENT)
         with pytest.raises(IntegrityError):
             StatementLine.objects.bulk_create(
-                [StatementLine(
-                    statement=stmt, type=StatementLineType.PURCHASE,
-                    amount=1000
-                )]
+                [
+                    StatementLine(
+                        statement=stmt, type=StatementLineType.PURCHASE, amount=1000
+                    )
+                ]
             )
 
     def test_rejects_positive_interest_on_bulk_create(self, user):
         stmt = _make_statement(user, StatementStatus.CURRENT)
         with pytest.raises(IntegrityError):
             StatementLine.objects.bulk_create(
-                [StatementLine(
-                    statement=stmt, type=StatementLineType.INTEREST,
-                    amount=1_234
-                )]
+                [
+                    StatementLine(
+                        statement=stmt, type=StatementLineType.INTEREST, amount=1_234
+                    )
+                ]
             )
 
     def test_rejects_positive_penalty_on_bulk_create(self, user):
         stmt = _make_statement(user, StatementStatus.CURRENT)
         with pytest.raises(IntegrityError):
             StatementLine.objects.bulk_create(
-                [StatementLine(
-                    statement=stmt, type=StatementLineType.PENALTY,
-                    amount=2_345
-                )]
+                [
+                    StatementLine(
+                        statement=stmt, type=StatementLineType.PENALTY, amount=2_345
+                    )
+                ]
             )
 
     def test_rejects_positive_fee_on_bulk_create(self, user):
         stmt = _make_statement(user, StatementStatus.CURRENT)
         with pytest.raises(IntegrityError):
             StatementLine.objects.bulk_create(
-                [StatementLine(
-                    statement=stmt, type=StatementLineType.FEE, amount=999
-                )]
+                [StatementLine(statement=stmt, type=StatementLineType.FEE, amount=999)]
             )
 
     def test_violated_on_bulk_update_for_payment_negative(self, user):
@@ -261,88 +272,99 @@ class TestDBCheckConstraintsBulkPaths:
 class TestTransactionOwnershipClean:
     def test_mismatch_raises(self, user, monkeypatch):
         """Transaction must belong to the statement's user."""
-        from credit.models.statement_line import StatementLine as SL
         from credit.models import statement_line as stl_mod
+        from credit.models.statement_line import StatementLine as SL
+
         stmt = _make_statement(user, StatementStatus.CURRENT)
         fk_field = SL._meta.get_field("transaction")
-        monkeypatch.setattr(
-            fk_field, "validate", lambda v, inst: None, raising=False
-        )
+        monkeypatch.setattr(fk_field, "validate", lambda v, inst: None, raising=False)
 
         class _QS:
-            def filter(self, *args, **kwargs): return self
+            def filter(self, *args, **kwargs):
+                return self
 
-            def values_list(self, *args, **kwargs): return self
+            def values_list(self, *args, **kwargs):
+                return self
 
-            def first(self): return (999001, 999002)
+            def first(self):
+                return (999001, 999002)
 
         monkeypatch.setattr(
-            stl_mod, "Transaction", type("T", (), {"objects": _QS()})(),
-            raising=False
+            stl_mod, "Transaction", type("T", (), {"objects": _QS()})(), raising=False
         )
         with pytest.raises(ValidationError):
             StatementLine.objects.create(
-                statement=stmt, type=StatementLineType.PURCHASE, amount=10_000,
-                transaction_id=42
+                statement=stmt,
+                type=StatementLineType.PURCHASE,
+                amount=10_000,
+                transaction_id=42,
             )
 
     def test_passes_on_from_side(self, user, monkeypatch):
-        from credit.models.statement_line import StatementLine as SL
         from credit.models import statement_line as stl_mod
+        from credit.models.statement_line import StatementLine as SL
+
         stmt = _make_statement(user, StatementStatus.CURRENT)
         fk_field = SL._meta.get_field("transaction")
-        monkeypatch.setattr(
-            fk_field, "validate", lambda v, inst: None, raising=False
-        )
+        monkeypatch.setattr(fk_field, "validate", lambda v, inst: None, raising=False)
 
         class _QS:
-            def __init__(self, pair): self._pair = pair
+            def __init__(self, pair):
+                self._pair = pair
 
-            def filter(self, *args, **kwargs): return self
+            def filter(self, *args, **kwargs):
+                return self
 
-            def values_list(self, *args, **kwargs): return self
+            def values_list(self, *args, **kwargs):
+                return self
 
-            def first(self): return self._pair
+            def first(self):
+                return self._pair
 
         ok_mgr = _QS((stmt.user_id, 999_002))
         monkeypatch.setattr(
-            stl_mod, "Transaction", type("T", (), {"objects": ok_mgr})(),
-            raising=False
+            stl_mod, "Transaction", type("T", (), {"objects": ok_mgr})(), raising=False
         )
 
         line = StatementLine(
-            statement=stmt, type=StatementLineType.PURCHASE, amount=-10_000,
-            transaction_id=777
+            statement=stmt,
+            type=StatementLineType.PURCHASE,
+            amount=-10_000,
+            transaction_id=777,
         )
         line.full_clean()  # no raise
 
     def test_passes_on_to_side(self, user, monkeypatch):
-        from credit.models.statement_line import StatementLine as SL
         from credit.models import statement_line as stl_mod
+        from credit.models.statement_line import StatementLine as SL
+
         stmt = _make_statement(user, StatementStatus.CURRENT)
         fk_field = SL._meta.get_field("transaction")
-        monkeypatch.setattr(
-            fk_field, "validate", lambda v, inst: None, raising=False
-        )
+        monkeypatch.setattr(fk_field, "validate", lambda v, inst: None, raising=False)
 
         class _QS:
-            def __init__(self, pair): self._pair = pair
+            def __init__(self, pair):
+                self._pair = pair
 
-            def filter(self, *args, **kwargs): return self
+            def filter(self, *args, **kwargs):
+                return self
 
-            def values_list(self, *args, **kwargs): return self
+            def values_list(self, *args, **kwargs):
+                return self
 
-            def first(self): return self._pair
+            def first(self):
+                return self._pair
 
         ok_mgr = _QS((999_001, stmt.user_id))
         monkeypatch.setattr(
-            stl_mod, "Transaction", type("T", (), {"objects": ok_mgr})(),
-            raising=False
+            stl_mod, "Transaction", type("T", (), {"objects": ok_mgr})(), raising=False
         )
 
         line = StatementLine(
-            statement=stmt, type=StatementLineType.PURCHASE, amount=-10_000,
-            transaction_id=888
+            statement=stmt,
+            type=StatementLineType.PURCHASE,
+            amount=-10_000,
+            transaction_id=888,
         )
         line.full_clean()  # no raise
 
@@ -354,21 +376,30 @@ class TestNonFinancialUpdateDoesNotRecompute:
             statement=stmt, type=StatementLineType.PURCHASE, amount=10_000
         )
         stmt.refresh_from_db()
-        closing_before, debit_before, credit_before = stmt.closing_balance, stmt.total_debit, stmt.total_credit
+        closing_before, debit_before, credit_before = (
+            stmt.closing_balance,
+            stmt.total_debit,
+            stmt.total_credit,
+        )
 
         line.description = "Updated"
         line.save(update_fields=["description"])
         stmt.refresh_from_db()
         assert (stmt.closing_balance, stmt.total_debit, stmt.total_credit) == (
-            closing_before, debit_before, credit_before)
+            closing_before,
+            debit_before,
+            credit_before,
+        )
 
 
 class TestOptionalTransactionField:
     def test_transaction_is_optional_none_is_valid(self, user):
         stmt = _make_statement(user, StatementStatus.CURRENT)
         StatementLine.objects.create(
-            statement=stmt, type=StatementLineType.PURCHASE, amount=10_000,
-            transaction=None
+            statement=stmt,
+            type=StatementLineType.PURCHASE,
+            amount=10_000,
+            transaction=None,
         )
 
 
@@ -399,12 +430,18 @@ class TestDeletePolicyAndVoid:
         )
         stmt.refresh_from_db()
         assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            10_000, 3_000, -7_000)
+            10_000,
+            3_000,
+            -7_000,
+        )
         with pytest.raises(ValidationError):
             pay.delete()
         stmt.refresh_from_db()
         assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            10_000, 3_000, -7_000)
+            10_000,
+            3_000,
+            -7_000,
+        )
 
     def test_void_payment_and_purchase(self, user):
         """void() should soft-deactivate and recompute parent balances."""
@@ -417,7 +454,10 @@ class TestDeletePolicyAndVoid:
         )
         stmt.refresh_from_db()
         assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            10_000, 3_000, -7_000)
+            10_000,
+            3_000,
+            -7_000,
+        )
 
         before_count = stmt.lines.count()
         pay_id, p_id = pay.id, p.id
@@ -427,7 +467,10 @@ class TestDeletePolicyAndVoid:
         assert stmt.lines.count() == before_count - 1
         assert not stmt.lines.filter(id=pay_id).exists()
         assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            10_000, 0, -10_000)
+            10_000,
+            0,
+            -10_000,
+        )
 
         # Now void the purchase
         before_count2 = stmt.lines.count()
@@ -435,8 +478,7 @@ class TestDeletePolicyAndVoid:
         stmt.refresh_from_db()
         assert stmt.lines.count() == before_count2 - 1
         assert not stmt.lines.filter(id=p_id).exists()
-        assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (
-            0, 0, 0)
+        assert (stmt.total_debit, stmt.total_credit, stmt.closing_balance) == (0, 0, 0)
 
 
 class TestAmountCannotBecomeZeroOnUpdate:

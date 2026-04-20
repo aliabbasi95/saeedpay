@@ -1,8 +1,7 @@
 # credit/models/credit_limit.py
 
 from django.contrib.auth import get_user_model
-from django.db import IntegrityError, transaction
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -14,9 +13,7 @@ from utils.reference import generate_reference_code
 class CreditLimitManager(models.Manager):
     def get_user_credit_limit(self, user):
         return self.filter(
-            user=user,
-            is_active=True,
-            expiry_date__gt=timezone.localdate()
+            user=user, is_active=True, expiry_date__gt=timezone.localdate()
         ).first()
 
     def get_available_credit(self, user):
@@ -33,27 +30,19 @@ class CreditLimit(BaseModel):
         verbose_name=_("کاربر"),
     )
 
-    approved_limit = models.BigIntegerField(
-        verbose_name=_("حد اعتباری تایید شده")
-    )
+    approved_limit = models.BigIntegerField(verbose_name=_("حد اعتباری تایید شده"))
 
     is_active = models.BooleanField(default=False, verbose_name=_("فعال"))
 
     # Optional per-user grace period override (in days). If null, use default from settings.
     grace_period_days = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        verbose_name=_("مهلت پرداخت (روز)")
+        null=True, blank=True, verbose_name=_("مهلت پرداخت (روز)")
     )
 
     expiry_date = models.DateField(verbose_name=_("تاریخ انقضا"))
 
     reference_code = models.CharField(
-        max_length=20,
-        unique=True,
-        null=True,
-        blank=True,
-        verbose_name=_("کد پیگیری")
+        max_length=20, unique=True, null=True, blank=True, verbose_name=_("کد پیگیری")
     )
 
     objects = CreditLimitManager()
@@ -85,36 +74,32 @@ class CreditLimit(BaseModel):
 
     @property
     def grace_days(self) -> int:
-        return int(
-            self.grace_period_days
-        ) if self.grace_period_days is not None else int(
-            STATEMENT_GRACE_DAYS
+        return (
+            int(self.grace_period_days)
+            if self.grace_period_days is not None
+            else int(STATEMENT_GRACE_DAYS)
         )
 
     def _current_active_debt(self) -> int:
         from credit.models.statement import Statement
         from credit.utils.choices import StatementStatus
-        agg = (
-            Statement.objects.filter(
-                user=self.user,
-                status=StatementStatus.CURRENT,
-                closing_balance__lt=0,
-            )
-            .aggregate(total=models.Sum(models.F("closing_balance")))
-        )
+
+        agg = Statement.objects.filter(
+            user=self.user,
+            status=StatementStatus.CURRENT,
+            closing_balance__lt=0,
+        ).aggregate(total=models.Sum(models.F("closing_balance")))
         total_negative = agg["total"] or 0
         return abs(int(total_negative))
 
     def _active_credit_holds(self) -> int:
         # Local import to avoid circular dependencies
         from credit.models.authorization import CreditAuthorization as Auth
-        agg = (
-            Auth.objects.filter(
-                user=self.user,
-                status=Auth.Status.ACTIVE,
-            )
-            .aggregate(total=models.Sum("amount"))
-        )
+
+        agg = Auth.objects.filter(
+            user=self.user,
+            status=Auth.Status.ACTIVE,
+        ).aggregate(total=models.Sum("amount"))
         return int(agg["total"] or 0)
 
     def activate(self):
@@ -146,8 +131,6 @@ class CreditLimit(BaseModel):
             ),
         ]
         indexes = [
-            models.Index(
-                fields=["user", "is_active"], name="cl_user_active_idx"
-            ),
+            models.Index(fields=["user", "is_active"], name="cl_user_active_idx"),
             models.Index(fields=["expiry_date"], name="cl_expiry_idx"),
         ]

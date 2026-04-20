@@ -1,8 +1,8 @@
 # credit/tests/conftest.py
 
 import contextlib
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Callable, Tuple, Optional
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -11,7 +11,7 @@ from persiantools.jdatetime import JalaliDate
 
 from credit.models.credit_limit import CreditLimit
 from credit.models.statement import Statement
-from credit.utils.choices import StatementStatus, StatementLineType
+from credit.utils.choices import StatementLineType, StatementStatus
 
 User = get_user_model()
 
@@ -23,9 +23,7 @@ def user_factory(db):
     def _make(**kwargs):
         counter["i"] += 1
         username = kwargs.pop("username", f"user_{counter['i']}")
-        return User.objects.create(
-            username=username, password="test", **kwargs
-        )
+        return User.objects.create(username=username, password="test", **kwargs)
 
     return _make
 
@@ -38,20 +36,19 @@ def user(db, user_factory):
 @pytest.fixture
 def active_credit_limit_factory(db):
     def _make(
-            user,
-            approved_limit=5_000_000,
-            is_active=True,
-            grace_days=None,
-            expiry_days=365,
-            *,
-            expiry_date=None,
+        user,
+        approved_limit=5_000_000,
+        is_active=True,
+        grace_days=None,
+        expiry_days=365,
+        *,
+        expiry_date=None,
     ):
         """
         Create a CreditLimit. If expiry_date is provided, it wins.
         Otherwise expiry_date = today + expiry_days.
         """
-        exp_date = expiry_date or (
-                timezone.localdate() + timedelta(days=expiry_days))
+        exp_date = expiry_date or (timezone.localdate() + timedelta(days=expiry_days))
         obj = CreditLimit.objects.create(
             user=user,
             approved_limit=approved_limit,
@@ -74,7 +71,7 @@ def current_statement_factory(db):
             month=today_j.month,
             defaults={
                 "status": StatementStatus.CURRENT,
-                "opening_balance": opening_balance
+                "opening_balance": opening_balance,
             },
         )
         if not created and stmt.status != StatementStatus.CURRENT:
@@ -111,21 +108,20 @@ def jalali_helpers():
     Returns two callables: prev_month() and shift_month(y, m, delta).
     """
 
-    def prev_month() -> Tuple[int, int]:
+    def prev_month() -> tuple[int, int]:
         today = JalaliDate.today()
         if today.month > 1:
             return today.year, today.month - 1
         return today.year - 1, 12
 
-    def shift_month(year: int, month: int, delta: int) -> Tuple[int, int]:
+    def shift_month(year: int, month: int, delta: int) -> tuple[int, int]:
         total = (year * 12 + (month - 1)) + delta
         ny = total // 12
         nm = (total % 12) + 1
         return ny, nm
 
     return type(
-        "JalaliHelpers", (),
-        {"prev_month": prev_month, "shift_month": shift_month}
+        "JalaliHelpers", (), {"prev_month": prev_month, "shift_month": shift_month}
     )
 
 
@@ -138,17 +134,17 @@ def statement_factory(db) -> Callable[..., Statement]:
     """
 
     def _make(
-            *,
-            user,
-            status: StatementStatus = StatementStatus.CURRENT,
-            year: Optional[int] = None,
-            month: Optional[int] = None,
-            opening_balance: int = 0,
-            due_date=None,
-            closed_at=None,
-            total_debit: int = 0,
-            total_credit: int = 0,
-            closing_balance: Optional[int] = None,
+        *,
+        user,
+        status: StatementStatus = StatementStatus.CURRENT,
+        year: int | None = None,
+        month: int | None = None,
+        opening_balance: int = 0,
+        due_date=None,
+        closed_at=None,
+        total_debit: int = 0,
+        total_credit: int = 0,
+        closing_balance: int | None = None,
     ) -> Statement:
         today_j = JalaliDate.today()
         y = year if year is not None else today_j.year
@@ -182,11 +178,11 @@ def pending_past_due_statement_factory(db, jalali_helpers, statement_factory):
     """
 
     def _make(
-            *,
-            user,
-            debt: int = 300_000,
-            days_past_due: int = 5,
-            days_since_closed: int = 10,
+        *,
+        user,
+        debt: int = 300_000,
+        days_past_due: int = 5,
+        days_since_closed: int = 10,
     ) -> Statement:
         py, pm = jalali_helpers.prev_month()
         now = timezone.localtime(timezone.now())

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Set cooldown period in seconds
 COOLDOWN_PERIOD = getattr(
-    settings, 'LOAN_VALIDATION_COOLDOWN_PERIOD', 30 * 24 * 60 * 60
+    settings, "LOAN_VALIDATION_COOLDOWN_PERIOD", 30 * 24 * 60 * 60
 )
 
 
@@ -23,20 +23,18 @@ COOLDOWN_PERIOD = getattr(
 def send_loan_validation_otp(self, report_id: int) -> dict:
     """
     Task to send OTP for loan validation (Stage 1).
-    
+
     Creates a new LoanRiskReport record and sends OTP to user's mobile.
-    
+
     Args:
         report_id: ID of the LoanRiskReport to update
-        
+
     Returns:
         Dict with success status and report_id
     """
     with transaction.atomic():
         try:
-            report = LoanRiskReport.objects.select_for_update().get(
-                id=report_id
-            )
+            report = LoanRiskReport.objects.select_for_update().get(id=report_id)
         except LoanRiskReport.DoesNotExist:
             logger.error(f"LoanRiskReport {report_id} not found")
             return {"success": False, "error": "report_not_found"}
@@ -44,12 +42,10 @@ def send_loan_validation_otp(self, report_id: int) -> dict:
 
         # Validate required fields
         if not profile.national_id or not profile.phone_number:
-            logger.warning(
-                f"Report {report_id}: Missing national_id or phone_number"
-            )
+            logger.warning(f"Report {report_id}: Missing national_id or phone_number")
             report.mark_failed(
                 error_message="کد ملی و شماره موبایل الزامی است",
-                error_code="MISSING_REQUIRED_FIELDS"
+                error_code="MISSING_REQUIRED_FIELDS",
             )
             return {
                 "success": False,
@@ -63,13 +59,13 @@ def send_loan_validation_otp(self, report_id: int) -> dict:
             profile
         )
         if not can_request:
-            last_report_date = last_report.completed_at.strftime(
-                '%Y/%m/%d'
-            ) if last_report else ''
-            error_message = f"شما قبلاً در تاریخ {last_report_date} گزارش دریافت کرده‌اید. {reason}."
-            logger.warning(
-                f"Report {report_id}: Cooldown period not met. {reason}"
+            last_report_date = (
+                last_report.completed_at.strftime("%Y/%m/%d") if last_report else ""
             )
+            error_message = (
+                f"شما قبلاً در تاریخ {last_report_date} گزارش دریافت کرده‌اید. {reason}."
+            )
+            logger.warning(f"Report {report_id}: Cooldown period not met. {reason}")
             report.mark_failed(
                 error_message=error_message, error_code="COOLDOWN_ACTIVE"
             )
@@ -77,24 +73,27 @@ def send_loan_validation_otp(self, report_id: int) -> dict:
                 "success": False,
                 "error": "cooldown_period_active",
                 "message": error_message,
-                "last_report_date": last_report.completed_at.isoformat() if last_report else None,
+                "last_report_date": last_report.completed_at.isoformat()
+                if last_report
+                else None,
                 "last_report_id": last_report.id if last_report else None,
                 "report_id": report.id,
             }
 
         # Check if any OTP was sent within the last 2 minutes for this profile
         recent_otp_time = timezone.now() - timezone.timedelta(minutes=2)
-        recent_otp_report = LoanRiskReport.objects.filter(
-            profile=profile,
-            otp_sent_at__gte=recent_otp_time
-        ).exclude(id=report.id).first()
+        recent_otp_report = (
+            LoanRiskReport.objects.filter(
+                profile=profile, otp_sent_at__gte=recent_otp_time
+            )
+            .exclude(id=report.id)
+            .first()
+        )
 
         if recent_otp_report:
             time_since_otp = timezone.now() - recent_otp_report.otp_sent_at
             remaining_seconds = int(
-                (timezone.timedelta(
-                    minutes=2
-                ) - time_since_otp).total_seconds()
+                (timezone.timedelta(minutes=2) - time_since_otp).total_seconds()
             )
             logger.warning(
                 f"Report {report_id}: OTP requested too frequently. "
@@ -110,10 +109,13 @@ def send_loan_validation_otp(self, report_id: int) -> dict:
             }
 
         # If another report is in processing, don't allow new request
-        existing_in_process = LoanRiskReport.objects.filter(
-            profile=profile,
-            status=LoanReportStatus.IN_PROCESSING
-        ).exclude(id=report.id).first()
+        existing_in_process = (
+            LoanRiskReport.objects.filter(
+                profile=profile, status=LoanReportStatus.IN_PROCESSING
+            )
+            .exclude(id=report.id)
+            .first()
+        )
         if existing_in_process:
             logger.warning(
                 f"Report {report_id}: Report {existing_in_process.id} is already in processing"
@@ -129,15 +131,16 @@ def send_loan_validation_otp(self, report_id: int) -> dict:
     service = get_identity_auth_service()
     try:
         result = service.loan_send_otp(
-            national_code=profile.national_id,
-            mobile_number=profile.phone_number
+            national_code=profile.national_id, mobile_number=profile.phone_number
         )
     except Exception as e:
         logger.error(f"Failed to send loan OTP for report {report_id}: {e}")
         report.mark_failed(error_message=str(e), error_code="SERVICE_ERROR")
         return {
-            "success": False, "error": "service_error", "message": str(e),
-            "report_id": report.id
+            "success": False,
+            "error": "service_error",
+            "message": str(e),
+            "report_id": report.id,
         }
 
     # Update report based on result
@@ -155,9 +158,7 @@ def send_loan_validation_otp(self, report_id: int) -> dict:
         error_msg = result.get("error", "Failed to send OTP")
         error_code = result.get("error_code")
         report.mark_failed(error_message=error_msg, error_code=error_code)
-        logger.warning(
-            f"Failed to send loan OTP for report {report_id}: {error_msg}"
-        )
+        logger.warning(f"Failed to send loan OTP for report {report_id}: {error_msg}")
         return {
             "success": False,
             "report_id": report.id,
@@ -167,37 +168,28 @@ def send_loan_validation_otp(self, report_id: int) -> dict:
 
 
 @shared_task(bind=True)
-def verify_loan_otp_and_request_report(
-        self, report_id: int, otp_code: str
-) -> dict:
+def verify_loan_otp_and_request_report(self, report_id: int, otp_code: str) -> dict:
     """
     Task to verify OTP and request loan validation report (Stage 2).
-    
+
     Args:
         report_id: ID of the LoanRiskReport
         otp_code: OTP code provided by user
-        
+
     Returns:
         Dict with success status and new unique_id for tracking
     """
     with transaction.atomic():
         try:
-            report = LoanRiskReport.objects.select_for_update().get(
-                id=report_id
-            )
+            report = LoanRiskReport.objects.select_for_update().get(id=report_id)
         except LoanRiskReport.DoesNotExist:
             logger.error("loan.verify_otp | report_id=%s not found", report_id)
             return {"success": False, "error": "report_not_found"}
 
         if not report.can_request_report():
             msg = "گزارش در وضعیت مناسب برای ارسال کد نیست یا کد منقضی شده است"
-            logger.warning(
-                "loan.verify_otp | report_id=%s invalid_state", report_id
-            )
-            return {
-                "success": False, "error": "invalid_report_state",
-                "message": msg
-            }
+            logger.warning("loan.verify_otp | report_id=%s invalid_state", report_id)
+            return {"success": False, "error": "invalid_report_state", "message": msg}
 
         otp_unique_id = report.otp_unique_id
 
@@ -205,8 +197,7 @@ def verify_loan_otp_and_request_report(
     service = get_identity_auth_service()
     try:
         result = service.loan_verify_otp_and_request_report(
-            otp_code=otp_code,
-            unique_id=otp_unique_id
+            otp_code=otp_code, unique_id=otp_unique_id
         )
     except Exception as e:
         logger.error(f"Failed to verify OTP for report {report_id}: {e}")
@@ -224,7 +215,7 @@ def verify_loan_otp_and_request_report(
         # Automatically trigger checking the result after a delay
         check_loan_report_result.apply_async(
             args=[report_id],
-            countdown=10  # Check after 10 seconds
+            countdown=10,  # Check after 10 seconds
         )
 
         return {
@@ -239,17 +230,11 @@ def verify_loan_otp_and_request_report(
         is_otp_error = result.get("is_otp_error", False)
         with transaction.atomic():
             try:
-                report = LoanRiskReport.objects.select_for_update().get(
-                    id=report_id
-                )
+                report = LoanRiskReport.objects.select_for_update().get(id=report_id)
                 if is_otp_error and ("منقضی" in (error_msg or "")):
-                    report.mark_expired(
-                        error_message=error_msg, error_code=error_code
-                    )
+                    report.mark_expired(error_message=error_msg, error_code=error_code)
                 else:
-                    report.mark_failed(
-                        error_message=error_msg, error_code=error_code
-                    )
+                    report.mark_failed(error_message=error_msg, error_code=error_code)
             except LoanRiskReport.DoesNotExist:
                 pass
         logger.warning(
@@ -267,20 +252,18 @@ def verify_loan_otp_and_request_report(
 def check_loan_report_result(self, report_id: int) -> dict:
     """
     Task to check loan validation report result (Stage 3).
-    
+
     This task will retry if the report is still processing.
-    
+
     Args:
         report_id: ID of the LoanRiskReport
-        
+
     Returns:
         Dict with success status and report data
     """
     with transaction.atomic():
         try:
-            report = LoanRiskReport.objects.select_for_update().get(
-                id=report_id
-            )
+            report = LoanRiskReport.objects.select_for_update().get(id=report_id)
         except LoanRiskReport.DoesNotExist:
             logger.error(f"LoanRiskReport {report_id} not found")
             return {"success": False, "error": "report_not_found"}
@@ -288,9 +271,7 @@ def check_loan_report_result(self, report_id: int) -> dict:
         # Validate report state
         if not report.can_check_result():
             error_msg = "گزارش در وضعیت مناسب برای دریافت نتیجه نیست"
-            logger.warning(
-                f"Report {report_id} cannot check result: {error_msg}"
-            )
+            logger.warning(f"Report {report_id} cannot check result: {error_msg}")
             return {
                 "success": False,
                 "error": "invalid_report_state",
@@ -301,19 +282,15 @@ def check_loan_report_result(self, report_id: int) -> dict:
     # Get report result
     service = get_identity_auth_service()
     try:
-        result = service.loan_get_report_result(
-            unique_id=report_unique_id
-        )
+        result = service.loan_get_report_result(unique_id=report_unique_id)
     except Exception as e:
         # Network error - retry
         retry_delay = 10  # 10 seconds
         if self.request.retries < self.max_retries:
             logger.warning(f"Report {report_id}: Service error, retrying: {e}")
-            raise self.retry(exc=e, countdown=retry_delay)
+            raise self.retry(exc=e, countdown=retry_delay) from None
 
-        logger.error(
-            f"Report {report_id}: Service error after max retries: {e}"
-        )
+        logger.error(f"Report {report_id}: Service error after max retries: {e}")
         report.mark_failed(error_message=str(e), error_code="SERVICE_ERROR")
         return {"success": False, "error": "service_error", "message": str(e)}
 
@@ -331,29 +308,27 @@ def check_loan_report_result(self, report_id: int) -> dict:
 
         with transaction.atomic():
             try:
-                report = LoanRiskReport.objects.select_for_update().get(
-                    id=report_id
-                )
+                report = LoanRiskReport.objects.select_for_update().get(id=report_id)
                 report.mark_completed(
                     credit_score=credit_score,
                     risk_level=risk_level,
                     grade_description=grade_description,
                     report_data=report_data,
                     report_timestamp=report_timestamp,
-                    report_types=report_types
+                    report_types=report_types,
                 )
             except LoanRiskReport.DoesNotExist:
                 logger.error(
                     "loan.check_result | report_id=%s disappeared before save",
-                    report_id
+                    report_id,
                 )
-                return {
-                    "success": False, "error": "report_not_found_after_service"
-                }
+                return {"success": False, "error": "report_not_found_after_service"}
 
         logger.info(
             "loan.check_result | report_id=%s completed score=%s risk=%s",
-            report_id, credit_score, risk_level
+            report_id,
+            credit_score,
+            risk_level,
         )
         return {
             "success": True,
@@ -375,12 +350,10 @@ def check_loan_report_result(self, report_id: int) -> dict:
         # Permanent failure after retries
         with transaction.atomic():
             try:
-                report = LoanRiskReport.objects.select_for_update().get(
-                    id=report_id
-                )
+                report = LoanRiskReport.objects.select_for_update().get(id=report_id)
                 report.mark_failed(
                     error_message=error_msg,
-                    error_code=error_code or "REPORT_RETRIEVAL_FAILED"
+                    error_code=error_code or "REPORT_RETRIEVAL_FAILED",
                 )
             except LoanRiskReport.DoesNotExist:
                 pass

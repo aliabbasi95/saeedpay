@@ -59,7 +59,7 @@ class TestCreditLimitListView:
         assert resp.status_code == 401
 
     def test_lists_only_current_user_limits_in_desc_order(
-            self, auth_client, user, user_factory, active_credit_limit_factory
+        self, auth_client, user, user_factory, active_credit_limit_factory
     ):
         """
         Only current user's limits should be listed, ordered by -created_at.
@@ -98,7 +98,7 @@ class TestCreditLimitDetailView:
         assert resp.status_code == 401
 
     def test_own_object_ok_other_user_404(
-            self, auth_client, user, user_factory, active_credit_limit_factory
+        self, auth_client, user, user_factory, active_credit_limit_factory
     ):
         mine = active_credit_limit_factory(user=user)
         other_user = user_factory()
@@ -126,7 +126,7 @@ class TestStatementListView:
         assert resp.status_code == 401
 
     def test_lists_only_current_user_paginated_and_ordered(
-            self, auth_client, user, user_factory, settings
+        self, auth_client, user, user_factory, settings
     ):
         """
         Ensures pagination works and results are ordered by (-year, -month, -created_at).
@@ -214,7 +214,7 @@ class TestStatementDetailView:
         assert resp.status_code == 401
 
     def test_own_ok_other_404_and_lines_prefetched(
-            self, auth_client, user, user_factory
+        self, auth_client, user, user_factory
     ):
         stmt = Statement.objects.create(
             user=user, year=1404, month=1, status=StatementStatus.CURRENT
@@ -253,7 +253,7 @@ class TestStatementLineListView:
         assert resp.status_code == 401
 
     def test_lists_only_users_lines_paginated_and_desc_order(
-            self, auth_client, user, user_factory
+        self, auth_client, user, user_factory
     ):
         stmt = Statement.objects.create(
             user=user, year=1404, month=1, status=StatementStatus.CURRENT
@@ -346,7 +346,7 @@ class TestStatementLineListView:
         assert len(data2["results"]) == 2
 
     def test_filter_does_not_leak_others_lines_even_with_page_params(
-            self, auth_client, user, user_factory, settings
+        self, auth_client, user, user_factory, settings
     ):
         """
         Filtering by a statement_id owned by another user must not leak lines.
@@ -386,12 +386,12 @@ class TestAddPurchaseView:
     url_name = "credit_public_v1:statement-add-purchase"
 
     def _mock_transaction(
-            self,
-            user_id,
-            *,
-            status=TransactionStatus.SUCCESS,
-            from_wallet_kind=WalletKind.CREDIT,
-            belongs=True,
+        self,
+        user_id,
+        *,
+        status=TransactionStatus.SUCCESS,
+        from_wallet_kind=WalletKind.CREDIT,
+        belongs=True,
     ):
         trx = Mock()
         trx.id = 123
@@ -417,7 +417,7 @@ class TestAddPurchaseView:
         assert _as_json(resp).get("detail") == "transaction_id is required"
 
     def test_forbidden_when_transaction_not_users_from_wallet(
-            self, auth_client, user, mocker
+        self, auth_client, user, mocker
     ):
         trx = self._mock_transaction(user.id, belongs=False)
         mocker.patch(
@@ -441,9 +441,7 @@ class TestAddPurchaseView:
         resp = auth_client.post(url, {"transaction_id": 123}, format="json")
         assert resp.status_code == 400
         assert (
-                _as_json(resp).get(
-                    "detail"
-                ) == "Transaction is not from a credit wallet."
+            _as_json(resp).get("detail") == "Transaction is not from a credit wallet."
         )
 
     def test_bad_request_when_transaction_not_success(self, auth_client, user, mocker):
@@ -511,7 +509,7 @@ class TestAddPaymentView:
     url_name = "credit_public_v1:statement-add-payment"
 
     def _mock_transaction(
-            self, *, user_id_from, user_id_to, status=TransactionStatus.SUCCESS
+        self, *, user_id_from, user_id_to, status=TransactionStatus.SUCCESS
     ):
         trx = Mock()
         trx.id = 456
@@ -543,7 +541,7 @@ class TestAddPaymentView:
         assert _as_json(resp2).get("detail") == "amount must be > 0"
 
     def test_with_transaction_must_be_success_and_belong_to_user(
-            self, auth_client, user, user_factory, mocker
+        self, auth_client, user, user_factory, mocker
     ):
         other = user_factory()
 
@@ -592,7 +590,7 @@ class TestAddPaymentView:
         assert kwargs["payment_transaction"] is None
 
     def test_success_with_transaction_passes_trx_and_description(
-            self, auth_client, user, mocker
+        self, auth_client, user, mocker
     ):
         trx = self._mock_transaction(user_id_from=user.id, user_id_to=999)
         mocker.patch(
@@ -671,7 +669,7 @@ class TestStatementListViewMore:
     url_name = "credit_public_v1:statement-list"
 
     def test_next_and_previous_links_exist_when_paginated(
-            self, auth_client, user, settings
+        self, auth_client, user, settings
     ):
         """
         Ensure 'next' and 'previous' links behave as expected on the first and middle pages.

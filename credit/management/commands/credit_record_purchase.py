@@ -10,8 +10,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "transaction_id", type=int,
-            help="Wallets Transaction ID (must be SUCCESS)"
+            "transaction_id", type=int, help="Wallets Transaction ID (must be SUCCESS)"
         )
 
     def handle(self, *args, **options):
@@ -26,4 +25,4 @@ class Command(BaseCommand):
                 )
             )
         except Exception as e:
-            raise CommandError(str(e))
+            raise CommandError(str(e)) from e

@@ -8,22 +8,22 @@ from persiantools.jdatetime import JalaliDate
 
 from credit.models import Statement
 from credit.tasks import (
-    task_month_end_rollover,
-    task_finalize_due_windows,
     task_daily_credit_maintenance,
+    task_finalize_due_windows,
+    task_month_end_rollover,
 )
-from credit.utils.choices import StatementStatus, StatementLineType
+from credit.utils.choices import StatementLineType, StatementStatus
 
 pytestmark = pytest.mark.django_db
 
 
 # ───────────────────────────── Helpers ───────────────────────────── #
 
+
 def _prev_jalali_year_month():
     """Return (year, month) for previous Jalali month."""
     today = JalaliDate.today()
-    return (today.year, today.month - 1) if today.month > 1 else (
-        today.year - 1, 12)
+    return (today.year, today.month - 1) if today.month > 1 else (today.year - 1, 12)
 
 
 def _make_past_current_with_debt(user, amount=200_000):
@@ -49,7 +49,7 @@ def _make_past_current_with_debt(user, amount=200_000):
 
 
 def _make_pending_past_due_on_prev_month(
-        user, debt=300_000, grace_days_ago=5, closed_days_ago=10
+    user, debt=300_000, grace_days_ago=5, closed_days_ago=10
 ):
     """
     Create a PENDING_PAYMENT statement that belongs to the previous Jalali month
@@ -73,17 +73,16 @@ def _make_pending_past_due_on_prev_month(
     stmt.status = StatementStatus.PENDING_PAYMENT
     stmt.closed_at = now - dt.timedelta(days=closed_days_ago)
     stmt.due_date = now - dt.timedelta(days=grace_days_ago)
-    stmt.save(
-        update_fields=["status", "closed_at", "due_date", "closing_balance"]
-    )
+    stmt.save(update_fields=["status", "closed_at", "due_date", "closing_balance"])
     return stmt
 
 
 # ───────────────────────────── Test Classes ───────────────────────────── #
 
+
 class TestMonthEndRolloverTask:
     def test_returns_structured_result_and_counts_increase(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         active_credit_limit_factory(user=user, is_active=True, expiry_days=60)
         _make_past_current_with_debt(user)
@@ -112,7 +111,7 @@ class TestMonthEndRolloverTask:
         }
 
     def test_idempotent_second_run_returns_zeroes(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """
         Running it twice should not double-close or double-add interest lines.
@@ -132,7 +131,7 @@ class TestMonthEndRolloverTask:
 
 class TestFinalizeDueWindowsTask:
     def test_returns_structured_result_without_integrity_error(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """
         Shape the data so pending is for the previous Jalali month to avoid (user, year, month) uniqueness conflicts
@@ -148,9 +147,7 @@ class TestFinalizeDueWindowsTask:
         assert res["result"]["closed_without_penalty_count"] >= 0
         assert res["result"]["closed_with_penalty_count"] >= 0
 
-    def test_noop_when_no_pending_past_due(
-            self, user, active_credit_limit_factory
-    ):
+    def test_noop_when_no_pending_past_due(self, user, active_credit_limit_factory):
         """
         No pending statements past their due date → all counters must be zero.
         """
@@ -164,7 +161,7 @@ class TestFinalizeDueWindowsTask:
         assert res["result"]["closed_with_penalty_count"] == 0
 
     def test_below_minimum_threshold_closes_without_penalty(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """
         If debt is below MINIMUM_PAYMENT_THRESHOLD, finalization should close without penalty.
@@ -182,7 +179,7 @@ class TestFinalizeDueWindowsTask:
         assert stmt.status == StatementStatus.CLOSED_NO_PENALTY
 
     def test_window_payments_close_without_penalty(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """
         Payments recorded on CURRENT within [closed_at .. due_date] should be considered when finalizing.
@@ -194,9 +191,7 @@ class TestFinalizeDueWindowsTask:
         )
 
         # Ensure CURRENT exists for the *current* month and record a payment inside the window:
-        current_stmt, _ = Statement.objects.get_or_create_current_statement(
-            user
-        )
+        current_stmt, _ = Statement.objects.get_or_create_current_statement(user)
         # simulate a payment that happened between closed_at and due_date
         current_stmt.add_line(
             StatementLineType.PAYMENT, 1_000_000, description="Window payment"
@@ -213,7 +208,7 @@ class TestFinalizeDueWindowsTask:
         assert pending.status == StatementStatus.CLOSED_NO_PENALTY
 
     def test_idempotent_second_run_does_not_duplicate_penalty(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """
         Run once (to finalize), then run again. No extra penalties should be added on the second run.
@@ -228,16 +223,14 @@ class TestFinalizeDueWindowsTask:
         assert res2["result"]["finalized_count"] == 0
 
     def test_window_payment_on_closed_at_is_counted(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         active_credit_limit_factory(user=user, is_active=True, expiry_days=60)
         pending = _make_pending_past_due_on_prev_month(
             user, debt=500_000, grace_days_ago=1, closed_days_ago=10
         )
 
-        current_stmt, _ = Statement.objects.get_or_create_current_statement(
-            user
-        )
+        current_stmt, _ = Statement.objects.get_or_create_current_statement(user)
         current_stmt.add_line(
             StatementLineType.PAYMENT, 500_000, description="edge closed_at"
         )
@@ -252,16 +245,14 @@ class TestFinalizeDueWindowsTask:
         assert pending.status == StatementStatus.CLOSED_NO_PENALTY
 
     def test_window_payment_on_due_date_is_counted(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         active_credit_limit_factory(user=user, is_active=True, expiry_days=60)
         pending = _make_pending_past_due_on_prev_month(
             user, debt=500_000, grace_days_ago=1, closed_days_ago=10
         )
 
-        current_stmt, _ = Statement.objects.get_or_create_current_statement(
-            user
-        )
+        current_stmt, _ = Statement.objects.get_or_create_current_statement(user)
         current_stmt.add_line(
             StatementLineType.PAYMENT, 500_000, description="edge due_date"
         )
@@ -276,16 +267,14 @@ class TestFinalizeDueWindowsTask:
         assert pending.status == StatementStatus.CLOSED_NO_PENALTY
 
     def test_finalize_creates_current_if_missing(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         active_credit_limit_factory(user=user, is_active=True, expiry_days=60)
         pending = _make_pending_past_due_on_prev_month(
             user, debt=400_000, grace_days_ago=2, closed_days_ago=10
         )
 
-        Statement.objects.filter(
-            user=user, status=StatementStatus.CURRENT
-        ).delete()
+        Statement.objects.filter(user=user, status=StatementStatus.CURRENT).delete()
 
         res = task_finalize_due_windows.apply().result
         assert res["status"] == "success"
@@ -295,13 +284,15 @@ class TestFinalizeDueWindowsTask:
         ).exists()
 
         pending.refresh_from_db()
-        assert pending.status in (StatementStatus.CLOSED_NO_PENALTY,
-                                  StatementStatus.CLOSED_WITH_PENALTY)
+        assert pending.status in (
+            StatementStatus.CLOSED_NO_PENALTY,
+            StatementStatus.CLOSED_WITH_PENALTY,
+        )
 
 
 class TestDailyMaintenanceTask:
     def test_chains_both_tasks_and_returns_parts(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         """
         The daily maintenance task runs both month-end rollover and dues finalization

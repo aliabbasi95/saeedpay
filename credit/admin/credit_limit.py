@@ -39,18 +39,24 @@ class CreditLimitAdmin(BaseAdmin):
     ]
     fieldsets = (
         (_("اطلاعات کاربر"), {"fields": ("user",)}),
-        (_("محدودیت اعتباری"),
-         {"fields": ("approved_limit", "available_limit_display")}),
-        (_("وضعیت و اعتبار"),
-         {"fields": ("is_active", "expiry_date", "grace_period_days")}),
-        (_("اطلاعات پیگیری"),
-         {
-             "fields": (
-                 "reference_code",
-                 "jalali_creation_time",
-                 "jalali_update_time"
-             )
-         }),
+        (
+            _("محدودیت اعتباری"),
+            {"fields": ("approved_limit", "available_limit_display")},
+        ),
+        (
+            _("وضعیت و اعتبار"),
+            {"fields": ("is_active", "expiry_date", "grace_period_days")},
+        ),
+        (
+            _("اطلاعات پیگیری"),
+            {
+                "fields": (
+                    "reference_code",
+                    "jalali_creation_time",
+                    "jalali_update_time",
+                )
+            },
+        ),
     )
     actions = ["activate_selected"]
 
@@ -86,10 +92,9 @@ class CreditLimitAdmin(BaseAdmin):
                 count += 1
             except Exception as e:
                 self.message_user(
-                    request, f"خطا در فعال‌سازی {limit.reference_code}: {e}",
-                    messages.ERROR
+                    request,
+                    f"خطا در فعال‌سازی {limit.reference_code}: {e}",
+                    messages.ERROR,
                 )
         if count:
-            self.message_user(
-                request, f"{count} رکورد فعال شد.", messages.SUCCESS
-            )
+            self.message_user(request, f"{count} رکورد فعال شد.", messages.SUCCESS)
