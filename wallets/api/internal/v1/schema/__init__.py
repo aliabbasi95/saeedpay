@@ -1,21 +1,23 @@
-# wallets/api/internal/v1/views/__init__.py
+# wallets/api/internal/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 __all__ = [
-    "InternalCustomerWalletListByNationalIdView",
+    "internal_customer_wallets_by_national_id_schema",
 ]
 
 _MODULE_MAP = {
-    "InternalCustomerWalletListByNationalIdView": (
-        "wallets.api.internal.v1.views.wallet",
-        "InternalCustomerWalletListByNationalIdView",
+    "internal_customer_wallets_by_national_id_schema": (
+        "wallets.api.internal.v1.schema.payment",
+        "internal_customer_wallets_by_national_id_schema",
     ),
 }
 
 if TYPE_CHECKING:
-    from .wallet import InternalCustomerWalletListByNationalIdView
+    from .wallet import (
+        internal_customer_wallets_by_national_id_schema,
+    )
 
 
 def __getattr__(name: str) -> Any:

@@ -19,6 +19,7 @@ __all__ = [
     "transfer_reject_schema",
     "transfer_retrieve_schema",
     "transfers_list_schema",
+    "wallets_list_schema",
 ]
 
 _MODULE_MAP = {
@@ -82,6 +83,10 @@ _MODULE_MAP = {
         "wallets.api.public.v1.schema.transfer",
         "transfer_reject_schema",
     ),
+    "wallets_list_schema": (
+        "wallets.api.public.v1.schema.wallet",
+        "wallets_list_schema",
+    ),
 }
 
 if TYPE_CHECKING:
@@ -106,6 +111,7 @@ if TYPE_CHECKING:
         transfer_retrieve_schema,
         transfers_list_schema,
     )
+    from .wallet import wallets_list_schema
 
 
 def __getattr__(name: str) -> Any:

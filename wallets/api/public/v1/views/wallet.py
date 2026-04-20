@@ -1,10 +1,9 @@
 # wallets/api/public/v1/views/wallet.py
-# Read-only ViewSet for user's wallets with validated owner_type filter.
 
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import mixins, viewsets
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
+from wallets.api.public.v1.schema import wallets_list_schema
 from wallets.api.public.v1.serializers import (
     WalletListQuerySerializer,
     WalletSerializer,
@@ -12,20 +11,7 @@ from wallets.api.public.v1.serializers import (
 from wallets.models import Wallet
 
 
-@extend_schema(
-    tags=["Wallet · Wallets"],
-    summary="List user's wallets",
-    description="Returns the authenticated user's wallets. Optional filter by owner_type.",
-    parameters=[
-        OpenApiParameter(
-            name="owner_type",
-            location=OpenApiParameter.QUERY,
-            required=True,
-            description="Filter by owner_type (e.g. customer, merchant)",
-            type=OpenApiTypes.STR,
-        )
-    ],
-)
+@wallets_list_schema
 class WalletViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,

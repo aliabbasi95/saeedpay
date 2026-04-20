@@ -3,7 +3,6 @@
 import logging
 
 from django.conf import settings
-from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -14,6 +13,10 @@ from merchants.permissions import IsMerchant
 from profiles.models import Profile
 from saeedpay.logging import log_event
 from store.authentication import StoreApiKeyAuthentication
+from wallets.api.partner.v1.schema import (
+    partner_payment_request_viewset_schema,
+    partner_payment_verify_schema,
+)
 from wallets.api.partner.v1.serializers import (
     PaymentActionResponseSerializer,
     PaymentRequestCreateResponseSerializer,
@@ -54,7 +57,7 @@ def _extract_validation_code(exc, default="validation_error"):
     return getattr(exc, "code", default)
 
 
-@extend_schema(tags=["Wallet · Payment Requests (Partner)"])
+@partner_payment_request_viewset_schema
 class PartnerPaymentRequestViewSet(
     ScopedThrottleByActionMixin,
     mixins.CreateModelMixin,
@@ -110,21 +113,6 @@ class PartnerPaymentRequestViewSet(
             "store", "paid_by", "paid_wallet"
         ).filter(store=self.request.store)
 
-    @extend_schema(
-        summary="ایجاد درخواست پرداخت",
-        request=PaymentRequestCreateSerializer,
-        responses={
-            201: PaymentRequestCreateResponseSerializer,
-            400: OpenApiResponse(
-                response=PaymentActionResponseSerializer,
-                description="Validation or business rule error.",
-            ),
-            404: OpenApiResponse(
-                response=PaymentActionResponseSerializer,
-                description="Customer not found.",
-            ),
-        },
-    )
     def create(self, request, *args, **kwargs):
         serializer = PaymentRequestCreateSerializer(
             data=request.data,
@@ -192,10 +180,6 @@ class PartnerPaymentRequestViewSet(
         serializer = PaymentRequestCreateResponseSerializer(payload)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @extend_schema(
-        summary="جزییات درخواست پرداخت",
-        responses={200: PaymentRequestPartnerDetailSerializer},
-    )
     def retrieve(self, request, *args, **kwargs):
         payment_request = self.get_object()
         check_and_expire_payment_request(payment_request, raise_exception=False)
@@ -204,21 +188,7 @@ class PartnerPaymentRequestViewSet(
         serializer = PaymentRequestPartnerDetailSerializer(payment_request)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @extend_schema(
-        summary="تایید نهایی پرداخت",
-        description="پس از پرداخت موفق توسط مشتری، فروشگاه پرداخت را نهایی می‌کند.",
-        responses={
-            200: PaymentActionResponseSerializer,
-            400: OpenApiResponse(
-                response=PaymentActionResponseSerializer,
-                description="Validation or internal error response.",
-            ),
-            404: OpenApiResponse(
-                response=PaymentActionResponseSerializer,
-                description="Payment request not found.",
-            ),
-        },
-    )
+    @partner_payment_verify_schema
     @action(detail=True, methods=["post"], url_path="verify")
     def verify(self, request, *args, **kwargs):
         reference_code = kwargs.get(self.lookup_field)

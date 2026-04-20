@@ -1,17 +1,18 @@
 # wallets/models/installment.py
 
+from __future__ import annotations
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
-from wallets.models import InstallmentPlan, Transaction
 from wallets.utils.choices import InstallmentStatus
 
 
 class Installment(BaseModel):
     plan = models.ForeignKey(
-        InstallmentPlan,
+        "wallets.InstallmentPlan",
         on_delete=models.CASCADE,
         related_name="installments",
         verbose_name=_("برنامه اقساط"),
@@ -21,7 +22,8 @@ class Installment(BaseModel):
     amount = models.BigIntegerField(verbose_name=_("مبلغ قسط"))
     amount_paid = models.BigIntegerField(default=0, verbose_name=_("مبلغ پرداخت‌شده"))
     penalty_amount = models.BigIntegerField(
-        default=0, verbose_name=_("جریمه پرداخت‌شده")
+        default=0,
+        verbose_name=_("جریمه پرداخت‌شده"),
     )
 
     status = models.CharField(
@@ -31,10 +33,14 @@ class Installment(BaseModel):
         verbose_name=_("وضعیت"),
     )
 
-    paid_at = models.DateTimeField(null=True, blank=True, verbose_name=_("زمان پرداخت"))
+    paid_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("زمان پرداخت"),
+    )
 
     transaction = models.ForeignKey(
-        Transaction,
+        "wallets.Transaction",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -58,13 +64,15 @@ class Installment(BaseModel):
     def calculate_penalty(self, daily_rate: float = 0.005) -> int:
         if self.status == InstallmentStatus.PAID:
             return self.penalty_amount
+
         today = timezone.localtime(timezone.now()).date()
         if self.due_date >= today:
             return 0
+
         overdue_days = (today - self.due_date).days
         return int(self.amount * daily_rate * overdue_days)
 
-    def mark_paid(self, amount_paid: int, penalty_paid: int, transaction: Transaction):
+    def mark_paid(self, amount_paid: int, penalty_paid: int, transaction) -> None:
         self.amount_paid = amount_paid
         self.penalty_amount = penalty_paid
         self.transaction = transaction
