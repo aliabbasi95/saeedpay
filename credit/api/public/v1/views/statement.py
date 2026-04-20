@@ -3,19 +3,19 @@
 import logging
 
 from django.shortcuts import get_object_or_404
-from rest_framework import mixins, viewsets, status
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from credit.api.public.v1.schema import (
-    statement_viewset_schema,
-    add_purchase_schema,
     add_payment_schema,
+    add_purchase_schema,
     close_current_schema,
+    statement_viewset_schema,
 )
 from credit.api.public.v1.serializers.credit import (
-    StatementListSerializer,
     StatementDetailSerializer,
+    StatementListSerializer,
 )
 from credit.models.statement import Statement
 from credit.services.use_cases import StatementUseCases
@@ -37,6 +37,7 @@ class StatementViewSet(
     list:     Paginated list of user's statements (year/month/created desc).
     retrieve: Statement details with lines (prefetched).
     """
+
     lookup_field = "pk"
     lookup_value_regex = r"\d+"
 
@@ -61,7 +62,11 @@ class StatementViewSet(
         return qs
 
     def get_serializer_class(self):
-        return StatementListSerializer if self.action == "list" else StatementDetailSerializer
+        return (
+            StatementListSerializer
+            if self.action == "list"
+            else StatementDetailSerializer
+        )
 
     # ---- small helpers ----
     @staticmethod
@@ -86,15 +91,13 @@ class StatementViewSet(
 
         trx = get_object_or_404(
             Transaction.objects.select_related("from_wallet", "to_wallet"),
-            pk=transaction_id
+            pk=transaction_id,
         )
 
         if not trx.from_wallet or trx.from_wallet.user_id != request.user.id:
             return self._forbidden("Transaction does not belong to user.")
         if getattr(trx.from_wallet, "kind", None) != WalletKind.CREDIT:
-            return self._bad_request(
-                "Transaction is not from a credit wallet."
-            )
+            return self._bad_request("Transaction is not from a credit wallet.")
         if trx.status != TransactionStatus.SUCCESS:
             return self._bad_request("Transaction must be SUCCESS.")
 
@@ -129,19 +132,13 @@ class StatementViewSet(
         if transaction_id:
             trx = get_object_or_404(
                 Transaction.objects.select_related("from_wallet", "to_wallet"),
-                pk=transaction_id
+                pk=transaction_id,
             )
             if trx.status != TransactionStatus.SUCCESS:
+                return Response({"error": "transaction must be SUCCESS"}, status=400)
+            if request.user.id not in (trx.from_wallet.user_id, trx.to_wallet.user_id):
                 return Response(
-                    {"error": "transaction must be SUCCESS"},
-                    status=400
-                )
-            if request.user.id not in (
-                    trx.from_wallet.user_id, trx.to_wallet.user_id
-            ):
-                return Response(
-                    {"error": "transaction does not belong to user"},
-                    status=403
+                    {"error": "transaction does not belong to user"}, status=403
                 )
 
         try:

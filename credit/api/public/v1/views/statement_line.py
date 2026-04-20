@@ -20,6 +20,7 @@ class StatementLineViewSet(
     list:     Paginated list of statement lines; optional filter by statement_id.
     retrieve: Single line owned by the user (via parent statement).
     """
+
     permission_classes = [IsAuthenticated]
     serializer_class = StatementLineSerializer
     lookup_field = "pk"
@@ -35,8 +36,7 @@ class StatementLineViewSet(
         if getattr(self, "swagger_fake_view", False):
             return StatementLine.objects.none()
         qs = (
-            StatementLine.objects
-            .select_related("statement", "transaction")
+            StatementLine.objects.select_related("statement", "transaction")
             .only(
                 "id",
                 "statement_id",
