@@ -36,7 +36,6 @@ def validate_pending_card(card_id: str) -> None:
 
 
 def _production_validation(card_id: str) -> None:
-
     logger.info("Production validation started for card %s", card_id)
     # TODO: Implement actual validation logic
     # This would typically involve:

@@ -19,8 +19,7 @@ class CardValidationTask(Task):
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         card_id = args[0] if args else kwargs.get("card_id")
         logger.error(
-            f"Card validation for {card_id} has permanently failed after all "
-            f"retries."
+            f"Card validation for {card_id} has permanently failed after all retries."
         )
         try:
             BankCard = apps.get_model("banking", "BankCard")  # lazy resolve
@@ -38,7 +37,7 @@ class CardValidationTask(Task):
                     )
         except BankCard.DoesNotExist:
             logger.error(
-                f"Card {card_id} not found while attempting to mark as " f"rejected."
+                f"Card {card_id} not found while attempting to mark as rejected."
             )
         except Exception as e:
             logger.error(f"Failed to mark card {card_id} as rejected: {str(e)}")
@@ -75,7 +74,7 @@ def _validate_card_task_logic(task_instance, card_id: str):
         )
         raise task_instance.retry(
             exc=exc, countdown=60 * (2**task_instance.request.retries)
-        )
+        ) from None
 
 
 @shared_task(
