@@ -35,7 +35,7 @@ def test_anonymous_user_limit_exactly_limit(api_client):
         resp = api_client.post(chat_url, {"query": f"msg {i}"}, format="json")
         assert resp.status_code == 200
     resp = api_client.post(
-        chat_url, {"query": f"msg {settings.CHATBOT_HISTORY_LIMIT-1}"}, format="json"
+        chat_url, {"query": f"msg {settings.CHATBOT_HISTORY_LIMIT - 1}"}, format="json"
     )
     assert resp.status_code == 200
     resp = api_client.post(chat_url, {"query": "msg extra"}, format="json")
