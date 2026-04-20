@@ -1,5 +1,5 @@
 from .article import Article, ArticleSection
-from .tag import Tag
 from .comment import Comment
+from .tag import Tag
 
 __all__ = ["Article", "ArticleSection", "Tag", "Comment"]
