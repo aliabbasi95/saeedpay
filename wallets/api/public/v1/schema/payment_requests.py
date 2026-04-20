@@ -1,6 +1,13 @@
 # wallets/api/public/v1/schema/payment_requests.py
 
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiTypes,
+    extend_schema,
+    extend_schema_view,
+)
 
 from wallets.api.public.v1.serializers.payment import (
     PaymentActionResponseSerializer,
@@ -15,74 +22,129 @@ from wallets.api.public.v1.serializers.payment_pos import (
     MerchantPosPaymentRequestListItemSerializer,
 )
 
+WALLET_PAYMENT_REQUESTS_TAG = "Wallet · Payment Requests"
+WALLET_MERCHANT_POS_TAG = "Wallet · Merchant POS"
+
 payment_list_schema = extend_schema(
-    summary="لیست درخواست‌های پرداخت مشتری",
+    tags=[WALLET_PAYMENT_REQUESTS_TAG],
+    summary="List customer's payment requests",
     description=(
-        "لیست درخواست‌های پرداخت متعلق به مشتری لاگین‌شده را برمی‌گرداند. "
-        "امکان فیلتر بر اساس وضعیت، فروشگاه، بازه زمانی و جستجو بر اساس reference_code وجود دارد."
+        "Return payment requests belonging to the authenticated customer. "
+        "Supports filtering by status, store, date ranges, and ordering."
     ),
     parameters=[
-        OpenApiParameter(name="status", required=False, type=str),
-        OpenApiParameter(name="store_id", required=False, type=int),
-        OpenApiParameter(name="q", required=False, type=str),
-        OpenApiParameter(name="created_from", required=False, type=str),
-        OpenApiParameter(name="created_to", required=False, type=str),
-        OpenApiParameter(name="expires_from", required=False, type=str),
-        OpenApiParameter(name="expires_to", required=False, type=str),
+        OpenApiParameter(name="status", required=False, type=OpenApiTypes.STR),
+        OpenApiParameter(name="store_id", required=False, type=OpenApiTypes.INT),
+        OpenApiParameter(name="q", required=False, type=OpenApiTypes.STR),
+        OpenApiParameter(
+            name="created_from",
+            required=False,
+            type=OpenApiTypes.STR,
+            description="Datetime/date lower bound.",
+        ),
+        OpenApiParameter(
+            name="created_to",
+            required=False,
+            type=OpenApiTypes.STR,
+            description="Datetime/date upper bound.",
+        ),
+        OpenApiParameter(
+            name="expires_from",
+            required=False,
+            type=OpenApiTypes.STR,
+            description="Datetime/date lower bound.",
+        ),
+        OpenApiParameter(
+            name="expires_to",
+            required=False,
+            type=OpenApiTypes.STR,
+            description="Datetime/date upper bound.",
+        ),
         OpenApiParameter(
             name="ordering",
             required=False,
-            type=str,
-            description="created_at, -created_at, amount, -amount",
+            type=OpenApiTypes.STR,
+            description="`created_at`, `-created_at`, `amount`, `-amount`.",
         ),
     ],
     responses={
-        200: PaymentRequestListItemSerializer(many=True),
+        200: OpenApiResponse(
+            response=PaymentRequestListItemSerializer(many=True),
+            description="Payment request list returned successfully.",
+        ),
+        401: OpenApiResponse(description="Authentication required."),
     },
 )
 
 payment_retrieve_schema = extend_schema(
-    summary="جزییات درخواست پرداخت",
+    tags=[WALLET_PAYMENT_REQUESTS_TAG],
+    summary="Retrieve a payment request",
     description=(
-        "جزییات یک درخواست پرداخت را بر اساس reference_code برمی‌گرداند. "
-        "برای درخواست‌های عمومی QR، کاربر بدون احراز هویت هم می‌تواند جزییات کلی را ببیند، "
-        "اما پرداخت فقط برای کاربر مجاز و احراز هویت‌شده ممکن است."
+        "Return details of a payment request by reference code. "
+        "Public QR payment requests can be viewed without authentication, "
+        "but payment eligibility depends on the authenticated user."
     ),
     responses={
-        200: PaymentRequestDetailWithWalletsSerializer,
+        200: OpenApiResponse(
+            response=PaymentRequestDetailWithWalletsSerializer,
+            description="Payment request retrieved successfully.",
+        ),
+        404: OpenApiResponse(description="Payment request not found."),
     },
 )
 
 payment_confirm_schema = extend_schema(
-    summary="تایید و پرداخت درخواست پرداخت",
+    tags=[WALLET_PAYMENT_REQUESTS_TAG],
+    summary="Confirm and pay a payment request",
     description=(
-        "درخواست پرداخت را با کیف پول انتخاب‌شده و OTP کاربر نهایی می‌کند. "
-        "در flow آنلاین، نتیجه وارد waiting_for_store_confirmation می‌شود؛ "
-        "در QR POS پرداخت مستقیم completed می‌شود."
+        "Pay a payment request using a selected wallet and OTP code. "
+        "For online flow, the request moves to awaiting store confirmation. "
+        "For QR POS flow, payment is completed directly."
     ),
     request=PaymentConfirmSerializer,
     responses={
-        200: PaymentActionResponseSerializer,
+        200: OpenApiResponse(
+            response=PaymentActionResponseSerializer,
+            description="Payment completed successfully.",
+        ),
         400: OpenApiResponse(
             response=PaymentActionResponseSerializer,
             description="Validation, business rule, or internal error response.",
         ),
+        401: OpenApiResponse(description="Authentication required."),
         410: OpenApiResponse(
             response=PaymentActionResponseSerializer,
             description="Expired payment request.",
         ),
     },
+    examples=[
+        OpenApiExample(
+            "PaymentConfirmRequest",
+            request_only=True,
+            value={"wallet_id": 12, "code": "12345"},
+        )
+    ],
+)
+
+payment_request_viewset_schema = extend_schema_view(
+    list=payment_list_schema,
+    retrieve=payment_retrieve_schema,
 )
 
 merchant_pos_payment_create_schema = extend_schema(
-    summary="ایجاد درخواست پرداخت حضوری QR توسط فروشنده",
+    tags=[WALLET_MERCHANT_POS_TAG],
+    summary="Create a merchant POS QR payment request",
     description=(
-        "فروشنده برای فروشگاه خودش یک درخواست پرداخت از نوع QR POS ایجاد می‌کند. "
-        "در این flow، customer در زمان ایجاد خالی است و frontend با reference_code، QR تولید می‌کند."
+        "Create a QR POS payment request for one of the authenticated merchant's stores. "
+        "The customer is not assigned at creation time; frontend uses the reference code "
+        "to generate the QR."
     ),
     request=MerchantPosPaymentRequestCreateSerializer,
     responses={
-        201: MerchantPosPaymentRequestCreateResponseSerializer,
+        201: OpenApiResponse(
+            response=MerchantPosPaymentRequestCreateResponseSerializer,
+            description="Merchant POS payment request created successfully.",
+        ),
         400: OpenApiResponse(
             response=PaymentActionResponseSerializer,
             description="Validation or business rule error.",
@@ -95,52 +157,79 @@ merchant_pos_payment_create_schema = extend_schema(
 )
 
 merchant_pos_payment_list_schema = extend_schema(
-    summary="لیست درخواست‌های پرداخت حضوری QR فروشنده",
+    tags=[WALLET_MERCHANT_POS_TAG],
+    summary="List merchant POS QR payment requests",
     description=(
-        "لیست درخواست‌های QR POS متعلق به فروشنده لاگین‌شده را برمی‌گرداند. "
-        "امکان فیلتر بر اساس فروشگاه، وضعیت، بازه زمانی و جستجو بر اساس reference_code وجود دارد."
+        "Return QR POS payment requests belonging to the authenticated merchant. "
+        "Supports filtering by store, status, dates, search, and ordering."
     ),
     parameters=[
-        OpenApiParameter(name="store_id", required=False, type=int),
-        OpenApiParameter(name="status", required=False, type=str),
-        OpenApiParameter(name="q", required=False, type=str),
-        OpenApiParameter(name="created_from", required=False, type=str),
-        OpenApiParameter(name="created_to", required=False, type=str),
+        OpenApiParameter(name="store_id", required=False, type=OpenApiTypes.INT),
+        OpenApiParameter(name="status", required=False, type=OpenApiTypes.STR),
+        OpenApiParameter(name="q", required=False, type=OpenApiTypes.STR),
+        OpenApiParameter(
+            name="created_from",
+            required=False,
+            type=OpenApiTypes.STR,
+            description="Datetime/date lower bound.",
+        ),
+        OpenApiParameter(
+            name="created_to",
+            required=False,
+            type=OpenApiTypes.STR,
+            description="Datetime/date upper bound.",
+        ),
         OpenApiParameter(
             name="ordering",
             required=False,
-            type=str,
-            description="created_at, -created_at, amount, -amount",
+            type=OpenApiTypes.STR,
+            description="`created_at`, `-created_at`, `amount`, `-amount`.",
         ),
     ],
     responses={
-        200: MerchantPosPaymentRequestListItemSerializer(many=True),
+        200: OpenApiResponse(
+            response=MerchantPosPaymentRequestListItemSerializer(many=True),
+            description="Merchant POS payment request list returned successfully.",
+        ),
     },
 )
 
 merchant_pos_payment_retrieve_schema = extend_schema(
-    summary="جزییات درخواست پرداخت حضوری QR فروشنده",
+    tags=[WALLET_MERCHANT_POS_TAG],
+    summary="Retrieve a merchant POS QR payment request",
     description=(
-        "جزییات یک درخواست QR POS را برای فروشنده همان فروشگاه برمی‌گرداند. "
-        "این خروجی فقط داده‌های عملیاتی لازم برای cashier را شامل می‌شود و اطلاعات هویتی مشتری را برنمی‌گرداند."
+        "Return operational details of a merchant POS QR payment request for the owning merchant."
     ),
     responses={
-        200: MerchantPosPaymentRequestDetailSerializer,
+        200: OpenApiResponse(
+            response=MerchantPosPaymentRequestDetailSerializer,
+            description="Merchant POS payment request retrieved successfully.",
+        ),
         404: OpenApiResponse(description="Payment request not found."),
     },
 )
 
 merchant_pos_payment_cancel_schema = extend_schema(
-    summary="لغو درخواست پرداخت حضوری QR توسط فروشنده",
+    tags=[WALLET_MERCHANT_POS_TAG],
+    summary="Cancel a merchant POS QR payment request",
     description=(
-        "درخواست QR POS را فقط در وضعیت قابل لغو، برای فروشگاه متعلق به همان فروشنده، لغو می‌کند."
+        "Cancel a QR POS payment request if it is still in a cancelable state."
     ),
     responses={
-        200: PaymentActionResponseSerializer,
+        200: OpenApiResponse(
+            response=PaymentActionResponseSerializer,
+            description="Merchant POS payment request cancelled successfully.",
+        ),
         400: OpenApiResponse(
             response=PaymentActionResponseSerializer,
             description="Validation, business rule, or internal error response.",
         ),
         404: OpenApiResponse(description="Payment request not found."),
     },
+)
+
+merchant_pos_payment_viewset_schema = extend_schema_view(
+    create=merchant_pos_payment_create_schema,
+    list=merchant_pos_payment_list_schema,
+    retrieve=merchant_pos_payment_retrieve_schema,
 )

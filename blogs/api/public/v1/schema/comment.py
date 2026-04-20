@@ -10,9 +10,11 @@ from drf_spectacular.utils import (
 
 from blogs.api.public.v1.serializers import CommentListSerializer, CommentSerializer
 
+COMMENTS_TAG = "Content · Comments"
+
 comment_viewset_schema = extend_schema_view(
     list=extend_schema(
-        tags=["Blogs · Comments"],
+        tags=[COMMENTS_TAG],
         summary="List comments",
         description=(
             "List approved root comments for an article or store. Authenticated users "
@@ -44,7 +46,7 @@ comment_viewset_schema = extend_schema_view(
         ],
     ),
     retrieve=extend_schema(
-        tags=["Blogs · Comments"],
+        tags=[COMMENTS_TAG],
         summary="Retrieve a comment",
         responses={
             200: CommentSerializer,
@@ -52,7 +54,7 @@ comment_viewset_schema = extend_schema_view(
         },
     ),
     create=extend_schema(
-        tags=["Blogs · Comments"],
+        tags=[COMMENTS_TAG],
         summary="Create a comment",
         responses={
             201: CommentSerializer,
@@ -73,7 +75,7 @@ comment_viewset_schema = extend_schema_view(
         ],
     ),
     update=extend_schema(
-        tags=["Blogs · Comments"],
+        tags=[COMMENTS_TAG],
         summary="Update a comment",
         responses={
             200: CommentSerializer,
@@ -82,7 +84,7 @@ comment_viewset_schema = extend_schema_view(
         },
     ),
     partial_update=extend_schema(
-        tags=["Blogs · Comments"],
+        tags=[COMMENTS_TAG],
         summary="Partially update a comment",
         responses={
             200: CommentSerializer,
@@ -91,7 +93,7 @@ comment_viewset_schema = extend_schema_view(
         },
     ),
     destroy=extend_schema(
-        tags=["Blogs · Comments"],
+        tags=[COMMENTS_TAG],
         summary="Delete a comment",
         responses={
             204: OpenApiResponse(description="Deleted."),
@@ -101,7 +103,7 @@ comment_viewset_schema = extend_schema_view(
 )
 
 comment_like_schema = extend_schema(
-    tags=["Blogs · Comments"],
+    tags=[COMMENTS_TAG],
     summary="Like a comment",
     responses={
         200: OpenApiResponse(
@@ -117,7 +119,7 @@ comment_like_schema = extend_schema(
 )
 
 comment_dislike_schema = extend_schema(
-    tags=["Blogs · Comments"],
+    tags=[COMMENTS_TAG],
     summary="Dislike a comment",
     responses={
         200: OpenApiResponse(
@@ -133,13 +135,13 @@ comment_dislike_schema = extend_schema(
 )
 
 my_comments_schema = extend_schema(
-    tags=["Blogs · Comments"],
+    tags=[COMMENTS_TAG],
     summary="List my comments",
     responses={200: CommentSerializer(many=True)},
 )
 
 orphaned_comments_schema = extend_schema(
-    tags=["Blogs · Comments"],
+    tags=[COMMENTS_TAG],
     summary="List orphaned comments",
     parameters=[
         OpenApiParameter(

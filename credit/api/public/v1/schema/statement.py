@@ -15,9 +15,13 @@ from credit.api.public.v1.serializers.credit import (
     StatementListSerializer,
 )
 
+STATEMENTS_TAG = "Credit · Statements"
+TRANSACTIONS_TAG = "Credit · Transactions"
+MANAGEMENT_TAG = "Credit · Management"
+
 statement_viewset_schema = extend_schema_view(
     list=extend_schema(
-        tags=["Credit · Statements"],
+        tags=[STATEMENTS_TAG],
         summary="List user's statements",
         description="Return a paginated list of the authenticated user's statements.",
         parameters=[
@@ -38,7 +42,7 @@ statement_viewset_schema = extend_schema_view(
         responses={200: StatementListSerializer(many=True)},
     ),
     retrieve=extend_schema(
-        tags=["Credit · Statements"],
+        tags=[STATEMENTS_TAG],
         summary="Retrieve a statement",
         description="Return a single statement with its lines.",
         responses={200: StatementDetailSerializer},
@@ -46,7 +50,7 @@ statement_viewset_schema = extend_schema_view(
 )
 
 add_purchase_schema = extend_schema(
-    tags=["Credit · Transactions"],
+    tags=[TRANSACTIONS_TAG],
     summary="Record a purchase from a successful transaction",
     description=(
         "Append a PURCHASE line to the current statement for the authenticated user."
@@ -73,7 +77,7 @@ add_purchase_schema = extend_schema(
 )
 
 add_payment_schema = extend_schema(
-    tags=["Credit · Transactions"],
+    tags=[TRANSACTIONS_TAG],
     summary="Record a payment on the current statement",
     description="Append a PAYMENT line to the current statement.",
     request={
@@ -99,9 +103,9 @@ add_payment_schema = extend_schema(
 )
 
 close_current_schema = extend_schema(
-    tags=["Credit · Management"],
+    tags=[MANAGEMENT_TAG],
     summary="Close the current statement",
-    description=("Close the current statement and move it to pending payment status."),
+    description="Close the current statement and move it to pending payment status.",
     responses={
         200: OpenApiResponse(
             response=CloseStatementResponseSerializer,

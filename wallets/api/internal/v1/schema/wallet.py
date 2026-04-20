@@ -7,9 +7,12 @@ from wallets.api.internal.v1.serializers import (
     WalletSerializer,
 )
 
+WALLET_INTERNAL_TAG = "Wallet · Internal"
+
 internal_customer_wallets_by_national_id_schema = extend_schema(
-    tags=["Wallet · Internal"],
-    summary="دریافت کیف پول‌های مشتری با کد ملی",
+    tags=[WALLET_INTERNAL_TAG],
+    summary="Retrieve customer wallets by national ID",
+    description="Return customer wallets using a national ID lookup.",
     request=NationalIdInputSerializer,
     responses={
         200: OpenApiResponse(
@@ -21,18 +24,18 @@ internal_customer_wallets_by_national_id_schema = extend_schema(
     examples=[
         OpenApiExample(
             "Request",
-            value={"national_id": "1234567890"},
             request_only=True,
+            value={"national_id": "1234567890"},
         ),
         OpenApiExample(
             "Response",
+            response_only=True,
             value=[
                 {
                     "kind_display": "نقدی",
                     "balance": 1200000,
                 }
             ],
-            response_only=True,
         ),
     ],
 )

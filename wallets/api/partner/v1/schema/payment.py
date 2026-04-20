@@ -9,10 +9,13 @@ from wallets.api.partner.v1.serializers import (
     PaymentRequestPartnerDetailSerializer,
 )
 
+PARTNER_PAYMENT_TAG = "Wallet · Partner Payment Requests"
+
 partner_payment_request_viewset_schema = extend_schema_view(
     create=extend_schema(
-        tags=["Wallet · Payment Requests (Partner)"],
-        summary="ایجاد درخواست پرداخت",
+        tags=[PARTNER_PAYMENT_TAG],
+        summary="Create payment request",
+        description="Create an online payment request for a customer from the partner API.",
         request=PaymentRequestCreateSerializer,
         responses={
             201: PaymentRequestCreateResponseSerializer,
@@ -27,16 +30,17 @@ partner_payment_request_viewset_schema = extend_schema_view(
         },
     ),
     retrieve=extend_schema(
-        tags=["Wallet · Payment Requests (Partner)"],
-        summary="جزییات درخواست پرداخت",
+        tags=[PARTNER_PAYMENT_TAG],
+        summary="Retrieve payment request",
+        description="Return partner-facing details of a payment request.",
         responses={200: PaymentRequestPartnerDetailSerializer},
     ),
 )
 
 partner_payment_verify_schema = extend_schema(
-    tags=["Wallet · Payment Requests (Partner)"],
-    summary="تایید نهایی پرداخت",
-    description="پس از پرداخت موفق توسط مشتری، فروشگاه پرداخت را نهایی می‌کند.",
+    tags=[PARTNER_PAYMENT_TAG],
+    summary="Verify payment",
+    description="Finalize a successfully paid request from the partner side.",
     responses={
         200: PaymentActionResponseSerializer,
         400: OpenApiResponse(

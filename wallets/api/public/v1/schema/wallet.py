@@ -10,23 +10,33 @@ from drf_spectacular.utils import (
 
 from wallets.api.public.v1.serializers import WalletSerializer
 
+WALLET_WALLETS_TAG = "Wallet · Wallets"
+
 wallets_list_schema = extend_schema(
-    tags=["Wallet · Wallets"],
+    tags=[WALLET_WALLETS_TAG],
     summary="List user's wallets",
+    description=("Return wallets of the authenticated user filtered by `owner_type`."),
     parameters=[
         OpenApiParameter(
-            "owner_type",
-            OpenApiParameter.QUERY,
-            OpenApiTypes.STR,
-            description="customer|merchant",
+            name="owner_type",
+            location=OpenApiParameter.QUERY,
+            required=True,
+            type=OpenApiTypes.STR,
+            description="Wallet owner type. Example: `customer` or `merchant`.",
         ),
     ],
     responses={
-        200: OpenApiResponse(response=WalletSerializer(many=True), description="OK")
+        200: OpenApiResponse(
+            response=WalletSerializer(many=True),
+            description="Wallet list returned successfully.",
+        ),
+        400: OpenApiResponse(description="Invalid query parameters."),
+        401: OpenApiResponse(description="Authentication required."),
     },
     examples=[
         OpenApiExample(
-            "نمونه",
+            "WalletListResponse",
+            response_only=True,
             value=[
                 {
                     "id": 5,
@@ -40,7 +50,6 @@ wallets_list_schema = extend_schema(
                     "updated_at": "2025-01-05T10:00:00Z",
                 }
             ],
-            response_only=True,
         )
     ],
 )

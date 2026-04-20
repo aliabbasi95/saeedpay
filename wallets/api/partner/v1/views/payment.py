@@ -13,7 +13,7 @@ from merchants.permissions import IsMerchant
 from profiles.models import Profile
 from saeedpay.logging import log_event
 from store.authentication import StoreApiKeyAuthentication
-from wallets.api.partner.v1.schema import (
+from wallets.api.partner.v1.schema.payment import (
     partner_payment_request_viewset_schema,
     partner_payment_verify_schema,
 )

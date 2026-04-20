@@ -15,7 +15,7 @@ class SimpleStatusResponseSerializer(serializers.Serializer):
 
 
 simple_status_schema = extend_schema(
-    tags=["Customers"],
+    tags=["Public · Platform"],
     summary="Get public platform stats",
     description=(
         "Return public platform statistics including active users, contracted "

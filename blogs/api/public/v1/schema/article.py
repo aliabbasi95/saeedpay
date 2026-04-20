@@ -13,9 +13,11 @@ from blogs.api.public.v1.serializers import (
     ArticleListSerializer,
 )
 
+ARTICLES_TAG = "Content · Articles"
+
 article_viewset_schema = extend_schema_view(
     list=extend_schema(
-        tags=["Blogs · Articles"],
+        tags=[ARTICLES_TAG],
         summary="List articles",
         description=(
             "List visible articles. Anonymous users only see published articles with "
@@ -44,7 +46,7 @@ article_viewset_schema = extend_schema_view(
         ],
     ),
     retrieve=extend_schema(
-        tags=["Blogs · Articles"],
+        tags=[ARTICLES_TAG],
         summary="Retrieve an article",
         parameters=[
             OpenApiParameter(

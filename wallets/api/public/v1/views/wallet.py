@@ -11,7 +11,6 @@ from wallets.api.public.v1.serializers import (
 from wallets.models import Wallet
 
 
-@wallets_list_schema
 class WalletViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
@@ -28,6 +27,7 @@ class WalletViewSet(
         "list": "wallets-read",
     }
 
+    @wallets_list_schema
     def list(self, request, *args, **kwargs):
         query_serializer = WalletListQuerySerializer(data=request.query_params)
         query_serializer.is_valid(raise_exception=True)

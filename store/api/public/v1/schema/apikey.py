@@ -4,7 +4,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema
 
 from store.api.public.v1.serializers import StoreApiKeyRegenerateResponseSerializer
 
-STORE_API_KEY_TAG = "Store · API Key"
+STORE_API_KEY_TAG = "Store · API Keys"
 
 store_regenerate_api_key_schema = extend_schema(
     tags=[STORE_API_KEY_TAG],

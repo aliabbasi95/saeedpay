@@ -12,8 +12,8 @@ from drf_spectacular.utils import (
 from tickets.api.public.v1.serializers import TicketMessageSerializer
 from tickets.utils.choices import TicketPriority, TicketStatus
 
-TICKETS_TAG = "Tickets"
-TICKET_MESSAGES_TAG = "Tickets · Messages"
+TICKETS_TAG = "Support · Tickets"
+TICKET_MESSAGES_TAG = "Support · Tickets · Messages"
 
 ticket_viewset_schema = extend_schema_view(
     list=extend_schema(
@@ -42,7 +42,7 @@ ticket_viewset_schema = extend_schema_view(
                 name="category",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="Filter by ticket category id.",
+                description="Filter by ticket category ID.",
             ),
             OpenApiParameter(
                 name="ordering",

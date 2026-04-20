@@ -1,18 +1,17 @@
 # wallets/api/public/v1/views/installment.py
-# Read-only ViewSet for user's installments with filters.
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets
 from rest_framework.filters import OrderingFilter
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from wallets.api.public.v1.schema import installments_schema
+from wallets.api.public.v1.schema import installment_viewset_schema
 from wallets.api.public.v1.serializers import InstallmentSerializer
 from wallets.filters import InstallmentFilter
 from wallets.models import Installment
 
 
-@installments_schema
+@installment_viewset_schema
 class InstallmentViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,

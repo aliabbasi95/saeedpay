@@ -9,9 +9,11 @@ from drf_spectacular.utils import (
 
 from blogs.api.public.v1.serializers import TagListSerializer, TagSerializer
 
+TAGS_TAG = "Content · Tags"
+
 tag_viewset_schema = extend_schema_view(
     list=extend_schema(
-        tags=["Blogs · Tags"],
+        tags=[TAGS_TAG],
         summary="List tags",
         responses={200: TagListSerializer(many=True)},
         examples=[
@@ -24,7 +26,7 @@ tag_viewset_schema = extend_schema_view(
         ],
     ),
     retrieve=extend_schema(
-        tags=["Blogs · Tags"],
+        tags=[TAGS_TAG],
         summary="Retrieve a tag",
         responses={
             200: TagSerializer,
