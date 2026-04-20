@@ -14,23 +14,23 @@ pytestmark = pytest.mark.django_db
 
 # ───────────────────────────── Helpers ───────────────────────────── #
 
+
 def _prev_jalali_year_month():
     """Return (year, month) for the previous Jalali month."""
     today = JalaliDate.today()
-    return (today.year, today.month - 1) if today.month > 1 else (
-        today.year - 1, 12)
+    return (today.year, today.month - 1) if today.month > 1 else (today.year - 1, 12)
 
 
 # ───────────────────────────── Test Classes ───────────────────────────── #
 
+
 class TestGetUserCreditLimit:
     """Manager: get_user_credit_limit"""
 
-    def test_returns_active_non_expired(
-            self, user, active_credit_limit_factory
-    ):
+    def test_returns_active_non_expired(self, user, active_credit_limit_factory):
         active = active_credit_limit_factory(
-            user=user, is_active=True,
+            user=user,
+            is_active=True,
             expiry_date=timezone.localdate() + timezone.timedelta(days=1),
         )
         got = CreditLimit.objects.get_user_credit_limit(user)
@@ -38,7 +38,8 @@ class TestGetUserCreditLimit:
 
     def test_ignores_expired(self, user, active_credit_limit_factory):
         active_credit_limit_factory(
-            user=user, is_active=True,
+            user=user,
+            is_active=True,
             expiry_date=timezone.localdate() - timezone.timedelta(days=1),
         )
         assert CreditLimit.objects.get_user_credit_limit(user) is None
@@ -55,46 +56,55 @@ class TestGetAvailableCredit:
         assert CreditLimit.objects.get_available_credit(user) == 0
 
     def test_matches_property_value(
-            self, user, active_credit_limit_factory, current_statement_factory
+        self, user, active_credit_limit_factory, current_statement_factory
     ):
         limit = active_credit_limit_factory(
-            user=user, approved_limit=1_000_000, is_active=True,
+            user=user,
+            approved_limit=1_000_000,
+            is_active=True,
             expiry_date=timezone.localdate() + timezone.timedelta(days=10),
         )
         stmt = current_statement_factory(user=user, opening_balance=0)
         stmt.add_line(StatementLineType.PURCHASE, 150_000)
         stmt.refresh_from_db()
-        assert CreditLimit.objects.get_available_credit(
-            user
-        ) == limit.available_limit == 850_000
+        assert (
+            CreditLimit.objects.get_available_credit(user)
+            == limit.available_limit
+            == 850_000
+        )
 
 
 class TestAvailableLimitProperty:
     """CreditLimit.available_limit behavior"""
 
-    def test_uses_only_current_ignores_pending(
-            self, user, active_credit_limit_factory
-    ):
+    def test_uses_only_current_ignores_pending(self, user, active_credit_limit_factory):
         limit = active_credit_limit_factory(
-            user=user, approved_limit=500_000, is_active=True,
+            user=user,
+            approved_limit=500_000,
+            is_active=True,
             expiry_date=timezone.localdate() + timezone.timedelta(days=5),
         )
         y, m = _prev_jalali_year_month()
         Statement.objects.create(
-            user=user, year=y, month=m, status=StatementStatus.PENDING_PAYMENT,
-            opening_balance=0, closing_balance=-400_000,
-            total_debit=400_000, total_credit=0,
-            due_date=timezone.localtime(timezone.now()) + timezone.timedelta(
-                days=3
-            ),
+            user=user,
+            year=y,
+            month=m,
+            status=StatementStatus.PENDING_PAYMENT,
+            opening_balance=0,
+            closing_balance=-400_000,
+            total_debit=400_000,
+            total_credit=0,
+            due_date=timezone.localtime(timezone.now()) + timezone.timedelta(days=3),
         )
         assert limit.available_limit == 500_000
 
     def test_clamped_to_zero_when_carryover_exceeds_limit(
-            self, user, active_credit_limit_factory, current_statement_factory
+        self, user, active_credit_limit_factory, current_statement_factory
     ):
         limit = active_credit_limit_factory(
-            user=user, approved_limit=100_000, is_active=True,
+            user=user,
+            approved_limit=100_000,
+            is_active=True,
             expiry_date=timezone.localdate() + timezone.timedelta(days=5),
         )
         stmt = current_statement_factory(user=user, opening_balance=-200_000)
@@ -103,20 +113,22 @@ class TestAvailableLimitProperty:
         assert stmt.closing_balance == -200_000
         assert limit.available_limit == 0
 
-    def test_full_when_no_current_statements(
-            self, user, active_credit_limit_factory
-    ):
+    def test_full_when_no_current_statements(self, user, active_credit_limit_factory):
         limit = active_credit_limit_factory(
-            user=user, approved_limit=750_000, is_active=True,
+            user=user,
+            approved_limit=750_000,
+            is_active=True,
             expiry_date=timezone.localdate() + timezone.timedelta(days=10),
         )
         assert limit.available_limit == 750_000
 
     def test_not_exceed_approved_on_net_positive_current(
-            self, user, active_credit_limit_factory, current_statement_factory
+        self, user, active_credit_limit_factory, current_statement_factory
     ):
         limit = active_credit_limit_factory(
-            user=user, approved_limit=500_000, is_active=True,
+            user=user,
+            approved_limit=500_000,
+            is_active=True,
             expiry_date=timezone.localdate() + timezone.timedelta(days=10),
         )
         stmt = current_statement_factory(user=user, opening_balance=0)
@@ -134,11 +146,10 @@ class TestGraceDays:
         assert limit.grace_days == 7
 
     def test_default_follows_settings(
-            self, monkeypatch, user, active_credit_limit_factory
+        self, monkeypatch, user, active_credit_limit_factory
     ):
         monkeypatch.setattr(
-            'credit.models.credit_limit.STATEMENT_GRACE_DAYS', 15,
-            raising=False
+            "credit.models.credit_limit.STATEMENT_GRACE_DAYS", 15, raising=False
         )
         limit = active_credit_limit_factory(user=user, grace_days=None)
         assert limit.grace_days == 15
@@ -147,9 +158,7 @@ class TestGraceDays:
 class TestActivationDeactivation:
     """Activation / Deactivation semantics"""
 
-    def test_activate_keeps_only_one_active(
-            self, user, active_credit_limit_factory
-    ):
+    def test_activate_keeps_only_one_active(self, user, active_credit_limit_factory):
         first = active_credit_limit_factory(
             user=user, is_active=True, approved_limit=1_000_000
         )
@@ -157,15 +166,13 @@ class TestActivationDeactivation:
             user=user, is_active=False, approved_limit=2_000_000
         )
         second.activate()
-        first.refresh_from_db();
+        first.refresh_from_db()
         second.refresh_from_db()
         assert second.is_active is True and first.is_active is False
-        assert CreditLimit.objects.filter(
-            user=user, is_active=True
-        ).count() == 1
+        assert CreditLimit.objects.filter(user=user, is_active=True).count() == 1
 
     def test_deactivate_user_active_limits_bulk(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         a = active_credit_limit_factory(user=user, is_active=True)
         active_credit_limit_factory(user=user, is_active=False)
@@ -173,9 +180,7 @@ class TestActivationDeactivation:
         assert changed in (0, 1)
         a.refresh_from_db()
         assert a.is_active is False
-        assert CreditLimit.objects.filter(
-            user=user, is_active=True
-        ).count() == 0
+        assert CreditLimit.objects.filter(user=user, is_active=True).count() == 0
 
 
 class TestDBConstraintsAndReferenceCode:
@@ -185,21 +190,24 @@ class TestDBConstraintsAndReferenceCode:
         active_credit_limit_factory(user=user, is_active=True)
         with pytest.raises(IntegrityError):
             CreditLimit.objects.create(
-                user=user, approved_limit=123_456, is_active=True,
+                user=user,
+                approved_limit=123_456,
+                is_active=True,
                 expiry_date=timezone.localdate() + timezone.timedelta(days=10),
             )
 
-    def test_reference_code_is_generated(
-            self, user, active_credit_limit_factory
-    ):
+    def test_reference_code_is_generated(self, user, active_credit_limit_factory):
         limit = active_credit_limit_factory(user=user, is_active=False)
         assert limit.reference_code
         assert CreditLimit.objects.exclude(reference_code=None).count() == 1
 
     def test_reference_code_retries_on_collision(self, monkeypatch, user):
         from credit.models import credit_limit as cl_mod
+
         CreditLimit.objects.create(
-            user=user, approved_limit=111, is_active=False,
+            user=user,
+            approved_limit=111,
+            is_active=False,
             expiry_date=timezone.localdate() + timezone.timedelta(days=1),
             reference_code="CR-DUP",
         )
@@ -211,7 +219,9 @@ class TestDBConstraintsAndReferenceCode:
 
         monkeypatch.setattr(cl_mod, "generate_reference_code", fake_gen)
         obj = CreditLimit(
-            user=user, approved_limit=222, is_active=False,
+            user=user,
+            approved_limit=222,
+            is_active=False,
             expiry_date=timezone.localdate() + timezone.timedelta(days=2),
         )
         obj.save()
@@ -219,16 +229,22 @@ class TestDBConstraintsAndReferenceCode:
 
     def test_reference_code_five_collisions_then_null(self, monkeypatch, user):
         from credit.models import credit_limit as cl_mod
-        def dup_gen(prefix="CR"): return "CR-DUP"
+
+        def dup_gen(prefix="CR"):
+            return "CR-DUP"
 
         monkeypatch.setattr(cl_mod, "generate_reference_code", dup_gen)
         CreditLimit.objects.create(
-            user=user, approved_limit=1, is_active=False,
+            user=user,
+            approved_limit=1,
+            is_active=False,
             expiry_date=timezone.localdate() + timezone.timedelta(days=1),
             reference_code="CR-DUP",
         )
         obj = CreditLimit(
-            user=user, approved_limit=2, is_active=False,
+            user=user,
+            approved_limit=2,
+            is_active=False,
             expiry_date=timezone.localdate() + timezone.timedelta(days=2),
         )
         obj.save()
@@ -239,7 +255,7 @@ class TestStr:
     """__str__ should be human-readable"""
 
     def test_contains_user_and_formatted_amount(
-            self, user, active_credit_limit_factory
+        self, user, active_credit_limit_factory
     ):
         limit = active_credit_limit_factory(
             user=user, approved_limit=1_234_567, is_active=False
@@ -253,7 +269,7 @@ class TestEndToEndAvailableLimit:
     """Sanity flow: purchase and payment affect available_limit"""
 
     def test_reflects_purchase_and_payment(
-            self, user, active_credit_limit_factory, current_statement_factory
+        self, user, active_credit_limit_factory, current_statement_factory
     ):
         limit = active_credit_limit_factory(
             user=user, approved_limit=1_000_000, is_active=True

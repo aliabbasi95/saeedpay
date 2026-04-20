@@ -4,20 +4,20 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, models, transaction
-from django.db.models import Sum, Case, When, Value, IntegerField, F
+from django.db.models import Case, F, IntegerField, Sum, Value, When
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from persiantools.jdatetime import JalaliDate
 
-from credit.utils.choices import StatementStatus, StatementLineType
+from credit.utils.choices import StatementLineType, StatementStatus
 from credit.utils.constants import (
-    MONTHLY_INTEREST_RATE,
     MINIMUM_PAYMENT_PERCENTAGE,
     MINIMUM_PAYMENT_THRESHOLD,
-    STATEMENT_PENALTY_RATE,
+    MONTHLY_INTEREST_RATE,
     STATEMENT_MAX_PENALTY_RATE,
+    STATEMENT_PENALTY_RATE,
 )
-from lib.erp_base.constants import JalaliYearChoices, JalaliMonthChoices
+from lib.erp_base.constants import JalaliMonthChoices, JalaliYearChoices
 from lib.erp_base.models import BaseModel
 from utils.reference import generate_reference_code
 
@@ -57,7 +57,8 @@ class StatementManager(models.Manager):
         current_statements = self.filter(status=StatementStatus.CURRENT)
         for statement in current_statements:
             if statement.year < jalali_today.year or (
-                    statement.year == jalali_today.year and statement.month < jalali_today.month
+                statement.year == jalali_today.year
+                and statement.month < jalali_today.month
             ):
                 statement.close_statement()
                 closed_count += 1
@@ -126,42 +127,24 @@ class Statement(BaseModel):
     )
 
     opening_balance = models.BigIntegerField(
-        default=0,
-        verbose_name=_("مانده اول دوره")
+        default=0, verbose_name=_("مانده اول دوره")
     )
 
     closing_balance = models.BigIntegerField(
-        default=0,
-        verbose_name=_("مانده پایان دوره")
+        default=0, verbose_name=_("مانده پایان دوره")
     )
 
-    total_debit = models.BigIntegerField(
-        default=0,
-        verbose_name=_("مجموع بدهکار")
-    )
+    total_debit = models.BigIntegerField(default=0, verbose_name=_("مجموع بدهکار"))
 
-    total_credit = models.BigIntegerField(
-        default=0,
-        verbose_name=_("مجموع بستانکار")
-    )
+    total_credit = models.BigIntegerField(default=0, verbose_name=_("مجموع بستانکار"))
     due_date = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name=_("تاریخ سررسید")
+        null=True, blank=True, verbose_name=_("تاریخ سررسید")
     )
 
-    paid_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name=_("زمان پرداخت")
-    )
+    paid_at = models.DateTimeField(null=True, blank=True, verbose_name=_("زمان پرداخت"))
 
     # --- Closing and carryover tracking ---
-    closed_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name=_("زمان بستن")
-    )
+    closed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("زمان بستن"))
 
     objects = StatementManager()
 
@@ -181,27 +164,27 @@ class Statement(BaseModel):
         totals = locked.lines.filter(is_voided=False).aggregate(
             total_debit=Sum(
                 Case(
-                    When(amount__lt=0, then=-F("amount")), default=Value(0),
-                    output_field=IntegerField()
+                    When(amount__lt=0, then=-F("amount")),
+                    default=Value(0),
+                    output_field=IntegerField(),
                 )
             ),
             total_credit=Sum(
                 Case(
-                    When(amount__gt=0, then="amount"), default=Value(0),
-                    output_field=IntegerField()
+                    When(amount__gt=0, then="amount"),
+                    default=Value(0),
+                    output_field=IntegerField(),
                 )
             ),
         )
         total_debit = int(totals["total_debit"] or 0)
         total_credit = int(totals["total_credit"] or 0)
-        closing_balance = int(
-            locked.opening_balance
-        ) + total_credit - total_debit
+        closing_balance = int(locked.opening_balance) + total_credit - total_debit
 
         Statement.objects.filter(pk=self.pk).update(
             total_debit=total_debit,
             total_credit=total_credit,
-            closing_balance=closing_balance
+            closing_balance=closing_balance,
         )
         self.refresh_from_db()
 
@@ -217,6 +200,7 @@ class Statement(BaseModel):
         self.update_balances()
 
         from credit.models.credit_limit import CreditLimit
+
         credit_limit = CreditLimit.objects.get_user_credit_limit(self.user)
         grace_days = credit_limit.grace_days if credit_limit else 0
 
@@ -224,14 +208,10 @@ class Statement(BaseModel):
         self.status = StatementStatus.PENDING_PAYMENT
         self.closed_at = now
         self.due_date = now + timedelta(days=int(grace_days))
-        self.save(
-            update_fields=["status", "closed_at", "due_date",
-                           "closing_balance"]
-        )
+        self.save(update_fields=["status", "closed_at", "due_date", "closing_balance"])
 
     def add_line(
-            self, type_: str, amount: int, transaction=None,
-            description: str = ""
+        self, type_: str, amount: int, transaction=None, description: str = ""
     ):
         """
         Append a line to this statement. Validations are enforced by the caller helpers.
@@ -241,9 +221,16 @@ class Statement(BaseModel):
         from credit.models.statement_line import StatementLine
 
         signed_amount = int(amount)
-        if type_ in {StatementLineType.PURCHASE, StatementLineType.FEE,
-                     StatementLineType.PENALTY,
-                     StatementLineType.INTEREST} and signed_amount > 0:
+        if (
+            type_
+            in {
+                StatementLineType.PURCHASE,
+                StatementLineType.FEE,
+                StatementLineType.PENALTY,
+                StatementLineType.INTEREST,
+            }
+            and signed_amount > 0
+        ):
             signed_amount = -abs(signed_amount)
         elif type_ in {StatementLineType.PAYMENT} and signed_amount < 0:
             signed_amount = abs(signed_amount)
@@ -258,51 +245,56 @@ class Statement(BaseModel):
 
     def add_purchase(self, transaction, description: str = "Purchase", amount=None):
         """Add a purchase to CURRENT statement after validating ownership and credit availability."""
-        from wallets.utils.choices import TransactionStatus
         from credit.models.credit_limit import CreditLimit
+        from wallets.utils.choices import TransactionStatus
 
         if self.status != StatementStatus.CURRENT:
-            raise ValueError(
-                "Purchases can only be added to the current statement."
-            )
+            raise ValueError("Purchases can only be added to the current statement.")
 
         credit_limit = CreditLimit.objects.get_user_credit_limit(self.user)
-        if not credit_limit or not credit_limit.is_active or credit_limit.expiry_date <= timezone.localdate():
+        if (
+            not credit_limit
+            or not credit_limit.is_active
+            or credit_limit.expiry_date <= timezone.localdate()
+        ):
             raise ValueError("No active credit limit found.")
         if not amount:
             if getattr(transaction, "status", None) != TransactionStatus.SUCCESS:
                 raise ValueError("Invalid or unsuccessful transaction.")
 
-            if transaction.from_wallet.user_id != self.user_id and transaction.to_wallet.user_id != self.user_id:
+            if (
+                transaction.from_wallet.user_id != self.user_id
+                and transaction.to_wallet.user_id != self.user_id
+            ):
                 raise ValueError("Transaction does not belong to this user.")
             amount = abs(int(transaction.amount))
             if amount > credit_limit.available_limit:
                 raise ValueError("Insufficient available credit.")
 
         self.add_line(
-            StatementLineType.PURCHASE, amount, transaction=transaction,
-            description=description
+            StatementLineType.PURCHASE,
+            amount,
+            transaction=transaction,
+            description=description,
         )
 
-    def add_payment(
-            self, amount: int, transaction=None, description: str = "Payment"
-    ):
+    def add_payment(self, amount: int, transaction=None, description: str = "Payment"):
         """
         Add a payment to the CURRENT statement.
         In this design, pending snapshots are immutable; all repayments are recorded on CURRENT.
         """
         if self.status != StatementStatus.CURRENT:
-            raise ValueError(
-                "Payments are only allowed on CURRENT statements."
-            )
+            raise ValueError("Payments are only allowed on CURRENT statements.")
 
         pay_amount = abs(int(amount))
         if pay_amount <= 0:
             raise ValueError("Amount must be greater than zero.")
 
         self.add_line(
-            StatementLineType.PAYMENT, pay_amount, transaction=transaction,
-            description=description
+            StatementLineType.PAYMENT,
+            pay_amount,
+            transaction=transaction,
+            description=description,
         )
 
     # ---------- Due / Minimum payment / Penalty ----------
@@ -338,9 +330,7 @@ class Statement(BaseModel):
             )
 
         min_required = self.calculate_minimum_payment_amount()
-        debt = abs(
-            int(self.closing_balance)
-        ) if self.closing_balance < 0 else 0
+        debt = abs(int(self.closing_balance)) if self.closing_balance < 0 else 0
 
         if debt < MINIMUM_PAYMENT_THRESHOLD:
             self.status = StatementStatus.CLOSED_NO_PENALTY
@@ -385,9 +375,7 @@ class Statement(BaseModel):
         Add monthly interest line to this current statement based on previous statement's negative closing balance.
         """
         if self.status != StatementStatus.CURRENT:
-            raise ValueError(
-                "Interest can only be added to the current statement."
-            )
+            raise ValueError("Interest can only be added to the current statement.")
         if previous_stmt.closing_balance >= 0:
             return
         interest_amount = int(
@@ -412,7 +400,9 @@ class Statement(BaseModel):
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user} - {self.year}/{self.month:02d} ({self.get_status_display()})"
+        return (
+            f"{self.user} - {self.year}/{self.month:02d} ({self.get_status_display()})"
+        )
 
     class Meta:
         verbose_name = _("صورتحساب اعتباری")

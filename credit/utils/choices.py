@@ -21,13 +21,13 @@ class StatementLineType(models.TextChoices):
 
 class LoanReportStatus(models.TextChoices):
     """Status of the loan risk report request."""
-    PENDING = 'PENDING', 'در انتظار'
-    OTP_SENT = 'OTP_SENT', 'کد ارسال شده'
-    IN_PROCESSING = 'IN_PROCESSING', 'در حال پردازش'
-    COMPLETED = 'COMPLETED', 'تکمیل شده'
-    FAILED = 'FAILED', 'ناموفق'
-    EXPIRED = 'EXPIRED', 'منقضی شده'
 
+    PENDING = "PENDING", "در انتظار"
+    OTP_SENT = "OTP_SENT", "کد ارسال شده"
+    IN_PROCESSING = "IN_PROCESSING", "در حال پردازش"
+    COMPLETED = "COMPLETED", "تکمیل شده"
+    FAILED = "FAILED", "ناموفق"
+    EXPIRED = "EXPIRED", "منقضی شده"
 
 
 class LoanRiskLevel(models.TextChoices):

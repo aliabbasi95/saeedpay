@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Dict
 
 from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
 from credit.models import Statement
-from credit.utils.choices import StatementStatus, StatementLineType
+from credit.utils.choices import StatementLineType, StatementStatus
 from wallets.models import Transaction as WalletTransaction
 from wallets.utils.choices import TransactionStatus
 
@@ -40,9 +39,9 @@ class StatementUseCases:
     @staticmethod
     @transaction.atomic
     def record_successful_purchase_from_transaction(
-            transaction_id: int,
-            *,
-            description: str = "Purchase",
+        transaction_id: int,
+        *,
+        description: str = "Purchase",
     ) -> Statement:
         """
         Read a SUCCESS wallets.Transaction and append a PURCHASE line
@@ -51,12 +50,9 @@ class StatementUseCases:
         Business validations specific to credit availability live in
         Statement.add_purchase(), so we delegate to it.
         """
-        transaction_obj = (
-            WalletTransaction.objects.select_related(
-                "from_wallet", "to_wallet"
-            )
-            .get(pk=transaction_id)
-        )
+        transaction_obj = WalletTransaction.objects.select_related(
+            "from_wallet", "to_wallet"
+        ).get(pk=transaction_id)
 
         if transaction_obj.status != TransactionStatus.SUCCESS:
             raise ValueError(
@@ -64,12 +60,8 @@ class StatementUseCases:
             )
 
         buyer_user = transaction_obj.from_wallet.user
-        statement, _ = Statement.objects.get_or_create_current_statement(
-            buyer_user
-        )
-        statement.add_purchase(
-            transaction=transaction_obj, description=description
-        )
+        statement, _ = Statement.objects.get_or_create_current_statement(buyer_user)
+        statement.add_purchase(transaction=transaction_obj, description=description)
         # Balances are recomputed via StatementLine.save() -> Statement.update_balances()
         return statement
 
@@ -78,11 +70,11 @@ class StatementUseCases:
     @staticmethod
     @transaction.atomic
     def record_payment_on_current_statement(
-            user,
-            amount: int,
-            *,
-            payment_transaction: Optional[WalletTransaction] = None,
-            description: str = "Payment",
+        user,
+        amount: int,
+        *,
+        payment_transaction: WalletTransaction | None = None,
+        description: str = "Payment",
     ) -> Statement:
         """
         Record a customer payment on the CURRENT statement.
@@ -91,9 +83,7 @@ class StatementUseCases:
         if int(amount) == 0:
             raise ValueError("Amount must be non-zero.")
 
-        current_statement, _ = Statement.objects.get_or_create_current_statement(
-            user
-        )
+        current_statement, _ = Statement.objects.get_or_create_current_statement(user)
         current_statement.add_line(
             type_=StatementLineType.PAYMENT,
             amount=abs(int(amount)),
@@ -106,7 +96,7 @@ class StatementUseCases:
 
     @staticmethod
     @transaction.atomic
-    def perform_month_end_rollover() -> Dict[str, int]:
+    def perform_month_end_rollover() -> dict[str, int]:
         """
         Close past-month CURRENT statements, create the new CURRENT with carry-over,
         and add a monthly interest line for negative carry-overs.
@@ -129,8 +119,7 @@ class StatementUseCases:
         now = now or timezone.localtime(timezone.now())
 
         pending_candidates = (
-            Statement.objects
-            .select_for_update()
+            Statement.objects.select_for_update()
             .filter(status=StatementStatus.PENDING_PAYMENT, due_date__lt=now)
             .order_by("user_id", "year", "month")
         )
@@ -144,29 +133,34 @@ class StatementUseCases:
                 pending_statement.user
             )
             if not current_statement:
-                current_statement, _ = Statement.objects.get_or_create_current_statement(
-                    pending_statement.user, starting_balance=0
+                current_statement, _ = (
+                    Statement.objects.get_or_create_current_statement(
+                        pending_statement.user, starting_balance=0
+                    )
                 )
 
-            total_payments_amount = StatementUseCases._sum_payments_on_current_during_window(
-                current_statement=current_statement,
-                start=pending_statement.closed_at,
-                end=pending_statement.due_date,
+            total_payments_amount = (
+                StatementUseCases._sum_payments_on_current_during_window(
+                    current_statement=current_statement,
+                    start=pending_statement.closed_at,
+                    end=pending_statement.due_date,
+                )
             )
 
             # Decide outcome (replicates Statement.determine_due_outcome() decision to know if penalty is needed)
             minimum_required = pending_statement.calculate_minimum_payment_amount()
-            debt_amount = abs(
-                int(pending_statement.closing_balance)
-            ) if pending_statement.closing_balance < 0 else 0
+            debt_amount = (
+                abs(int(pending_statement.closing_balance))
+                if pending_statement.closing_balance < 0
+                else 0
+            )
             qualifies_for_penalty = (debt_amount > 0) and (
-                    total_payments_amount < minimum_required)
+                total_payments_amount < minimum_required
+            )
 
             if qualifies_for_penalty:
                 # Compute before status changes, because compute_penalty_amount checks status
-                penalty_amount = pending_statement.compute_penalty_amount(
-                    now=now
-                )
+                penalty_amount = pending_statement.compute_penalty_amount(now=now)
                 if penalty_amount > 0:
                     current_statement.add_line(
                         type_=StatementLineType.PENALTY,
@@ -195,10 +189,10 @@ class StatementUseCases:
 
     @staticmethod
     def _sum_payments_on_current_during_window(
-            *,
-            current_statement: Statement,
-            start,
-            end,
+        *,
+        current_statement: Statement,
+        start,
+        end,
     ) -> int:
         """
         Sum PAYMENT lines on CURRENT statement within [start .. end].
@@ -207,22 +201,21 @@ class StatementUseCases:
             return 0
 
         return int(
-            current_statement.lines
-            .filter(
+            current_statement.lines.filter(
                 type=StatementLineType.PAYMENT,
                 created_at__gte=start,
                 created_at__lte=end,
-            )
-            .aggregate(total=Sum("amount"))["total"] or 0
+            ).aggregate(total=Sum("amount"))["total"]
+            or 0
         )
 
     @staticmethod
     @transaction.atomic
     def record_successful_purchase_for_credit(
-            *,
-            user,
-            amount: int,
-            description: str = "Purchase (credit)",
+        *,
+        user,
+        amount: int,
+        description: str = "Purchase (credit)",
     ) -> Statement:
         """
         Append a PURCHASE line to the user's CURRENT statement with the given amount.
@@ -233,7 +226,5 @@ class StatementUseCases:
             raise ValueError("Amount must be > 0 for a purchase.")
 
         statement, _ = Statement.objects.get_or_create_current_statement(user)
-        statement.add_purchase(
-            transaction=None, description=description, amount=amount
-        )
+        statement.add_purchase(transaction=None, description=description, amount=amount)
         return statement

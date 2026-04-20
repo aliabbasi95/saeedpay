@@ -15,9 +15,8 @@ class Command(BaseCommand):
         result = StatementUseCases.finalize_due_windows()
         self.stdout.write(
             self.style.SUCCESS(
-                "Finalized: {f.finalized_count}, "
-                "Closed without penalty: {f.closed_without_penalty_count}, "
-                "Closed with penalty: {f.closed_with_penalty_count}"
-                .format(f=result)
+                f"Finalized: {result.finalized_count}, "
+                f"Closed without penalty: {result.closed_without_penalty_count}, "
+                f"Closed with penalty: {result.closed_with_penalty_count}"
             )
         )

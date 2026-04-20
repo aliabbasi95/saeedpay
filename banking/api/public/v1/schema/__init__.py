@@ -5,3 +5,9 @@ from .schema_bank_card import (
     bank_card_viewset_schema,
     set_default_action_schema,
 )
+
+__all__ = [
+    "bank_viewset_schema",
+    "bank_card_viewset_schema",
+    "set_default_action_schema",
+]

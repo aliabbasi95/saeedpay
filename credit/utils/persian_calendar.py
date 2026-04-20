@@ -35,6 +35,7 @@ def get_persian_month_days(year: int, month: int) -> int:
     else:  # month == 12
         # Check if it's a leap year
         from persiantools.jdatetime import JalaliDate
+
         test_date = JalaliDate(year, 12, 30)
         return 30 if test_date.month == 12 else 29
 
@@ -51,7 +52,6 @@ def get_next_persian_month_start() -> JalaliDate:
     else:
         # Find last day of current month
         current_month = today.month
-        current_year = today.year
 
         # Add days until month changes
         test_date = today
@@ -99,20 +99,20 @@ def get_month_name(month: int) -> str:
     Get Persian month name
     """
     month_names = {
-        1: 'فروردین',
-        2: 'اردیبهشت',
-        3: 'خرداد',
-        4: 'تیر',
-        5: 'مرداد',
-        6: 'شهریور',
-        7: 'مهر',
-        8: 'آبان',
-        9: 'آذر',
-        10: 'دی',
-        11: 'بهمن',
-        12: 'اسفند'
+        1: "فروردین",
+        2: "اردیبهشت",
+        3: "خرداد",
+        4: "تیر",
+        5: "مرداد",
+        6: "شهریور",
+        7: "مهر",
+        8: "آبان",
+        9: "آذر",
+        10: "دی",
+        11: "بهمن",
+        12: "اسفند",
     }
-    return month_names.get(month, 'نامعلوم')
+    return month_names.get(month, "نامعلوم")
 
 
 def format_persian_date(date: JalaliDate) -> str:
@@ -129,12 +129,12 @@ def get_current_persian_month_info() -> dict:
     today = JalaliDate.today()
 
     return {
-        'year': today.year,
-        'month': today.month,
-        'month_name': get_month_name(today.month),
-        'day': today.day,
-        'is_last_day': is_last_day_of_persian_month(),
-        'days_in_month': get_persian_month_days(today.year, today.month),
-        'days_until_end': get_days_until_month_end(),
-        'business_days_until_end': get_business_days_until_month_end()
+        "year": today.year,
+        "month": today.month,
+        "month_name": get_month_name(today.month),
+        "day": today.day,
+        "is_last_day": is_last_day_of_persian_month(),
+        "days_in_month": get_persian_month_days(today.year, today.month),
+        "days_until_end": get_days_until_month_end(),
+        "business_days_until_end": get_business_days_until_month_end(),
     }

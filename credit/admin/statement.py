@@ -29,10 +29,8 @@ class StatementLineInline(BaseInlineAdmin):
 
     def get_queryset(self, request):
         # show all lines (including voided)
-        return (
-            StatementLine.all_objects.select_related("transaction").order_by(
-                "-created_at"
-            )
+        return StatementLine.all_objects.select_related("transaction").order_by(
+            "-created_at"
         )
 
     def has_add_permission(self, request, obj=None):
@@ -50,8 +48,9 @@ class StatementLineInline(BaseInlineAdmin):
         }
         color = colors.get(obj.type, "#6c757d")
         return format_html(
-            '<span style="color:{};font-weight:600;">{}</span>', color,
-            obj.get_type_display()
+            '<span style="color:{};font-weight:600;">{}</span>',
+            color,
+            obj.get_type_display(),
         )
 
     @admin.display(description=_("مبلغ"), ordering="amount")
@@ -59,22 +58,21 @@ class StatementLineInline(BaseInlineAdmin):
         if obj.amount is None:
             return "-"
         val = int(obj.amount)
-        color = "#6c757d" if obj.is_voided else (
-            "#28a745" if val >= 0 else "#dc3545")
+        color = "#6c757d" if obj.is_voided else ("#28a745" if val >= 0 else "#dc3545")
         formatted = format(val, ",d")
         style = "text-decoration:line-through;" if obj.is_voided else ""
         return format_html(
-            '<span style="color:{};{};direction:ltr;">{}</span>', color, style,
-            formatted
+            '<span style="color:{};{};direction:ltr;">{}</span>',
+            color,
+            style,
+            formatted,
         )
 
     @admin.display(description=_("تراکنش"), ordering="transaction")
     def transaction_link(self, obj):
         if not obj.transaction_id:
             return "-"
-        url = reverse(
-            "admin:wallets_transaction_change", args=[obj.transaction_id]
-        )
+        url = reverse("admin:wallets_transaction_change", args=[obj.transaction_id])
         return format_html('<a href="{}">{}</a>', url, obj.transaction_id)
 
 
@@ -117,40 +115,30 @@ class StatementAdmin(BaseAdmin):
     ]
 
     fieldsets = (
-        (_("اطلاعات کاربر"), {
-            "fields": (
-                "user",
-            )
-        }),
-        (_("دوره صورتحساب"), {
-            "fields": (
-                "year",
-                "month",
-                "status"
-            )
-        }),
-        (_("مانده‌ها"), {
-            "fields": (
-                "opening_balance",
-                "closing_balance",
-                "total_debit",
-                "total_credit"
-            )
-        }),
-        (_("زمان‌بندی"), {
-            "fields": (
-                "due_date",
-                "paid_at",
-                "closed_at"
-            )
-        }),
-        (_("اطلاعات پیگیری"), {
-            "fields": (
-                "reference_code",
-                "jalali_creation_time",
-                "jalali_update_time"
-            )
-        }),
+        (_("اطلاعات کاربر"), {"fields": ("user",)}),
+        (_("دوره صورتحساب"), {"fields": ("year", "month", "status")}),
+        (
+            _("مانده‌ها"),
+            {
+                "fields": (
+                    "opening_balance",
+                    "closing_balance",
+                    "total_debit",
+                    "total_credit",
+                )
+            },
+        ),
+        (_("زمان‌بندی"), {"fields": ("due_date", "paid_at", "closed_at")}),
+        (
+            _("اطلاعات پیگیری"),
+            {
+                "fields": (
+                    "reference_code",
+                    "jalali_creation_time",
+                    "jalali_update_time",
+                )
+            },
+        ),
     )
 
     actions = ["action_recalculate_balances", "action_close_current"]
@@ -167,9 +155,7 @@ class StatementAdmin(BaseAdmin):
     def opening_balance_display(self, obj):
         return f"{int(obj.opening_balance):,} ریال"
 
-    @admin.display(
-        description=_("مانده پایان دوره"), ordering="closing_balance"
-    )
+    @admin.display(description=_("مانده پایان دوره"), ordering="closing_balance")
     def closing_balance_display(self, obj):
         return f"{int(obj.closing_balance):,} ریال"
 
@@ -191,8 +177,9 @@ class StatementAdmin(BaseAdmin):
         }
         color = colors.get(obj.status, "#6c757d")
         return format_html(
-            '<span style="color:{};font-weight:bold;">{}</span>', color,
-            obj.get_status_display()
+            '<span style="color:{};font-weight:bold;">{}</span>',
+            color,
+            obj.get_status_display(),
         )
 
     @admin.display(description=_("روزهای تاخیر"))
@@ -224,12 +211,11 @@ class StatementAdmin(BaseAdmin):
                 self.message_user(
                     request,
                     f"خطا در محاسبه مانده برای {stmt.reference_code}: {e}",
-                    level=messages.ERROR
+                    level=messages.ERROR,
                 )
         if updated:
             self.message_user(
-                request, f"{updated} صورتحساب به‌روزرسانی شد.",
-                level=messages.SUCCESS
+                request, f"{updated} صورتحساب به‌روزرسانی شد.", level=messages.SUCCESS
             )
 
     @admin.action(description=_("بستن صورتحساب‌های جاری انتخاب‌شده"))
@@ -243,10 +229,9 @@ class StatementAdmin(BaseAdmin):
                 self.message_user(
                     request,
                     f"خطا در بستن صورتحساب {stmt.reference_code}: {e}",
-                    level=messages.ERROR
+                    level=messages.ERROR,
                 )
         if closed:
             self.message_user(
-                request, f"{closed} صورتحساب جاری بسته شد.",
-                level=messages.SUCCESS
+                request, f"{closed} صورتحساب جاری بسته شد.", level=messages.SUCCESS
             )

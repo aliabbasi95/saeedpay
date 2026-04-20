@@ -68,15 +68,11 @@ class CreditAuthorization(BaseModel):
         if not self.reference_code:
             for _ in range(5):
                 code = generate_reference_code(prefix="AUTH", random_digits=6)
-                if not CreditAuthorization.objects.filter(
-                        reference_code=code
-                ).exists():
+                if not CreditAuthorization.objects.filter(reference_code=code).exists():
                     self.reference_code = code
                     break
             else:
-                raise Exception(
-                    "Failed to generate authorization reference code."
-                )
+                raise Exception("Failed to generate authorization reference code.")
         self.full_clean()
         super().save(*args, **kwargs)
 

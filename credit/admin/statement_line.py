@@ -46,9 +46,7 @@ class StatementLineAdmin(BaseAdmin):
 
     def get_queryset(self, request):
         # include voided lines as well
-        return StatementLine.all_objects.select_related(
-            "statement", "transaction"
-        )
+        return StatementLine.all_objects.select_related("statement", "transaction")
 
     @admin.display(description=_("نوع"), ordering="type")
     def type_badge(self, obj):
@@ -61,8 +59,9 @@ class StatementLineAdmin(BaseAdmin):
         }
         color = colors.get(obj.type, "#6c757d")
         return format_html(
-            '<span style="color:{};font-weight:600;">{}</span>', color,
-            obj.get_type_display()
+            '<span style="color:{};font-weight:600;">{}</span>',
+            color,
+            obj.get_type_display(),
         )
 
     @admin.display(description=_("صورتحساب"), ordering="statement")
@@ -76,13 +75,14 @@ class StatementLineAdmin(BaseAdmin):
         if obj.amount is None:
             return "-"
         val = int(obj.amount)
-        color = "#6c757d" if obj.is_voided else (
-            "#28a745" if val >= 0 else "#dc3545")
+        color = "#6c757d" if obj.is_voided else ("#28a745" if val >= 0 else "#dc3545")
         formatted = format(val, ",d")
         style = "text-decoration:line-through;" if obj.is_voided else ""
         return format_html(
-            '<span style="color:{};{};direction:ltr;">{}</span>', color, style,
-            formatted
+            '<span style="color:{};{};direction:ltr;">{}</span>',
+            color,
+            style,
+            formatted,
         )
 
     @admin.action(description=_("باطل کردن سطرهای انتخاب‌شده"))

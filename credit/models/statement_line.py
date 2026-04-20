@@ -2,7 +2,8 @@
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models, transaction as db_transaction
+from django.db import models
+from django.db import transaction as db_transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -113,12 +114,10 @@ class StatementLine(BaseModel):
 
         if self.transaction_id and self.statement_id:
             from_to_user_ids = (
-                                   Transaction.objects.filter(pk=self.transaction_id)
-                                   .values_list(
-                                       "from_wallet__user_id", "to_wallet__user_id"
-                                   )
-                                   .first()
-                               ) or (None, None)
+                Transaction.objects.filter(pk=self.transaction_id)
+                .values_list("from_wallet__user_id", "to_wallet__user_id")
+                .first()
+            ) or (None, None)
             from_user_id, to_user_id = from_to_user_ids
             if self.statement.user_id not in {from_user_id, to_user_id}:
                 errors["transaction"] = _(
@@ -127,15 +126,11 @@ class StatementLine(BaseModel):
 
         if self.payment_id and self.payment_request_id:
             if self.payment.payment_request_id != self.payment_request_id:
-                errors["payment_request"] = _(
-                    "payment_request does not match payment."
-                )
+                errors["payment_request"] = _("payment_request does not match payment.")
 
         if self.payment_id and self.statement_id:
             if self.payment.payer_id != self.statement.user_id:
-                errors["payment"] = _(
-                    "Payment does not belong to the statement user."
-                )
+                errors["payment"] = _("Payment does not belong to the statement user.")
 
         if self.statement_id:
             statement_obj = self.statement
@@ -180,9 +175,9 @@ class StatementLine(BaseModel):
 
         update_fields = kwargs.get("update_fields")
         should_recompute = (
-                is_new
-                or update_fields is None
-                or any(field in update_fields for field in ("amount", "type"))
+            is_new
+            or update_fields is None
+            or any(field in update_fields for field in ("amount", "type"))
         )
         if should_recompute and self.statement_id:
             self.statement.update_balances()
@@ -257,16 +252,16 @@ class StatementLine(BaseModel):
             models.CheckConstraint(
                 name="amount_sign_by_type",
                 check=(
-                        models.Q(type=StatementLineType.PAYMENT, amount__gt=0)
-                        | models.Q(
-                    type__in=[
-                        StatementLineType.PURCHASE,
-                        StatementLineType.FEE,
-                        StatementLineType.PENALTY,
-                        StatementLineType.INTEREST,
-                    ],
-                    amount__lt=0,
-                )
+                    models.Q(type=StatementLineType.PAYMENT, amount__gt=0)
+                    | models.Q(
+                        type__in=[
+                            StatementLineType.PURCHASE,
+                            StatementLineType.FEE,
+                            StatementLineType.PENALTY,
+                            StatementLineType.INTEREST,
+                        ],
+                        amount__lt=0,
+                    )
                 ),
             ),
         ]

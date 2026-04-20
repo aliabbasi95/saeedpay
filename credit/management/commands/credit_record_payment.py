@@ -14,9 +14,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("user_id", type=int, help="User ID")
-        parser.add_argument(
-            "amount", type=int, help="Payment amount (Rials, positive)"
-        )
+        parser.add_argument("amount", type=int, help="Payment amount (Rials, positive)")
         parser.add_argument(
             "--transaction-id",
             type=int,
@@ -38,17 +36,15 @@ class Command(BaseCommand):
 
         try:
             user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            raise CommandError(f"User {user_id} not found")
+        except User.DoesNotExist as e:
+            raise CommandError(f"User {user_id} not found") from e
 
         transaction_obj = None
         if transaction_id is not None:
             try:
-                transaction_obj = WalletTransaction.objects.get(
-                    pk=transaction_id
-                )
-            except WalletTransaction.DoesNotExist:
-                raise CommandError(f"Transaction {transaction_id} not found")
+                transaction_obj = WalletTransaction.objects.get(pk=transaction_id)
+            except WalletTransaction.DoesNotExist as e:
+                raise CommandError(f"Transaction {transaction_id} not found") from e
 
         try:
             stmt = StatementUseCases.record_payment_on_current_statement(
@@ -63,4 +59,4 @@ class Command(BaseCommand):
                 )
             )
         except Exception as e:
-            raise CommandError(str(e))
+            raise CommandError(str(e)) from e

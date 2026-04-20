@@ -40,9 +40,14 @@ class TestCardValidationIntegration:
         # Step 1: Create a card via API
         data = {"card_number": "6362141111393550"}
 
-        with patch("banking.tasks.validate_card_task.delay") as mock_task_delay, patch(
-            "banking.services.bank_card_service.enqueue_validation_if_pending",
-            side_effect=lambda old_status, card: validate_card_task.delay(str(card.id)),
+        with (
+            patch("banking.tasks.validate_card_task.delay") as mock_task_delay,
+            patch(
+                "banking.services.bank_card_service.enqueue_validation_if_pending",
+                side_effect=lambda old_status, card: validate_card_task.delay(
+                    str(card.id)
+                ),
+            ),
         ):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
             assert response.status_code == 201
@@ -103,9 +108,14 @@ class TestCardValidationIntegration:
 
         # Step 4: Verify rejected card can be updated
         data = {"card_number": "6362141111393154"}
-        with patch("banking.tasks.validate_card_task.delay") as mock_task, patch(
-            "banking.services.bank_card_service.enqueue_validation_if_pending",
-            side_effect=lambda old_status, card: validate_card_task.delay(str(card.id)),
+        with (
+            patch("banking.tasks.validate_card_task.delay") as mock_task,
+            patch(
+                "banking.services.bank_card_service.enqueue_validation_if_pending",
+                side_effect=lambda old_status, card: validate_card_task.delay(
+                    str(card.id)
+                ),
+            ),
         ):
             response = api_client.patch(
                 f"/saeedpay/api/banking/v1/cards/{card.id}/", data
@@ -173,9 +183,14 @@ class TestCardValidationIntegration:
 
         # Verify rejected card can still be updated to retry validation
         data = {"card_number": "6362141111393154"}
-        with patch("banking.tasks.validate_card_task.delay") as mock_task, patch(
-            "banking.services.bank_card_service.enqueue_validation_if_pending",
-            side_effect=lambda old_status, card: validate_card_task.delay(str(card.id)),
+        with (
+            patch("banking.tasks.validate_card_task.delay") as mock_task,
+            patch(
+                "banking.services.bank_card_service.enqueue_validation_if_pending",
+                side_effect=lambda old_status, card: validate_card_task.delay(
+                    str(card.id)
+                ),
+            ),
         ):
             response = api_client.patch(
                 f"/saeedpay/api/banking/v1/cards/{card.id}/", data

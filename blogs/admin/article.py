@@ -192,9 +192,7 @@ class ArticleAdmin(BaseAdmin):
     @admin.display(description=_("تعداد بخش‌ها"))
     def section_count(self, obj):
         # Use annotated value if present; fallback to cached prefetch (len()).
-        return getattr(obj, "section_count_anno", None) or len(
-            getattr(obj, "sections").all()
-        )
+        return getattr(obj, "section_count_anno", None) or len(obj.sections.all())
 
     @admin.display(description=_("پیش‌نمایش تصویر شاخص"))
     def featured_image_preview(self, obj):

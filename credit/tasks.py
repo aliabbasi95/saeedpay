@@ -17,7 +17,7 @@ def task_month_end_rollover(self):
         # result: {"statements_closed": int, "statements_created": int, "interest_lines_added": int}
         return {"status": "success", "result": result}
     except Exception as exc:
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
@@ -40,7 +40,7 @@ def task_finalize_due_windows(self):
             },
         }
     except Exception as exc:
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)
@@ -59,4 +59,4 @@ def task_daily_credit_maintenance(self):
             "finalize_due_windows": finalize,
         }
     except Exception as exc:
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc

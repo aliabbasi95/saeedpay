@@ -2,15 +2,16 @@
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from persiantools.jdatetime import JalaliDate
 
 from credit.api.public.v1.serializers.credit import (
+    CloseStatementResponseSerializer,
     CreditLimitSerializer,
+    StatementDetailSerializer,
     StatementLineSerializer,
     StatementListSerializer,
-    StatementDetailSerializer,
-    CloseStatementResponseSerializer,
 )
 from credit.models.statement import Statement
 from credit.models.statement_line import StatementLine
@@ -22,6 +23,7 @@ User = get_user_model()
 
 
 # ───────────────────────────── Helpers ───────────────────────────── #
+
 
 def jalali_today_ym():
     t = JalaliDate.today()
@@ -37,20 +39,28 @@ def next_jalali_ym(y, m):
 
 # ───────────────────────────── CreditLimitSerializer ───────────────────────────── #
 
+
 class TestCreditLimitSerializer:
-    def test_serialize_fields_and_types(
-            self, user, active_credit_limit_factory
-    ):
+    def test_serialize_fields_and_types(self, user, active_credit_limit_factory):
         """Serializer exposes declared fields and method fields have correct types."""
         limit = active_credit_limit_factory(
-            user=user, is_active=True, approved_limit=1_000_000,
+            user=user,
+            is_active=True,
+            approved_limit=1_000_000,
         )
         data = CreditLimitSerializer(limit).data
 
         for f in (
-                "id", "user", "approved_limit", "available_limit", "is_active",
-                "is_approved", "expiry_date", "created_at", "updated_at",
-                "reference_code",
+            "id",
+            "user",
+            "approved_limit",
+            "available_limit",
+            "is_active",
+            "is_approved",
+            "expiry_date",
+            "created_at",
+            "updated_at",
+            "reference_code",
         ):
             assert f in data
 
@@ -58,7 +68,7 @@ class TestCreditLimitSerializer:
         assert isinstance(data["is_approved"], bool)
 
     def test_method_fields_match_model_properties(
-            self, user, active_credit_limit_factory, current_statement_factory
+        self, user, active_credit_limit_factory, current_statement_factory
     ):
         """available_limit & is_approved reflect model properties."""
         limit = active_credit_limit_factory(
@@ -78,9 +88,9 @@ class TestCreditLimitSerializer:
             "user": user.pk,
             "approved_limit": 123_456,
             "is_active": False,
-            "expiry_date": (timezone.localdate() + timezone.timedelta(
-                days=10
-            )).isoformat(),
+            "expiry_date": (
+                timezone.localdate() + timezone.timedelta(days=10)
+            ).isoformat(),
             "reference_code": "CR-HACK",
         }
         ser = CreditLimitSerializer(data=payload)
@@ -89,9 +99,7 @@ class TestCreditLimitSerializer:
         assert obj.reference_code != "CR-HACK"
         assert obj.user_id == user.id
 
-    def test_update_ignores_read_only_fields(
-            self, user, active_credit_limit_factory
-    ):
+    def test_update_ignores_read_only_fields(self, user, active_credit_limit_factory):
         """Updating must not allow changing read-only fields."""
         limit = active_credit_limit_factory(
             user=user, is_active=False, approved_limit=111
@@ -107,15 +115,17 @@ class TestCreditLimitSerializer:
 
 # ───────────────────────────── StatementLineSerializer ───────────────────────────── #
 
+
 class TestStatementLineSerializer:
-    def test_create_purchase_normalizes_sign_and_respects_read_only(
-            self, user
-    ):
+    def test_create_purchase_normalizes_sign_and_respects_read_only(self, user):
         """PURCHASE positive in payload must be stored negative; transaction is read-only."""
         y, m = jalali_today_ym()
         stmt = Statement.objects.create(
-            user=user, year=y, month=m, status=StatementStatus.CURRENT,
-            opening_balance=0
+            user=user,
+            year=y,
+            month=m,
+            status=StatementStatus.CURRENT,
+            opening_balance=0,
         )
 
         payload = {
@@ -142,13 +152,17 @@ class TestStatementLineSerializer:
         """PAYMENT amount must be stored as positive regardless of sign in payload."""
         y, m = jalali_today_ym()
         stmt = Statement.objects.create(
-            user=user, year=y, month=m, status=StatementStatus.CURRENT,
-            opening_balance=0
+            user=user,
+            year=y,
+            month=m,
+            status=StatementStatus.CURRENT,
+            opening_balance=0,
         )
 
         payload = {
-            "statement": stmt.pk, "type": StatementLineType.PAYMENT,
-            "amount": -4_000
+            "statement": stmt.pk,
+            "type": StatementLineType.PAYMENT,
+            "amount": -4_000,
         }
         ser = StatementLineSerializer(data=payload)
         assert ser.is_valid(), ser.errors
@@ -160,14 +174,14 @@ class TestStatementLineSerializer:
         """Amount 0 must be rejected by serializer."""
         y, m = jalali_today_ym()
         stmt = Statement.objects.create(
-            user=user, year=y, month=m, status=StatementStatus.CURRENT,
-            opening_balance=0
+            user=user,
+            year=y,
+            month=m,
+            status=StatementStatus.CURRENT,
+            opening_balance=0,
         )
         ser = StatementLineSerializer(
-            data={
-                "statement": stmt.pk, "type": StatementLineType.PURCHASE,
-                "amount": 0
-            }
+            data={"statement": stmt.pk, "type": StatementLineType.PURCHASE, "amount": 0}
         )
         assert not ser.is_valid()
         assert "amount" in ser.errors
@@ -176,25 +190,33 @@ class TestStatementLineSerializer:
         """On non-current statements, business rule blocks creating lines at save()."""
         y, m = jalali_today_ym()
         stmt = Statement.objects.create(
-            user=user, year=y, month=m, status=StatementStatus.PENDING_PAYMENT,
-            opening_balance=0
+            user=user,
+            year=y,
+            month=m,
+            status=StatementStatus.PENDING_PAYMENT,
+            opening_balance=0,
         )
         ser = StatementLineSerializer(
             data={
-                "statement": stmt.pk, "type": StatementLineType.PURCHASE,
-                "amount": 1000
+                "statement": stmt.pk,
+                "type": StatementLineType.PURCHASE,
+                "amount": 1000,
             }
         )
         assert ser.is_valid(), ser.errors
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError) as exc:
             ser.save()
+        assert "This line type is only allowed on CURRENT statements." in str(exc.value)
 
     def test_update_ignores_read_only_fields_partial(self, user):
         """PATCH must not modify read-only fields; only editable fields change."""
         y, m = jalali_today_ym()
         stmt = Statement.objects.create(
-            user=user, year=y, month=m, status=StatementStatus.CURRENT,
-            opening_balance=0
+            user=user,
+            year=y,
+            month=m,
+            status=StatementStatus.CURRENT,
+            opening_balance=0,
         )
         line = StatementLine.objects.create(
             statement=stmt, type=StatementLineType.PURCHASE, amount=10_000
@@ -210,9 +232,7 @@ class TestStatementLineSerializer:
         }
 
         ser = StatementLineSerializer(
-            instance=line, data={
-                "description": "new", "amount": 20_000
-            }, partial=True
+            instance=line, data={"description": "new", "amount": 20_000}, partial=True
         )
         assert ser.is_valid(), ser.errors
         obj = ser.save()
@@ -241,8 +261,9 @@ class TestStatementLineSerializer:
 
         ser = StatementLineSerializer(
             data={
-                "statement": stmt.id, "type": StatementLineType.INTEREST,
-                "amount": 2_000
+                "statement": stmt.id,
+                "type": StatementLineType.INTEREST,
+                "amount": 2_000,
             }
         )
         assert not ser.is_valid()
@@ -255,21 +276,22 @@ class TestStatementLineSerializer:
             user=user, year=y, month=m, status=StatementStatus.CURRENT
         )
         StatementLine.objects.create(
-            statement=stmt, type=StatementLineType.INTEREST, amount=1_000,
-            is_voided=True
+            statement=stmt,
+            type=StatementLineType.INTEREST,
+            amount=1_000,
+            is_voided=True,
         )
 
         ser = StatementLineSerializer(
             data={
-                "statement": stmt.id, "type": StatementLineType.INTEREST,
-                "amount": 2_000
+                "statement": stmt.id,
+                "type": StatementLineType.INTEREST,
+                "amount": 2_000,
             }
         )
         assert ser.is_valid(), ser.errors
 
-    def test_partial_update_to_interest_rejected_if_active_interest_exists(
-            self, user
-    ):
+    def test_partial_update_to_interest_rejected_if_active_interest_exists(self, user):
         """Turning a non-interest line into INTEREST via PATCH must be rejected if an active exists."""
         y, m = jalali_today_ym()
         stmt = Statement.objects.create(
@@ -283,16 +305,12 @@ class TestStatementLineSerializer:
         )
 
         ser = StatementLineSerializer(
-            instance=other, data={
-                "type": StatementLineType.INTEREST
-            }, partial=True
+            instance=other, data={"type": StatementLineType.INTEREST}, partial=True
         )
         assert not ser.is_valid()
         assert "non_field_errors" in ser.errors
 
-    def test_partial_update_to_interest_allowed_if_setting_is_voided_true(
-            self, user
-    ):
+    def test_partial_update_to_interest_allowed_if_setting_is_voided_true(self, user):
         """PATCH to INTEREST is allowed when is_voided=True in payload (not active)."""
         y, m = jalali_today_ym()
         stmt = Statement.objects.create(
@@ -313,7 +331,7 @@ class TestStatementLineSerializer:
         assert ser.is_valid(), ser.errors
 
     def test_partial_update_non_interest_to_non_interest_does_not_require_is_voided(
-            self, user
+        self, user
     ):
         """PATCH between non-interest types should not require 'is_voided' and must validate cleanly."""
         y, m = jalali_today_ym()
@@ -332,20 +350,36 @@ class TestStatementLineSerializer:
 
 # ───────────────────────────── StatementListSerializer ───────────────────────────── #
 
+
 class TestStatementListSerializer:
     def test_minimal_fields_and_read_only(self, user):
         """List serializer exposes minimal fields; read-only cannot be updated."""
         y, m = jalali_today_ym()
         stmt = Statement.objects.create(
-            user=user, year=y, month=m, status=StatementStatus.CURRENT,
-            opening_balance=0, total_debit=0, total_credit=0, closing_balance=0
+            user=user,
+            year=y,
+            month=m,
+            status=StatementStatus.CURRENT,
+            opening_balance=0,
+            total_debit=0,
+            total_credit=0,
+            closing_balance=0,
         )
         data = StatementListSerializer(stmt).data
         for f in (
-                "id", "user", "year", "month", "reference_code", "status",
-                "opening_balance", "closing_balance", "total_debit",
-                "total_credit",
-                "due_date", "created_at", "updated_at",
+            "id",
+            "user",
+            "year",
+            "month",
+            "reference_code",
+            "status",
+            "opening_balance",
+            "closing_balance",
+            "total_debit",
+            "total_credit",
+            "due_date",
+            "created_at",
+            "updated_at",
         ):
             assert f in data
 
@@ -360,13 +394,17 @@ class TestStatementListSerializer:
 
 # ───────────────────────────── StatementDetailSerializer ───────────────────────────── #
 
+
 class TestStatementDetailSerializer:
     def test_includes_lines_and_normalized_amounts(self, user):
         """Detail serializer includes nested lines; amounts normalized by type."""
         y, m = jalali_today_ym()
         stmt = Statement.objects.create(
-            user=user, year=y, month=m, status=StatementStatus.CURRENT,
-            opening_balance=0
+            user=user,
+            year=y,
+            month=m,
+            status=StatementStatus.CURRENT,
+            opening_balance=0,
         )
 
         l1 = StatementLine.objects.create(
@@ -379,28 +417,36 @@ class TestStatementDetailSerializer:
         l2.refresh_from_db()
 
         data = StatementDetailSerializer(stmt).data
-        assert "lines" in data and isinstance(data["lines"], list) and len(
-            data["lines"]
-        ) == 2
+        assert (
+            "lines" in data
+            and isinstance(data["lines"], list)
+            and len(data["lines"]) == 2
+        )
 
         by_id = {item["id"]: item for item in data["lines"]}
-        assert by_id[l1.id]["type"] == StatementLineType.PURCHASE and \
-               by_id[l1.id]["amount"] < 0
-        assert by_id[l2.id]["type"] == StatementLineType.PAYMENT and \
-               by_id[l2.id]["amount"] > 0
+        assert (
+            by_id[l1.id]["type"] == StatementLineType.PURCHASE
+            and by_id[l1.id]["amount"] < 0
+        )
+        assert (
+            by_id[l2.id]["type"] == StatementLineType.PAYMENT
+            and by_id[l2.id]["amount"] > 0
+        )
 
     def test_read_only_nested_lines(self, user):
         """Nested 'lines' is read-only in detail serializer."""
         y, m = jalali_today_ym()
         stmt = Statement.objects.create(
-            user=user, year=y, month=m, status=StatementStatus.CURRENT,
-            opening_balance=0
+            user=user,
+            year=y,
+            month=m,
+            status=StatementStatus.CURRENT,
+            opening_balance=0,
         )
         ser = StatementDetailSerializer(
-            instance=stmt, data={
-                "lines": [
-                    {"type": StatementLineType.PURCHASE, "amount": 1_000}]
-            }, partial=True
+            instance=stmt,
+            data={"lines": [{"type": StatementLineType.PURCHASE, "amount": 1_000}]},
+            partial=True,
         )
         assert ser.is_valid(), ser.errors
         obj = ser.save()
@@ -409,13 +455,17 @@ class TestStatementDetailSerializer:
 
 # ───────────────────────────── CloseStatementResponseSerializer ───────────────────────────── #
 
+
 class TestCloseStatementResponseSerializer:
     def test_accepts_boolean_true_false(self):
         """BooleanField accepts True/False and common truthy/falsey strings."""
         ok_payloads = [
-            {"success": True}, {"success": False},
-            {"success": "true"}, {"success": "false"},
-            {"success": 1}, {"success": 0},
+            {"success": True},
+            {"success": False},
+            {"success": "true"},
+            {"success": "false"},
+            {"success": 1},
+            {"success": 0},
         ]
         for p in ok_payloads:
             ser = CloseStatementResponseSerializer(data=p)
@@ -431,13 +481,16 @@ class TestCloseStatementResponseSerializer:
 
 # ───────────────────────────── Patch-safety smoke tests ───────────────────────────── #
 
+
 class TestStatementLineSerializerPatchedValidators:
     def test_partial_update_does_not_require_is_voided(self, user):
         """PATCH without 'is_voided' should validate cleanly (no KeyError)."""
         today = JalaliDate.today()
         stmt = Statement.objects.create(
-            user=user, year=today.year, month=today.month,
-            status=StatementStatus.CURRENT
+            user=user,
+            year=today.year,
+            month=today.month,
+            status=StatementStatus.CURRENT,
         )
         line = StatementLine.objects.create(
             statement=stmt, type=StatementLineType.PAYMENT, amount=10_000
@@ -448,14 +501,14 @@ class TestStatementLineSerializerPatchedValidators:
         )
         assert ser.is_valid(), ser.errors
 
-    def test_partial_update_to_interest_respects_conditional_unique(
-            self, user
-    ):
+    def test_partial_update_to_interest_respects_conditional_unique(self, user):
         """PATCH to INTEREST must fail if an active INTEREST exists on the same statement."""
         today = JalaliDate.today()
         stmt = Statement.objects.create(
-            user=user, year=today.year, month=today.month,
-            status=StatementStatus.CURRENT
+            user=user,
+            year=today.year,
+            month=today.month,
+            status=StatementStatus.CURRENT,
         )
         StatementLine.objects.create(
             statement=stmt, type=StatementLineType.INTEREST, amount=1_000
@@ -465,9 +518,7 @@ class TestStatementLineSerializerPatchedValidators:
         )
 
         ser = StatementLineSerializer(
-            instance=other, data={
-                "type": StatementLineType.INTEREST
-            }, partial=True
+            instance=other, data={"type": StatementLineType.INTEREST}, partial=True
         )
         assert not ser.is_valid()
         assert "non_field_errors" in ser.errors
@@ -479,14 +530,14 @@ class TestStatementLineSerializerPatchedValidators:
             user=user,
             year=today.year,
             month=today.month,
-            status=StatementStatus.CURRENT
+            status=StatementStatus.CURRENT,
         )
         ser = StatementLineSerializer(
             data={
                 "statement": stmt.id,
                 "type": StatementLineType.PURCHASE,
                 "amount": 12_345,
-                "transaction": 999999
+                "transaction": 999999,
             }
         )
         assert ser.is_valid(), ser.errors
@@ -495,9 +546,10 @@ class TestStatementLineSerializerPatchedValidators:
 
 # ───────────────────────────── Extra hardening tests ───────────────────────────── #
 
+
 class TestStatementLineSerializerHardening:
     def test_create_interest_cannot_bypass_uniqueness_with_is_voided_true_payload(
-            self, user
+        self, user
     ):
         """
         Creating INTEREST with is_voided=True in payload must NOT bypass conditional uniqueness,
@@ -514,15 +566,17 @@ class TestStatementLineSerializerHardening:
 
         ser = StatementLineSerializer(
             data={
-                "statement": stmt.id, "type": StatementLineType.INTEREST,
-                "amount": 2_000, "is_voided": True
+                "statement": stmt.id,
+                "type": StatementLineType.INTEREST,
+                "amount": 2_000,
+                "is_voided": True,
             }
         )
         assert not ser.is_valid()
         assert "non_field_errors" in ser.errors  # must still reject
 
     def test_patch_to_interest_with_is_voided_true_does_not_persist_is_voided_change(
-            self, user
+        self, user
     ):
         """
         On PATCH, providing is_voided=True in payload can influence validation logic,
@@ -552,9 +606,7 @@ class TestStatementLineSerializerHardening:
         # is_voided must remain the original value (read-only)
         assert obj.is_voided == original_is_voided
 
-    def test_patch_change_statement_rejected_if_target_has_active_interest(
-            self, user
-    ):
+    def test_patch_change_statement_rejected_if_target_has_active_interest(self, user):
         """
         Moving a line to another statement which already has an active INTEREST must be rejected.
         Destination statement must be a different year/month to satisfy (user,year,month) DB unique.
@@ -581,16 +633,14 @@ class TestStatementLineSerializerHardening:
 
         ser = StatementLineSerializer(
             instance=line,
-            data={
-                "statement": stmt_dst.id, "type": StatementLineType.INTEREST
-            },
+            data={"statement": stmt_dst.id, "type": StatementLineType.INTEREST},
             partial=True,
         )
         assert not ser.is_valid()
         assert "non_field_errors" in ser.errors
 
     def test_patch_change_statement_allowed_if_target_has_no_active_interest(
-            self, user
+        self, user
     ):
         """
         Moving a line to another statement without an active INTEREST should be allowed.
@@ -612,9 +662,7 @@ class TestStatementLineSerializerHardening:
 
         ser = StatementLineSerializer(
             instance=line,
-            data={
-                "statement": stmt_dst.id, "type": StatementLineType.INTEREST
-            },
+            data={"statement": stmt_dst.id, "type": StatementLineType.INTEREST},
             partial=True,
         )
         assert ser.is_valid(), ser.errors
@@ -624,7 +672,7 @@ class TestStatementLineSerializerHardening:
         assert obj.type == StatementLineType.INTEREST
 
     def test_patch_to_interest_with_string_truthy_is_handled_for_validation_but_not_persisted(
-            self, user
+        self, user
     ):
         """
         Passing 'is_voided' as 'true'/'false' strings should only affect validation logic (skip/enable unique),
@@ -640,9 +688,9 @@ class TestStatementLineSerializerHardening:
         original_is_voided = line.is_voided
 
         ser = StatementLineSerializer(
-            instance=line, data={
-                "type": StatementLineType.INTEREST, "is_voided": "true"
-            }, partial=True
+            instance=line,
+            data={"type": StatementLineType.INTEREST, "is_voided": "true"},
+            partial=True,
         )
         assert ser.is_valid(), ser.errors
         saved = ser.save()
@@ -650,7 +698,7 @@ class TestStatementLineSerializerHardening:
         assert saved.is_voided == original_is_voided
 
     def test_partial_update_to_interest_rejected_when_is_voided_false_explicit(
-            self, user
+        self, user
     ):
         """
         Even if payload explicitly sets is_voided=False, PATCH to INTEREST must be rejected
@@ -679,7 +727,7 @@ class TestStatementLineSerializerHardening:
         assert "non_field_errors" in ser.errors
 
     def test_patch_attempt_to_set_read_only_transaction_is_ignored_and_not_persisted(
-            self, user
+        self, user
     ):
         """
         On PATCH, providing 'transaction' must be ignored:
@@ -709,9 +757,7 @@ class TestStatementLineSerializerHardening:
         assert saved.transaction_id == original_tx_id
         assert saved.description == "patched desc"
 
-    def test_patch_change_type_payment_to_purchase_normalizes_amount(
-            self, user
-    ):
+    def test_patch_change_type_payment_to_purchase_normalizes_amount(self, user):
         """
         Changing type from PAYMENT -> PURCHASE on PATCH must re-normalize amount:
         - PAYMENT is stored positive.
