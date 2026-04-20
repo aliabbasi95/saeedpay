@@ -22,7 +22,7 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class TagListSerializer(serializers.ModelSerializer):
-    """Simplified tag serializer for lists."""
+    """Simplified tag serializer for list endpoints."""
 
     class Meta:
         model = Tag

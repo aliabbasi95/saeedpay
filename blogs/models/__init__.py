@@ -1,5 +1,12 @@
-from .article import Article, ArticleSection
-from .tag import Tag
-from .comment import Comment
+# blogs/models/__init__.py
 
-__all__ = ["Article", "ArticleSection", "Tag", "Comment"]
+from .article import Article, ArticleSection
+from .comment import Comment
+from .tag import Tag
+
+__all__ = [
+    "Article",
+    "ArticleSection",
+    "Comment",
+    "Tag",
+]

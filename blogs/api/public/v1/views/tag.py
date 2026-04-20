@@ -13,7 +13,7 @@ from blogs.models import Tag
 
 @tag_viewset_schema
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only Tag API."""
+    """Read-only public API for active tags."""
 
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

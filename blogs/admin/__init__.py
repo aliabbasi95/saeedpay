@@ -1,5 +1,11 @@
-from .article import ArticleAdmin
-from .tag import TagAdmin
-from .comment import CommentAdmin
+# blogs/admin/__init__.py
 
-__all__ = ["ArticleAdmin", "TagAdmin", "CommentAdmin"]
+from .article import ArticleAdmin
+from .comment import CommentAdmin
+from .tag import TagAdmin
+
+__all__ = [
+    "ArticleAdmin",
+    "CommentAdmin",
+    "TagAdmin",
+]
