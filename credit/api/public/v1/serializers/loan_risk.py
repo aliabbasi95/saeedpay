@@ -15,7 +15,7 @@ class LoanRiskOTPRequestSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Validate that user has a profile with required fields and correct auth stage."""
-        request = self.context.get('request')
+        request = self.context.get("request")
         if not request or not request.user:
             raise serializers.ValidationError(
                 {"non_field_errors": ["کاربر احراز هویت نشده است."]}
@@ -23,12 +23,11 @@ class LoanRiskOTPRequestSerializer(serializers.Serializer):
 
         try:
             profile = Profile.objects.get(user=request.user)
-        except Profile.DoesNotExist:
+        except Profile.DoesNotExist as exc:
             raise serializers.ValidationError(
                 {"non_field_errors": ["پروفایل کاربری یافت نشد."]}
-            )
+            ) from exc
 
-        # Check auth stage - must be IDENTITY_VERIFIED (Stage 3)
         if profile.auth_stage < AuthenticationStage.VIDEO_VERIFIED:
             raise serializers.ValidationError(
                 {
@@ -45,20 +44,16 @@ class LoanRiskOTPRequestSerializer(serializers.Serializer):
 
         if not profile.phone_number:
             raise serializers.ValidationError(
-                {
-                    "non_field_errors": [
-                        "شماره موبایل در پروفایل شما ثبت نشده است."]
-                }
+                {"non_field_errors": ["شماره موبایل در پروفایل شما ثبت نشده است."]}
             )
 
-        # Check cooldown period (30 days between reports)
         can_request, reason, last_report = LoanRiskReport.can_user_request_new_report(
             profile
         )
         if not can_request:
-            last_report_date = last_report.completed_at.strftime(
-                '%Y/%m/%d'
-            ) if last_report else ''
+            last_report_date = (
+                last_report.completed_at.strftime("%Y/%m/%d") if last_report else ""
+            )
             raise serializers.ValidationError(
                 {
                     "non_field_errors": [
@@ -68,15 +63,17 @@ class LoanRiskOTPRequestSerializer(serializers.Serializer):
                 }
             )
 
-        # Throttle and in-progress checks (2-minute window)
         now = timezone.now()
         recent_window = now - timezone.timedelta(minutes=2)
 
-        # 1) If there is a report already in processing, block new request
-        in_process = LoanRiskReport.objects.filter(
-            profile=profile,
-            status=LoanReportStatus.IN_PROCESSING,
-        ).order_by('-created_at').first()
+        in_process = (
+            LoanRiskReport.objects.filter(
+                profile=profile,
+                status=LoanReportStatus.IN_PROCESSING,
+            )
+            .order_by("-created_at")
+            .first()
+        )
         if in_process:
             raise serializers.ValidationError(
                 {
@@ -88,11 +85,14 @@ class LoanRiskOTPRequestSerializer(serializers.Serializer):
                 }
             )
 
-        # 2) If an OTP was sent in last 2 minutes, throttle
-        recent_otp = LoanRiskReport.objects.filter(
-            profile=profile,
-            otp_sent_at__gte=recent_window,
-        ).order_by('-otp_sent_at').first()
+        recent_otp = (
+            LoanRiskReport.objects.filter(
+                profile=profile,
+                otp_sent_at__gte=recent_window,
+            )
+            .order_by("-otp_sent_at")
+            .first()
+        )
         if recent_otp and recent_otp.otp_sent_at:
             time_since = now - recent_otp.otp_sent_at
             remaining_seconds = max(0, int(120 - time_since.total_seconds()))
@@ -104,16 +104,19 @@ class LoanRiskOTPRequestSerializer(serializers.Serializer):
                 wait=remaining_seconds,
             )
 
-        # 3) If any report was created in last 2 minutes with relevant statuses, throttle
-        recent_created = LoanRiskReport.objects.filter(
-            profile=profile,
-            created_at__gte=recent_window,
-            status__in=[
-                LoanReportStatus.PENDING,
-                LoanReportStatus.OTP_SENT,
-                LoanReportStatus.IN_PROCESSING,
-            ],
-        ).order_by('-created_at').first()
+        recent_created = (
+            LoanRiskReport.objects.filter(
+                profile=profile,
+                created_at__gte=recent_window,
+                status__in=[
+                    LoanReportStatus.PENDING,
+                    LoanReportStatus.OTP_SENT,
+                    LoanReportStatus.IN_PROCESSING,
+                ],
+            )
+            .order_by("-created_at")
+            .first()
+        )
         if recent_created:
             time_since = now - recent_created.created_at
             remaining_seconds = max(0, int(120 - time_since.total_seconds()))
@@ -125,9 +128,8 @@ class LoanRiskOTPRequestSerializer(serializers.Serializer):
                 wait=remaining_seconds,
             )
 
-        # Store profile and last report in validated data
-        data['_profile'] = profile
-        data['_last_report'] = last_report
+        data["_profile"] = profile
+        data["_last_report"] = last_report
         return data
 
 
@@ -135,27 +137,24 @@ class LoanRiskOTPVerifySerializer(serializers.Serializer):
     """Serializer for verifying OTP and requesting loan risk report."""
 
     report_id = serializers.IntegerField(required=True)
-    otp_code = serializers.CharField(
-        required=True, min_length=4, max_length=10
-    )
+    otp_code = serializers.CharField(required=True, min_length=4, max_length=10)
 
     def validate_report_id(self, value):
         """Validate that report exists and belongs to current user."""
-        request = self.context.get('request')
+        request = self.context.get("request")
         if not request or not request.user:
             raise serializers.ValidationError("کاربر احراز هویت نشده است.")
 
         try:
             profile = Profile.objects.get(user=request.user)
             report = LoanRiskReport.objects.get(id=value, profile=profile)
-        except Profile.DoesNotExist:
-            raise serializers.ValidationError("پروفایل کاربری یافت نشد.")
-        except LoanRiskReport.DoesNotExist:
+        except Profile.DoesNotExist as exc:
+            raise serializers.ValidationError("پروفایل کاربری یافت نشد.") from exc
+        except LoanRiskReport.DoesNotExist as exc:
             raise serializers.ValidationError(
                 "گزارش یافت نشد یا متعلق به شما نیست."
-            )
+            ) from exc
 
-        # Check if report can accept OTP
         if not report.can_request_report():
             raise serializers.ValidationError(
                 "گزارش در وضعیت مناسب برای ارسال کد نیست یا کد منقضی شده است."
@@ -173,11 +172,10 @@ class LoanRiskOTPVerifySerializer(serializers.Serializer):
 class LoanRiskReportSerializer(serializers.ModelSerializer):
     """Serializer for LoanRiskReport model."""
 
-    status_display = serializers.CharField(
-        source='get_status_display', read_only=True
-    )
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
     risk_level_display = serializers.CharField(
-        source='get_risk_level_display', read_only=True
+        source="get_risk_level_display",
+        read_only=True,
     )
     is_low_risk = serializers.BooleanField(read_only=True)
     is_medium_risk = serializers.BooleanField(read_only=True)
@@ -188,27 +186,27 @@ class LoanRiskReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoanRiskReport
         fields = [
-            'id',
-            'status',
-            'status_display',
-            'otp_sent_at',
-            'report_requested_at',
-            'credit_score',
-            'risk_level',
-            'risk_level_display',
-            'grade_description',
-            'is_low_risk',
-            'is_medium_risk',
-            'is_high_risk',
-            'report_timestamp',
-            'report_types',
-            'error_message',
-            'error_code',
-            'created_at',
-            'updated_at',
-            'completed_at',
-            'can_request_report',
-            'can_check_result',
+            "id",
+            "status",
+            "status_display",
+            "otp_sent_at",
+            "report_requested_at",
+            "credit_score",
+            "risk_level",
+            "risk_level_display",
+            "grade_description",
+            "is_low_risk",
+            "is_medium_risk",
+            "is_high_risk",
+            "report_timestamp",
+            "report_types",
+            "error_message",
+            "error_code",
+            "created_at",
+            "updated_at",
+            "completed_at",
+            "can_request_report",
+            "can_check_result",
         ]
         read_only_fields = fields
 
@@ -217,30 +215,29 @@ class LoanRiskReportDetailSerializer(LoanRiskReportSerializer):
     """Detailed serializer including full report data."""
 
     class Meta(LoanRiskReportSerializer.Meta):
-        fields = LoanRiskReportSerializer.Meta.fields + ['report_data']
+        fields = LoanRiskReportSerializer.Meta.fields + ["report_data"]
 
 
 class LoanRiskReportListSerializer(serializers.ModelSerializer):
     """Simplified serializer for list view."""
 
-    status_display = serializers.CharField(
-        source='get_status_display', read_only=True
-    )
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
     risk_level_display = serializers.CharField(
-        source='get_risk_level_display', read_only=True
+        source="get_risk_level_display",
+        read_only=True,
     )
 
     class Meta:
         model = LoanRiskReport
         fields = [
-            'id',
-            'status',
-            'status_display',
-            'credit_score',
-            'risk_level',
-            'risk_level_display',
-            'grade_description',
-            'created_at',
-            'completed_at',
+            "id",
+            "status",
+            "status_display",
+            "credit_score",
+            "risk_level",
+            "risk_level_display",
+            "grade_description",
+            "created_at",
+            "completed_at",
         ]
         read_only_fields = fields

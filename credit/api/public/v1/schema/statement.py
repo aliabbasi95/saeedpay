@@ -1,38 +1,46 @@
 # credit/api/public/v1/schema/statement.py
 
 from drf_spectacular.utils import (
-    extend_schema, extend_schema_view,
-    OpenApiResponse, OpenApiExample, OpenApiParameter, OpenApiTypes,
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    OpenApiTypes,
+    extend_schema,
+    extend_schema_view,
 )
 
 from credit.api.public.v1.serializers.credit import (
-    StatementListSerializer,
-    StatementDetailSerializer,
     CloseStatementResponseSerializer,
+    StatementDetailSerializer,
+    StatementListSerializer,
 )
 
 statement_viewset_schema = extend_schema_view(
     list=extend_schema(
         tags=["Credit · Statements"],
         summary="List user's statements",
-        description="Paginated list ordered by `-year, -month, -created_at`.",
+        description="Return a paginated list of the authenticated user's statements.",
         parameters=[
             OpenApiParameter(
                 name="ordering",
                 location=OpenApiParameter.QUERY,
                 type=OpenApiTypes.STR,
                 required=False,
-                description="Optional ordering, default is most recent first",
-                examples=[OpenApiExample(
-                    "Default", value="-year,-month,-created_at"
-                )],
+                description="Optional ordering. Default is most recent first.",
+                examples=[
+                    OpenApiExample(
+                        "DefaultOrdering",
+                        value="-year,-month,-created_at",
+                    )
+                ],
             ),
         ],
         responses={200: StatementListSerializer(many=True)},
     ),
     retrieve=extend_schema(
         tags=["Credit · Statements"],
-        summary="Retrieve a statement (with lines)",
+        summary="Retrieve a statement",
+        description="Return a single statement with its lines.",
         responses={200: StatementDetailSerializer},
     ),
 )
@@ -41,8 +49,7 @@ add_purchase_schema = extend_schema(
     tags=["Credit · Transactions"],
     summary="Record a purchase from a successful transaction",
     description=(
-        "Append a PURCHASE line to CURRENT statement of the buyer "
-        "(transaction.from_wallet owner). Transaction must be SUCCESS and belong to the user."
+        "Append a PURCHASE line to the current statement for the authenticated user."
     ),
     request={
         "application/json": {
@@ -56,22 +63,19 @@ add_purchase_schema = extend_schema(
     },
     responses={
         201: OpenApiResponse(
-            description="Recorded",
-            examples=[OpenApiExample("OK", value={"success": True})],
+            description="Purchase recorded successfully.",
+            examples=[OpenApiExample("Success", value={"success": True})],
         ),
-        400: OpenApiResponse(description="Validation error"),
-        403: OpenApiResponse(description="Not allowed"),
-        404: OpenApiResponse(description="Transaction not found"),
+        400: OpenApiResponse(description="Validation or business rule error."),
+        403: OpenApiResponse(description="Transaction does not belong to the user."),
+        404: OpenApiResponse(description="Transaction not found."),
     },
 )
 
 add_payment_schema = extend_schema(
     tags=["Credit · Transactions"],
     summary="Record a payment on the current statement",
-    description=(
-        "Append a PAYMENT line to CURRENT statement. Positive `amount` is required. "
-        "If `transaction_id` is provided, it must be SUCCESS and belong to the user."
-    ),
+    description="Append a PAYMENT line to the current statement.",
     request={
         "application/json": {
             "type": "object",
@@ -85,28 +89,25 @@ add_payment_schema = extend_schema(
     },
     responses={
         201: OpenApiResponse(
-            description="Recorded",
-            examples=[OpenApiExample("OK", value={"success": True})],
+            description="Payment recorded successfully.",
+            examples=[OpenApiExample("Success", value={"success": True})],
         ),
-        400: OpenApiResponse(description="Validation error"),
-        403: OpenApiResponse(description="Not allowed"),
-        404: OpenApiResponse(description="Transaction not found"),
+        400: OpenApiResponse(description="Validation or business rule error."),
+        403: OpenApiResponse(description="Transaction does not belong to the user."),
+        404: OpenApiResponse(description="Transaction not found."),
     },
 )
 
 close_current_schema = extend_schema(
     tags=["Credit · Management"],
     summary="Close the current statement",
-    description=(
-        "Close CURRENT statement and move it to PENDING_PAYMENT. "
-        "Due date will be set based on active credit limit's grace days."
-    ),
+    description=("Close the current statement and move it to pending payment status."),
     responses={
         200: OpenApiResponse(
             response=CloseStatementResponseSerializer,
-            description="Closed",
-            examples=[OpenApiExample("OK", value={"success": True})],
+            description="Statement closed successfully.",
+            examples=[OpenApiExample("Success", value={"success": True})],
         ),
-        400: OpenApiResponse(description="No current statement"),
+        400: OpenApiResponse(description="No current statement or close failed."),
     },
 )

@@ -1,4 +1,4 @@
-# contact/api/public/v1/views/contact.py
+# contact/api/public/v1/serializers/contact.py
 
 from rest_framework import serializers
 
@@ -6,9 +6,7 @@ from contact.models.contact import Contact
 
 
 class ContactCreateSerializer(serializers.ModelSerializer):
-    """
-    Public serializer for creating contact messages.
-    """
+    """Public serializer for creating contact messages."""
 
     def validate_name(self, value: str) -> str:
         value = (value or "").strip()

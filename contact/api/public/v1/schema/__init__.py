@@ -1,21 +1,21 @@
-# chatbot/api/public/v1/views/__init__.py
+# contact/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 __all__ = [
-    "ChatSessionViewSet",
+    "contact_create_schema",
 ]
 
 _MODULE_MAP = {
-    "ChatSessionViewSet": (
-        "chatbot.api.public.v1.views.session",
-        "ChatSessionViewSet",
+    "contact_create_schema": (
+        "contact.api.public.v1.schema.contact",
+        "contact_create_schema",
     ),
 }
 
 if TYPE_CHECKING:
-    from .session import ChatSessionViewSet
+    from .contact import contact_create_schema
 
 
 def __getattr__(name: str) -> Any:

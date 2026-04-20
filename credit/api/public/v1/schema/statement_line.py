@@ -2,8 +2,11 @@
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
-    extend_schema, extend_schema_view,
-    OpenApiParameter, OpenApiResponse, OpenApiExample,
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
 )
 
 from credit.api.public.v1.serializers.credit import StatementLineSerializer
@@ -12,26 +15,27 @@ statement_line_viewset_schema = extend_schema_view(
     list=extend_schema(
         tags=["Credit · Statement Lines"],
         summary="List user's statement lines",
-        description="Optionally filter by `?statement_id=`. Results are ordered by `-created_at`.",
+        description=(
+            "Return the authenticated user's statement lines. "
+            "Optionally filter by statement id."
+        ),
         parameters=[
             OpenApiParameter(
                 name="statement_id",
                 location=OpenApiParameter.QUERY,
                 required=False,
                 type=OpenApiTypes.INT,
-                description="Filter by a specific statement id",
-                examples=[
-                    OpenApiExample("Filter by statement #42", value=42),
-                ],
+                description="Filter by statement id.",
+                examples=[OpenApiExample("FilterByStatement", value=42)],
             ),
         ],
         responses={
             200: OpenApiResponse(
                 response=StatementLineSerializer(many=True),
-                description="Paginated statement lines",
+                description="Paginated statement lines.",
                 examples=[
                     OpenApiExample(
-                        "Sample page",
+                        "SamplePage",
                         value={
                             "count": 2,
                             "next": None,
@@ -60,6 +64,7 @@ statement_line_viewset_schema = extend_schema_view(
     retrieve=extend_schema(
         tags=["Credit · Statement Lines"],
         summary="Retrieve a statement line",
+        description="Return a single statement line belonging to the authenticated user.",
         responses={200: StatementLineSerializer},
     ),
 )

@@ -9,9 +9,7 @@ from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 
 class ContactCreateView(ScopedThrottleByActionMixin, CreateAPIView):
-    """
-    Public endpoint to submit a contact message.
-    """
+    """Public endpoint to submit a contact message."""
 
     permission_classes = [AllowAny]
     serializer_class = ContactCreateSerializer
@@ -22,5 +20,4 @@ class ContactCreateView(ScopedThrottleByActionMixin, CreateAPIView):
 
     @contact_create_schema
     def post(self, request, *args, **kwargs):
-        # Use DRF's CreateAPIView implementation (validation + save + 201)
         return super().post(request, *args, **kwargs)

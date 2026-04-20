@@ -2,7 +2,7 @@
 # Clean, modular ViewSets for Loan Risk flows (RESTful + actions)
 
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets, mixins
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -10,39 +10,37 @@ from rest_framework.response import Response
 from credit.api.public.v1.schema import (
     otp_request_schema,
     otp_verify_schema,
-    report_viewset_schema,
-    report_latest_schema,
     report_check_schema,
+    report_latest_schema,
+    report_viewset_schema,
 )
 from credit.api.public.v1.serializers import (
     LoanRiskOTPRequestSerializer,
     LoanRiskOTPVerifySerializer,
-    LoanRiskReportSerializer,
     LoanRiskReportDetailSerializer,
     LoanRiskReportListSerializer,
+    LoanRiskReportSerializer,
 )
 from credit.models import LoanRiskReport
 from credit.tasks_loan_validation import (
+    check_loan_report_result,
     send_loan_validation_otp,
     verify_loan_otp_and_request_report,
-    check_loan_report_result,
 )
 from credit.utils.choices import LoanReportStatus
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from profiles.models.profile import Profile
 
-
 # ---------- Collection-level flows: OTP request/verify ----------
 
-class LoanRiskAuthViewSet(
-    ScopedThrottleByActionMixin,
-    viewsets.GenericViewSet
-):
+
+class LoanRiskAuthViewSet(ScopedThrottleByActionMixin, viewsets.GenericViewSet):
     """
     Collection-level authentication actions for loan risk:
     - POST /loan-risk/otp/request/
     - POST /loan-risk/otp/verify/
     """
+
     permission_classes = [IsAuthenticated]
     throttle_scope_map = {
         "default": "loan-risk",
@@ -106,12 +104,13 @@ class LoanRiskAuthViewSet(
 
 # ---------- Resource: Reports (list/retrieve + latest + check) ----------
 
+
 @report_viewset_schema
 class LoanRiskReportViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
 ):
     """
     LoanRiskReport endpoints:
@@ -120,6 +119,7 @@ class LoanRiskReportViewSet(
     - GET    /loan-risk/reports/latest/       (collection action)
     - POST   /loan-risk/reports/{id}/check/   (detail action)
     """
+
     permission_classes = [IsAuthenticated]
     lookup_field = "pk"
     throttle_scope_map = {
@@ -132,9 +132,7 @@ class LoanRiskReportViewSet(
 
     def get_queryset(self):
         profile = get_object_or_404(Profile, user=self.request.user)
-        return LoanRiskReport.objects.filter(profile=profile).order_by(
-            "-created_at"
-        )
+        return LoanRiskReport.objects.filter(profile=profile).order_by("-created_at")
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -150,8 +148,7 @@ class LoanRiskReportViewSet(
         """Return the latest report for the current user."""
         profile = get_object_or_404(Profile, user=request.user)
         report = (
-            LoanRiskReport.objects
-            .filter(profile=profile)
+            LoanRiskReport.objects.filter(profile=profile)
             .order_by("-created_at")
             .first()
         )
@@ -175,8 +172,7 @@ class LoanRiskReportViewSet(
 
         if report.status == LoanReportStatus.COMPLETED:
             return Response(
-                LoanRiskReportSerializer(report).data,
-                status=status.HTTP_200_OK
+                LoanRiskReportSerializer(report).data, status=status.HTTP_200_OK
             )
 
         if report.can_check_result():
@@ -187,7 +183,8 @@ class LoanRiskReportViewSet(
                     "message": "Report check scheduled.",
                     "task_id": task.id,
                     "status": report.get_status_display(),
-                }, status=status.HTTP_200_OK
+                },
+                status=status.HTTP_200_OK,
             )
 
         return Response(

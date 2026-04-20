@@ -100,7 +100,7 @@ class PaymentRequestAdmin(BaseAdmin):
         ),
     )
     list_select_related = ("store", "customer", "paid_by", "paid_wallet")
-    autocomplete_fields = ("store", "customer", "paid_by", "paid_wallet")
+    autocomplete_fields = ("paid_by", "paid_wallet")
     ordering = ("-created_at",)
     date_hierarchy = "created_at"
 

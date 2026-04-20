@@ -1,25 +1,22 @@
-# contact/api/public/v1/schema.py
+# contact/api/public/v1/schema/contact.py
 
-from drf_spectacular.utils import (
-    OpenApiExample,
-    OpenApiResponse,
-    extend_schema,
-)
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework import status
 
 from contact.api.public.v1.serializers.contact import ContactCreateSerializer
 
 contact_create_schema = extend_schema(
+    tags=["Contact"],
     summary="ارسال فرم تماس",
-    description="این API برای ارسال پیام تماس توسط کاربر استفاده می‌شود. فقط از طریق Postman و Swagger قابل استفاده است.",
+    description="ثبت پیام تماس عمومی توسط کاربر.",
     request=ContactCreateSerializer,
     responses={
         status.HTTP_201_CREATED: OpenApiResponse(
             response=ContactCreateSerializer,
-            description="Contact created successfully.",
+            description="پیام تماس با موفقیت ثبت شد.",
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            description="BAD REQUEST (validation error or blocked client)"
+            description="خطای اعتبارسنجی یا محدودیت درخواست.",
         ),
     },
     examples=[

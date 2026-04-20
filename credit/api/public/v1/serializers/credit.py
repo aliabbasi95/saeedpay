@@ -19,6 +19,7 @@ User = get_user_model()
 
 # ───────────────────────────── CreditLimit ───────────────────────────── #
 
+
 class CreditLimitSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     available_limit = serializers.SerializerMethodField()
@@ -50,6 +51,7 @@ class CreditLimitSerializer(serializers.ModelSerializer):
 
 
 # ───────────────────── Helpers: conditional unique (PATCH-safe) ───────────────────── #
+
 
 def extract_condition_field_names_from_q(condition: Q) -> set[str]:
     """
@@ -91,10 +93,10 @@ def _condition_matches_q(condition: Q, values: dict) -> bool:
                 actual = values.get(field, None)
 
                 if lookup == "exact":
-                    child_res = (actual == expected)
+                    child_res = actual == expected
                 elif lookup == "in":
                     try:
-                        child_res = (actual in expected)
+                        child_res = actual in expected
                     except TypeError:
                         child_res = False
                 else:
@@ -134,9 +136,7 @@ class PartialSafeConditionalUniqueTogetherValidator(UniqueTogetherValidator):
         # Prefer DRF-provided condition_fields; otherwise derive them from the Q condition.
         condition_fields = getattr(original, "condition_fields", None)
         if not condition_fields and getattr(wrapped, "condition", None):
-            condition_fields = extract_condition_field_names_from_q(
-                wrapped.condition
-            )
+            condition_fields = extract_condition_field_names_from_q(wrapped.condition)
 
         wrapped.condition_fields = list(condition_fields or [])
         wrapped.serializer_field_names = getattr(
@@ -152,7 +152,7 @@ class PartialSafeConditionalUniqueTogetherValidator(UniqueTogetherValidator):
 
         # 1) برای فیلدهای شرطی، ابتدا از initial_data بخوان (حتی اگر read_only باشند)
         initial = getattr(serializer, "initial_data", {}) or {}
-        for name in (self.condition_fields or []):
+        for name in self.condition_fields or []:
             if name not in filled and name in initial:
                 filled[name] = initial[name]
 
@@ -164,7 +164,7 @@ class PartialSafeConditionalUniqueTogetherValidator(UniqueTogetherValidator):
                     filled[name] = getattr(instance, name, None)
 
         # 3) اگر باز هم در فیلدهای شرطی چیزی کم بود، از default مدل پر کن (CREATE)
-        for name in (self.condition_fields or []):
+        for name in self.condition_fields or []:
             if name in filled:
                 continue
             try:
@@ -176,7 +176,7 @@ class PartialSafeConditionalUniqueTogetherValidator(UniqueTogetherValidator):
 
         # 4) اگر شرط روی ورودی فعلی برقرار نیست، چک یونیک را skip کن
         if getattr(self, "condition", None) and not _condition_matches_q(
-                self.condition, filled
+            self.condition, filled
         ):
             return None
 
@@ -185,6 +185,7 @@ class PartialSafeConditionalUniqueTogetherValidator(UniqueTogetherValidator):
 
 # ───────────────────────────── Statement / Lines ───────────────────────────── #
 
+
 class StatementLineSerializer(serializers.ModelSerializer):
     """
     - Rejects amount == 0 (fail-fast).
@@ -192,6 +193,7 @@ class StatementLineSerializer(serializers.ModelSerializer):
     - Ensures at most one active (is_voided=False) INTEREST line per statement.
     - Wraps DRF's conditional UniqueTogetherValidator to be PATCH-safe.
     """
+
     transaction = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
@@ -229,9 +231,7 @@ class StatementLineSerializer(serializers.ModelSerializer):
         base = super().get_validators()
         patched = []
         for v in base:
-            if isinstance(v, UniqueTogetherValidator) and getattr(
-                    v, "condition", None
-            ):
+            if isinstance(v, UniqueTogetherValidator) and getattr(v, "condition", None):
                 patched.append(
                     PartialSafeConditionalUniqueTogetherValidator.from_existing(
                         v, model=self.Meta.model
@@ -246,8 +246,7 @@ class StatementLineSerializer(serializers.ModelSerializer):
         attrs = super().validate(attrs)
 
         instance = getattr(self, "instance", None)
-        statement = attrs.get("statement") or (
-            instance.statement if instance else None)
+        statement = attrs.get("statement") or (instance.statement if instance else None)
         line_type = attrs.get("type") or (instance.type if instance else None)
 
         # Resolve is_voided with priority: attrs -> initial_data -> instance -> model default
@@ -261,9 +260,7 @@ class StatementLineSerializer(serializers.ModelSerializer):
                 is_voided = instance.is_voided
             else:
                 mf = StatementLine._meta.get_field("is_voided")
-                is_voided = mf.default() if callable(
-                    mf.default
-                ) else mf.default
+                is_voided = mf.default() if callable(mf.default) else mf.default
 
         if statement and line_type == StatementLineType.INTEREST and is_voided is False:
             qs = StatementLine.objects.filter(
@@ -277,7 +274,8 @@ class StatementLineSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {
                         "non_field_errors": [
-                            "Only one active INTEREST line is allowed per statement."]
+                            "Only one active INTEREST line is allowed per statement."
+                        ]
                     }
                 )
 
@@ -286,6 +284,7 @@ class StatementLineSerializer(serializers.ModelSerializer):
 
 class StatementListSerializer(serializers.ModelSerializer):
     """Minimal list view of statements (no nested lines)."""
+
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
     class Meta:
@@ -310,6 +309,7 @@ class StatementListSerializer(serializers.ModelSerializer):
 
 class StatementDetailSerializer(serializers.ModelSerializer):
     """Detail view with read-only nested lines."""
+
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     lines = serializers.SerializerMethodField(read_only=True)
 
@@ -332,13 +332,7 @@ class StatementDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = [
-            "id",
-            "reference_code",
-            "created_at",
-            "updated_at",
-            "lines"
-        ]
+        read_only_fields = ["id", "reference_code", "created_at", "updated_at", "lines"]
 
     @extend_schema_field(StatementLineSerializer(many=True))
     def get_lines(self, obj):
@@ -347,6 +341,7 @@ class StatementDetailSerializer(serializers.ModelSerializer):
 
 class CloseStatementResponseSerializer(serializers.Serializer):
     """Simple success flag for 'close statement' action."""
+
     success = serializers.BooleanField(
         help_text="Whether the current statement was successfully closed"
     )

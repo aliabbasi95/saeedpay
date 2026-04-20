@@ -19,6 +19,7 @@ class CreditLimitViewSet(
     list:     Unpaginated list of user's credit limits (newest first).
     retrieve: Single credit limit owned by the user.
     """
+
     serializer_class = CreditLimitSerializer
     pagination_class = None
     lookup_field = "pk"
@@ -34,11 +35,16 @@ class CreditLimitViewSet(
         if getattr(self, "swagger_fake_view", False):
             return CreditLimit.objects.none()
         return (
-            CreditLimit.objects
-            .only(
-                "id", "user_id", "approved_limit", "is_active",
-                "grace_period_days", "expiry_date",
-                "created_at", "updated_at", "reference_code",
+            CreditLimit.objects.only(
+                "id",
+                "user_id",
+                "approved_limit",
+                "is_active",
+                "grace_period_days",
+                "expiry_date",
+                "created_at",
+                "updated_at",
+                "reference_code",
             )
             .filter(user=self.request.user)
             .order_by("-created_at")
