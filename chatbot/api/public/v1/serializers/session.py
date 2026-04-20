@@ -3,7 +3,7 @@
 from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
 
-from chatbot.api.public.v1.serializers import ChatMessageSerializer
+from chatbot.api.public.v1.serializers.message import ChatMessageSerializer
 from chatbot.models.session import ChatSession
 
 
@@ -12,10 +12,9 @@ class ChatSessionSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.DATETIME)
     def get_last_activity_at(self, obj):
-        val = getattr(obj, "last_msg_at", None)
-        if val:
-            return val
-        return getattr(obj, "last_message_at", None)
+        return getattr(obj, "last_msg_at", None) or getattr(
+            obj, "last_message_at", None
+        )
 
     class Meta:
         model = ChatSession
@@ -37,15 +36,13 @@ class ChatSessionDetailSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.DATETIME)
     def get_last_activity_at(self, obj):
-        val = getattr(obj, "last_msg_at", None)
-        if val:
-            return val
-        return getattr(obj, "last_message_at", None)
+        return getattr(obj, "last_msg_at", None) or getattr(
+            obj, "last_message_at", None
+        )
 
     @extend_schema_field(ChatMessageSerializer(many=True))
     def get_messages(self, obj):
-        qs = obj.messages.all()
-        return ChatMessageSerializer(qs, many=True).data
+        return ChatMessageSerializer(obj.messages.all(), many=True).data
 
     class Meta:
         model = ChatSession

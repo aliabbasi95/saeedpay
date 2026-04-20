@@ -14,8 +14,8 @@ from persiantools.jdatetime import JalaliDateTime
 
 from credit.models.loan_risk_report import LoanRiskReport
 from credit.tasks_loan_validation import (
-    send_loan_validation_otp,
     check_loan_report_result,
+    send_loan_validation_otp,
 )
 from credit.utils.choices import LoanReportStatus, LoanRiskLevel
 
@@ -34,7 +34,8 @@ def _badge(text: str, color: str) -> str:
     return format_html(
         '<span style="display:inline-block;padding:2px 8px;border-radius:10px;'
         'font-size:12px;color:#fff;background:{};">{}</span>',
-        color, text,
+        color,
+        text,
     )
 
 
@@ -77,9 +78,7 @@ def _pretty_json(obj) -> str:
     except Exception:  # pragma: no cover
         pretty = str(obj)
     return mark_safe(
-        '<pre style="white-space:pre-wrap; direction:ltr; margin:0">{}</pre>'.format(
-            pretty
-        )
+        f'<pre style="white-space:pre-wrap; direction:ltr; margin:0">{pretty}</pre>'
     )
 
 
@@ -106,9 +105,7 @@ class HasErrorFilter(admin.SimpleListFilter):
             )
         if self.value() == "no":
             return qs.filter(
-                models.Q(error_message__isnull=True) | models.Q(
-                    error_message__exact=""
-                )
+                models.Q(error_message__isnull=True) | models.Q(error_message__exact="")
             )
         return qs
 
@@ -127,9 +124,7 @@ class HasOTPFilter(admin.SimpleListFilter):
             )
         if self.value() == "no":
             return qs.filter(
-                models.Q(otp_unique_id__isnull=True) | models.Q(
-                    otp_unique_id__exact=""
-                )
+                models.Q(otp_unique_id__isnull=True) | models.Q(otp_unique_id__exact="")
             )
         return qs
 
@@ -148,9 +143,8 @@ class HasReportIDFilter(admin.SimpleListFilter):
             )
         if self.value() == "no":
             return qs.filter(
-                models.Q(report_unique_id__isnull=True) | models.Q(
-                    report_unique_id__exact=""
-                )
+                models.Q(report_unique_id__isnull=True)
+                | models.Q(report_unique_id__exact="")
             )
         return qs
 
@@ -229,7 +223,6 @@ class LoanRiskReportAdmin(admin.ModelAdmin):
     )
     ordering = ("-created_at",)
     date_hierarchy = "created_at"
-    autocomplete_fields = ("profile",)
     list_select_related = ("profile",)
     empty_value_display = "-"
 
@@ -260,37 +253,40 @@ class LoanRiskReportAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
-        ("شناسه‌ها و وضعیت", {
-            "fields": (
-                "profile",
-                "status",
-                ("credit_score", "risk_level", "grade_description"),
-                ("otp_unique_id", "report_unique_id"),
-                ("otp_valid_label", "can_request_new_label"),
-            )
-        }),
-        ("اطلاعات هویتی داخل گزارش", {
-            "fields": ("national_code", "mobile_number")
-        }),
-        ("زمان‌ها", {
-            "fields": (
-                ("otp_sent_at", "jalali_otp_sent_at"),
-                ("report_requested_at", "jalali_report_requested_at"),
-                ("completed_at", "jalali_completed_at"),
-                ("created_at", "jalali_creation_time"),
-                ("updated_at", "jalali_update_time"),
-            )
-        }),
-        ("انواع گزارش و مُهر زمان سرویس", {
-            "fields": ("report_types_pretty", "report_timestamp")
-        }),
-        ("دادهٔ کامل گزارش", {
-            "classes": ("collapse",),
-            "fields": ("report_data_pretty",)
-        }),
-        ("خطا", {
-            "fields": (("error_code",), "error_message")
-        }),
+        (
+            "شناسه‌ها و وضعیت",
+            {
+                "fields": (
+                    "profile",
+                    "status",
+                    ("credit_score", "risk_level", "grade_description"),
+                    ("otp_unique_id", "report_unique_id"),
+                    ("otp_valid_label", "can_request_new_label"),
+                )
+            },
+        ),
+        ("اطلاعات هویتی داخل گزارش", {"fields": ("national_code", "mobile_number")}),
+        (
+            "زمان‌ها",
+            {
+                "fields": (
+                    ("otp_sent_at", "jalali_otp_sent_at"),
+                    ("report_requested_at", "jalali_report_requested_at"),
+                    ("completed_at", "jalali_completed_at"),
+                    ("created_at", "jalali_creation_time"),
+                    ("updated_at", "jalali_update_time"),
+                )
+            },
+        ),
+        (
+            "انواع گزارش و مُهر زمان سرویس",
+            {"fields": ("report_types_pretty", "report_timestamp")},
+        ),
+        (
+            "دادهٔ کامل گزارش",
+            {"classes": ("collapse",), "fields": ("report_data_pretty",)},
+        ),
+        ("خطا", {"fields": (("error_code",), "error_message")}),
     )
 
     actions = (
@@ -335,15 +331,15 @@ class LoanRiskReportAdmin(admin.ModelAdmin):
 
     @admin.display(description="امکان درخواست جدید؟")
     def can_request_new_label(self, obj: LoanRiskReport):
-        can, reason, _last = LoanRiskReport.can_user_request_new_report(
-            obj.profile
-        )
+        can, reason, _last = LoanRiskReport.can_user_request_new_report(obj.profile)
         color = "#16a34a" if can else "#ef4444"
         text = "بله" if can else "خیر"
         tip = reason or ""
         return format_html(
-            '<span title="{}" style="color:{};font-weight:600">{}</span>', tip,
-            color, text
+            '<span title="{}" style="color:{};font-weight:600">{}</span>',
+            tip,
+            color,
+            text,
         )
 
     @admin.display(description="OTP معتبر است؟")
@@ -364,7 +360,7 @@ class LoanRiskReportAdmin(admin.ModelAdmin):
             self.message_user(
                 request,
                 "تسک ارسال OTP یافت نشد (credit.tasks_loan_validation).",
-                level=messages.WARNING
+                level=messages.WARNING,
             )
             return
         eligible = queryset.filter(status=LoanReportStatus.PENDING)
@@ -377,7 +373,7 @@ class LoanRiskReportAdmin(admin.ModelAdmin):
             self.message_user(
                 request,
                 f"{skipped} رکورد به‌دلیل وضعیت نامعتبر برای OTP نادیده گرفته شد.",
-                level=messages.WARNING
+                level=messages.WARNING,
             )
         self.message_user(
             request, f"OTP برای {count} گزارش صف شد.", level=messages.SUCCESS
@@ -389,13 +385,13 @@ class LoanRiskReportAdmin(admin.ModelAdmin):
             self.message_user(
                 request,
                 "تسک بررسی نتیجه یافت نشد (credit.tasks_loan_validation).",
-                level=messages.WARNING
+                level=messages.WARNING,
             )
             return
-        eligible = queryset.filter(
-            status=LoanReportStatus.IN_PROCESSING
-        ).exclude(report_unique_id__isnull=True).exclude(
-            report_unique_id__exact=""
+        eligible = (
+            queryset.filter(status=LoanReportStatus.IN_PROCESSING)
+            .exclude(report_unique_id__isnull=True)
+            .exclude(report_unique_id__exact="")
         )
         skipped = queryset.exclude(pk__in=eligible.values("pk")).count()
         count = 0
@@ -406,17 +402,15 @@ class LoanRiskReportAdmin(admin.ModelAdmin):
             self.message_user(
                 request,
                 f"{skipped} رکورد به‌دلیل وضعیت/Report ID نامعتبر نادیده گرفته شد.",
-                level=messages.WARNING
+                level=messages.WARNING,
             )
         self.message_user(
-            request, f"بررسی نتیجه برای {count} مورد صف شد.",
-            level=messages.SUCCESS
+            request, f"بررسی نتیجه برای {count} مورد صف شد.", level=messages.SUCCESS
         )
 
     @admin.action(description="پاک‌کردن پیام/کد خطا (یادداشت مدیریتی)")
     def action_clear_error_note(self, request, queryset):
         updated = queryset.update(error_message=None, error_code=None)
         self.message_user(
-            request, f"خطا برای {updated} رکورد پاک شد.",
-            level=messages.SUCCESS
+            request, f"خطا برای {updated} رکورد پاک شد.", level=messages.SUCCESS
         )

@@ -1,5 +1,4 @@
 # chatbot/api/public/v1/views/session.py
-# Clean ViewSet using external schema decorators
 
 import logging
 from urllib.parse import urljoin
@@ -44,9 +43,7 @@ class ChatSessionViewSet(
     mixins.CreateModelMixin,
     viewsets.GenericViewSet,
 ):
-    """
-    Read/write endpoints for chat sessions + `chat` and `messages` actions.
-    """
+    """Read/write endpoints for chat sessions plus chat and messages actions."""
 
     permission_classes = [AllowAny]
     pagination_class = None
@@ -60,12 +57,11 @@ class ChatSessionViewSet(
         "messages": "chat-messages",
     }
 
-    # ---------- queryset / serializer selection ----------
-
     def get_queryset(self):
         """Scope sessions to the authenticated user or the current anonymous session."""
         if getattr(self, "swagger_fake_view", False):
             return ChatSession.objects.none()
+
         request = self.request
         if request.user.is_authenticated:
             base_qs = ChatSession.objects.filter(user=request.user)
@@ -73,7 +69,8 @@ class ChatSessionViewSet(
             if not request.session.session_key:
                 return ChatSession.objects.none()
             base_qs = ChatSession.objects.filter(
-                user=None, session_key=request.session.session_key
+                user=None,
+                session_key=request.session.session_key,
             )
 
         if self.action == "list":
@@ -86,7 +83,8 @@ class ChatSessionViewSet(
         if self.action == "retrieve":
             return base_qs.prefetch_related(
                 Prefetch(
-                    "messages", queryset=ChatMessage.objects.order_by("created_at")
+                    "messages",
+                    queryset=ChatMessage.objects.order_by("created_at"),
                 )
             ).annotate(last_msg_at=Max("messages__created_at"))
 
@@ -101,10 +99,8 @@ class ChatSessionViewSet(
             return ChatRequestSerializer
         return ChatSessionSerializer
 
-    # ---------- create (start session) ----------
-
     def create(self, request, *args, **kwargs):
-        """Start a chat session; enforce anonymous limit."""
+        """Start a chat session and enforce anonymous session limits."""
         user = request.user if request.user.is_authenticated else None
 
         if not request.session.session_key:
@@ -113,115 +109,125 @@ class ChatSessionViewSet(
 
         if user is None:
             existing = ChatSession.objects.filter(
-                user=None, session_key=session_key
+                user=None,
+                session_key=session_key,
             ).count()
             if existing >= SESSION_LIMIT_ANONYMOUS:
                 return Response(
                     {
                         "detail": (
-                            f"Anonymous users are limited to {SESSION_LIMIT_ANONYMOUS} sessions. "
-                            f"Please log in to continue chatting."
+                            f"Anonymous users are limited to "
+                            f"{SESSION_LIMIT_ANONYMOUS} sessions. Please log in to "
+                            f"continue chatting."
                         )
                     },
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        ip_address = (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[
-            0
-        ] or request.META.get("REMOTE_ADDR")
+        ip_address = (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0]
+        ip_address = ip_address or request.META.get("REMOTE_ADDR")
 
         session = ChatSession.objects.create(
-            user=user, session_key=session_key, ip_address=ip_address, is_active=True
+            user=user,
+            session_key=session_key,
+            ip_address=ip_address,
+            is_active=True,
         )
         return Response(
-            ChatSessionSerializer(session).data, status=status.HTTP_201_CREATED
+            ChatSessionSerializer(session).data,
+            status=status.HTTP_201_CREATED,
         )
-
-    # ---------- chat action ----------
 
     @chat_action_schema
     @action(detail=True, methods=["post"], url_path="chat")
     def chat(self, request, *args, **kwargs):
-        """Proxy the user message to LLM and persist Q/A."""
+        """Proxy the user message to LLM and persist both user and AI messages."""
         session = get_object_or_404(
-            self.get_queryset(), id=kwargs.get("pk"), is_active=True
+            self.get_queryset(),
+            id=kwargs.get("pk"),
+            is_active=True,
         )
 
-        ser = ChatRequestSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
-        query = ser.validated_data["query"]
+        serializer = ChatRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        query = serializer.validated_data["query"]
 
         if not request.user.is_authenticated:
             user_message_count = ChatMessage.objects.filter(
-                session=session, sender="user"
+                session=session,
+                sender="user",
             ).count()
             if user_message_count >= HISTORY_LIMIT:
                 return Response(
                     {
                         "detail": (
-                            f"Anonymous users are limited to {HISTORY_LIMIT} messages per session. "
-                            f"Please log in to continue chatting."
+                            f"Anonymous users are limited to {HISTORY_LIMIT} messages "
+                            f"per session. Please log in to continue chatting."
                         )
                     },
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        msgs = list(
+        messages = list(
             ChatMessage.objects.filter(session=session).order_by("-created_at")[
                 :HISTORY_LIMIT
             ]
         )
-        msgs.reverse()
+        messages.reverse()
         history = [
             {
-                "content": m.message,
-                "role": "user" if m.sender == "user" else "assistant",
+                "content": message.message,
+                "role": "user" if message.sender == "user" else "assistant",
             }
-            for m in msgs
+            for message in messages
         ]
 
         ChatMessage.objects.create(session=session, sender="user", message=query)
 
         try:
             llm_url = urljoin(LLM_BASE_URL.rstrip("/") + "/", "api/v1/chat")
-            resp = requests.post(
-                llm_url, json={"history": history, "query": query}, timeout=30
+            response = requests.post(
+                llm_url,
+                json={"history": history, "query": query},
+                timeout=30,
             )
-            resp.raise_for_status()
+            response.raise_for_status()
 
             try:
-                data = resp.json()
+                data = response.json()
                 answer = (
                     data.get("answer") or data.get("content") or data.get("response")
                 )
             except ValueError:
-                answer = (resp.text or "").strip()
+                answer = (response.text or "").strip()
 
             if not answer:
                 raise ValueError("No answer in LLM response")
 
             ChatMessage.objects.create(session=session, sender="ai", message=answer)
 
-            out = ChatResponseSerializer(data={"answer": answer})
-            out.is_valid(raise_exception=True)
-            return Response(out.data, status=status.HTTP_200_OK)
+            output = ChatResponseSerializer(data={"answer": answer})
+            output.is_valid(raise_exception=True)
+            return Response(output.data, status=status.HTTP_200_OK)
 
         except Exception as exc:
             logger.exception("LLM proxy error")
             return Response(
-                {"detail": f"LLM error: {str(exc)}"}, status=status.HTTP_502_BAD_GATEWAY
+                {"detail": f"LLM error: {str(exc)}"},
+                status=status.HTTP_502_BAD_GATEWAY,
             )
-
-    # ---------- messages listing ----------
 
     @messages_action_schema
     @action(detail=True, methods=["get"], url_path="messages")
     def messages(self, request, *args, **kwargs):
-        """Return session messages ordered ascending."""
+        """Return session messages ordered by creation time ascending."""
         session = get_object_or_404(
-            self.get_queryset(), id=kwargs.get("pk"), is_active=True
+            self.get_queryset(),
+            id=kwargs.get("pk"),
+            is_active=True,
         )
-        qs = session.messages.order_by("created_at")
+        queryset = session.messages.order_by("created_at")
         return Response(
-            ChatMessageSerializer(qs, many=True).data, status=status.HTTP_200_OK
+            ChatMessageSerializer(queryset, many=True).data,
+            status=status.HTTP_200_OK,
         )
