@@ -254,10 +254,8 @@ def cancel_payment_request(
     from wallets.services.payment.payment_processing_service import rollback_payment
 
     with transaction.atomic():
-        request_obj = (
-            PaymentRequest.objects.select_for_update()
-            .select_related("store__merchant__user", "paid_by")
-            .get(pk=payment_request.pk)
+        request_obj = PaymentRequest.objects.select_for_update().get(
+            pk=payment_request.pk
         )
 
         if store is not None and request_obj.store_id != store.id:

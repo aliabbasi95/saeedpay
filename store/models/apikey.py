@@ -6,12 +6,13 @@ import secrets
 from django.db import models
 from django.utils import timezone
 
-from store.models import Store
-
 
 class StoreApiKey(models.Model):
     store = models.OneToOneField(
-        Store, on_delete=models.CASCADE, related_name="api_key", verbose_name="فروشگاه"
+        "store.Store",
+        on_delete=models.CASCADE,
+        related_name="api_key",
+        verbose_name="فروشگاه",
     )
     key_hash = models.CharField(
         max_length=128, unique=True, db_index=True, verbose_name="هش کلید"
