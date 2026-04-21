@@ -58,10 +58,7 @@ def sanitize_log_value(value: Any, key: str | None = None) -> Any:
         return "***"
 
     if isinstance(value, dict):
-        return {
-            str(k): sanitize_log_value(v, key=str(k))
-            for k, v in value.items()
-        }
+        return {str(k): sanitize_log_value(v, key=str(k)) for k, v in value.items()}
 
     if isinstance(value, (list, tuple, set)):
         return [sanitize_log_value(item) for item in value]
@@ -79,11 +76,11 @@ def sanitize_log_value(value: Any, key: str | None = None) -> Any:
 
 
 def build_log_payload(
-        *,
-        event: str,
-        module: str | None = None,
-        action: str | None = None,
-        **context,
+    *,
+    event: str,
+    module: str | None = None,
+    action: str | None = None,
+    **context,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "event": event,
@@ -103,14 +100,14 @@ def build_log_payload(
 
 
 def log_event(
-        logger: logging.Logger,
-        *,
-        level: int | str,
-        event: str,
-        message: str | None = None,
-        module: str | None = None,
-        action: str | None = None,
-        **context,
+    logger: logging.Logger,
+    *,
+    level: int | str,
+    event: str,
+    message: str | None = None,
+    module: str | None = None,
+    action: str | None = None,
+    **context,
 ):
     if isinstance(level, str):
         level = getattr(logging, level.upper(), logging.INFO)

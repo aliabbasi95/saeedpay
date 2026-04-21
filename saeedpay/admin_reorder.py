@@ -14,9 +14,7 @@ ADMIN_REORDER = (
     {
         "app": "contact",
         "label": "فرم تماس",
-        "models": (
-            "contact.Contact",
-        ),
+        "models": ("contact.Contact",),
     },
     {
         "app": "store",
