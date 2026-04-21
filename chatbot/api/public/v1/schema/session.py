@@ -18,9 +18,11 @@ from chatbot.api.public.v1.serializers import (
     ChatSessionSerializer,
 )
 
+CHATBOT_TAG = "Support · Chatbot"
+
 chat_session_viewset_schema = extend_schema_view(
     list=extend_schema(
-        tags=["Chatbot · Sessions"],
+        tags=[CHATBOT_TAG],
         summary="List chat sessions",
         description=(
             "Return chat sessions for the current user. For anonymous users, only "
@@ -30,7 +32,7 @@ chat_session_viewset_schema = extend_schema_view(
         responses={200: ChatSessionSerializer(many=True)},
     ),
     retrieve=extend_schema(
-        tags=["Chatbot · Sessions"],
+        tags=[CHATBOT_TAG],
         summary="Retrieve a chat session with messages",
         parameters=[
             OpenApiParameter(
@@ -43,7 +45,7 @@ chat_session_viewset_schema = extend_schema_view(
         responses={200: ChatSessionDetailSerializer},
     ),
     create=extend_schema(
-        tags=["Chatbot · Sessions"],
+        tags=[CHATBOT_TAG],
         summary="Start a new chat session",
         description=(
             "Create a new chat session. Anonymous users are limited by server-side "
@@ -78,7 +80,7 @@ chat_session_viewset_schema = extend_schema_view(
 )
 
 chat_action_schema = extend_schema(
-    tags=["Chatbot · Talk"],
+    tags=[CHATBOT_TAG],
     summary="Send a message to the chatbot",
     description=(
         "Send a user message to the chatbot service, persist the conversation, "
@@ -108,7 +110,7 @@ chat_action_schema = extend_schema(
 )
 
 messages_action_schema = extend_schema(
-    tags=["Chatbot · Sessions"],
+    tags=[CHATBOT_TAG],
     summary="List messages of a chat session",
     parameters=[
         OpenApiParameter(

@@ -11,13 +11,15 @@ from drf_spectacular.utils import (
 
 from credit.api.public.v1.serializers.credit import StatementLineSerializer
 
+STATEMENT_LINES_TAG = "Credit · Statement Lines"
+
 statement_line_viewset_schema = extend_schema_view(
     list=extend_schema(
-        tags=["Credit · Statement Lines"],
+        tags=[STATEMENT_LINES_TAG],
         summary="List user's statement lines",
         description=(
             "Return the authenticated user's statement lines. "
-            "Optionally filter by statement id."
+            "Optionally filter by statement ID."
         ),
         parameters=[
             OpenApiParameter(
@@ -25,7 +27,7 @@ statement_line_viewset_schema = extend_schema_view(
                 location=OpenApiParameter.QUERY,
                 required=False,
                 type=OpenApiTypes.INT,
-                description="Filter by statement id.",
+                description="Filter by statement ID.",
                 examples=[OpenApiExample("FilterByStatement", value=42)],
             ),
         ],
@@ -62,7 +64,7 @@ statement_line_viewset_schema = extend_schema_view(
         },
     ),
     retrieve=extend_schema(
-        tags=["Credit · Statement Lines"],
+        tags=[STATEMENT_LINES_TAG],
         summary="Retrieve a statement line",
         description="Return a single statement line belonging to the authenticated user.",
         responses={200: StatementLineSerializer},

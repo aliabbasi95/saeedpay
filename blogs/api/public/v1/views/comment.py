@@ -33,9 +33,7 @@ from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 @comment_viewset_schema
 class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     """
-    ViewSet for comments with moderation support.
-    - List supports filtering by article and reply_to.
-    - Updates/deletes restricted to owner or staff.
+    ViewSet for comments with moderation-aware visibility and owner/staff edit rules.
     """
 
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -56,30 +54,30 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     }
 
     def get_queryset(self):
-        qs = Comment.objects.select_related(
-            "author", "article", "reply_to"
+        queryset = Comment.objects.select_related(
+            "author",
+            "article",
+            "reply_to",
         ).prefetch_related("replies")
 
-        # Visible to everyone: approved comments
-        # Authenticated users also see their own (any status)
         if self.request.user.is_authenticated:
-            qs = qs.filter(Q(author=self.request.user) | Q(is_approved=True))
+            queryset = queryset.filter(
+                Q(author=self.request.user) | Q(is_approved=True)
+            )
         else:
-            # Anonymous users only see approved comments
-            qs = qs.filter(is_approved=True)
+            queryset = queryset.filter(is_approved=True)
 
-        # For list action, only return root comments (replies are included via serializer)
         if self.action == "list":
-            qs = qs.filter(reply_to__isnull=True)
+            queryset = queryset.filter(reply_to__isnull=True)
 
-        return qs
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "list":
             return CommentListSerializer
-        elif self.action == "create":
+        if self.action == "create":
             return CommentCreateSerializer
-        elif self.action in ["update", "partial_update"]:
+        if self.action in ["update", "partial_update"]:
             return CommentUpdateSerializer
         return CommentSerializer
 
@@ -90,10 +88,6 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
             serializer.save(author=None)
 
     def get_permissions(self):
-        """
-        Owner-or-staff required for updates/deletes.
-        AllowAny for create/like/dislike (protected by reCAPTCHA for create).
-        """
         if self.action in ["create", "like", "dislike"]:
             permission_classes = [AllowAny]
         elif self.action in ["update", "partial_update", "destroy"]:
@@ -105,7 +99,7 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     @my_comments_schema
     @action(detail=False, methods=["get"])
     def my_comments(self, request):
-        """Return current user's comments (requires authentication)."""
+        """Return comments created by the current user."""
         if not request.user.is_authenticated:
             return Response(
                 {"detail": "Authentication required"},
@@ -113,7 +107,8 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
             )
 
         queryset = Comment.objects.filter(author=request.user).select_related(
-            "article", "reply_to"
+            "article",
+            "reply_to",
         )
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -123,7 +118,9 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
 
         serializer = CommentSerializer(
-            queryset, many=True, context={"request": request}
+            queryset,
+            many=True,
+            context={"request": request},
         )
         return Response(serializer.data)
 
@@ -131,12 +128,10 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def orphaned_comments(self, request):
         """
-        Get comments that are not linked to any article or store (both fields are null).
-        Supports ordering by created_at, like_count, and dislike_count.
+        Return comments that are not linked to either an article or a store.
         """
         queryset = self.get_queryset().filter(article__isnull=True, store__isnull=True)
 
-        # Apply ordering
         ordering = request.query_params.get("ordering", "-created_at")
         if ordering in [
             "created_at",
@@ -153,19 +148,23 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = CommentListSerializer(
-                page, many=True, context={"request": request}
+                page,
+                many=True,
+                context={"request": request},
             )
             return self.get_paginated_response(serializer.data)
 
         serializer = CommentListSerializer(
-            queryset, many=True, context={"request": request}
+            queryset,
+            many=True,
+            context={"request": request},
         )
         return Response(serializer.data)
 
     @comment_like_schema
     @action(detail=True, methods=["post"])
     def like(self, request, pk=None):
-        """Atomically increment like_count for a comment."""
+        """Atomically increment like_count."""
         comment = self.get_object()
         Comment.objects.filter(pk=comment.pk).update(like_count=F("like_count") + 1)
         comment.refresh_from_db(fields=["like_count", "dislike_count"])
@@ -180,7 +179,7 @@ class CommentViewSet(ScopedThrottleByActionMixin, viewsets.ModelViewSet):
     @comment_dislike_schema
     @action(detail=True, methods=["post"])
     def dislike(self, request, pk=None):
-        """Atomically increment dislike_count for a comment."""
+        """Atomically increment dislike_count."""
         comment = self.get_object()
         Comment.objects.filter(pk=comment.pk).update(
             dislike_count=F("dislike_count") + 1

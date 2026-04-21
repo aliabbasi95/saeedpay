@@ -22,9 +22,7 @@ from wallets.api.payment_responses import (
 )
 from wallets.api.public.v1.schema import (
     merchant_pos_payment_cancel_schema,
-    merchant_pos_payment_create_schema,
-    merchant_pos_payment_list_schema,
-    merchant_pos_payment_retrieve_schema,
+    merchant_pos_payment_viewset_schema,
 )
 from wallets.api.public.v1.serializers.payment_pos import (
     MerchantPosPaymentRequestCreateResponseSerializer,
@@ -77,6 +75,7 @@ def _extract_validation_code(exc, default="validation_error"):
     return getattr(exc, "code", default)
 
 
+@merchant_pos_payment_viewset_schema
 class MerchantPosPaymentRequestViewSet(
     ScopedThrottleByActionMixin,
     mixins.CreateModelMixin,
@@ -195,7 +194,6 @@ class MerchantPosPaymentRequestViewSet(
             return MerchantPosPaymentRequestListItemSerializer
         return MerchantPosPaymentRequestDetailSerializer
 
-    @merchant_pos_payment_create_schema
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(
             data=request.data,
@@ -251,11 +249,9 @@ class MerchantPosPaymentRequestViewSet(
         )
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-    @merchant_pos_payment_list_schema
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @merchant_pos_payment_retrieve_schema
     def retrieve(self, request, *args, **kwargs):
         payment_request = self.get_object()
         check_and_expire_payment_request(payment_request, raise_exception=False)

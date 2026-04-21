@@ -5,6 +5,9 @@ from rest_framework.response import Response
 
 from lib.cas_auth.views import CasAuthAPIView
 from profiles.models import Profile
+from wallets.api.internal.v1.schema.wallet import (
+    internal_customer_wallets_by_national_id_schema,
+)
 from wallets.api.internal.v1.serializers import (
     NationalIdInputSerializer,
     WalletSerializer,
@@ -16,6 +19,7 @@ from wallets.utils.choices import OwnerType
 class InternalCustomerWalletListByNationalIdView(CasAuthAPIView):
     serializer_class = WalletSerializer
 
+    @internal_customer_wallets_by_national_id_schema
     def post(self, request):
         serializer = NationalIdInputSerializer(data=request.data)
         if not serializer.is_valid():

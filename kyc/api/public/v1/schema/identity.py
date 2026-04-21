@@ -1,4 +1,4 @@
-# kyc/api/public/v1/schema/schema_identity.py
+# kyc/api/public/v1/schema/identity.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -8,13 +8,15 @@ from drf_spectacular.utils import (
 
 from ..serializers.identity_verification import IdentityVerificationSerializer
 
+PROFILE_KYC_TAG = "Profile · KYC"
+
 VERIFY_IDENTITY_SCHEMA = extend_schema(
-    tags=["KYC"],
-    summary="Verify identity (national_id/phone)",
+    tags=[PROFILE_KYC_TAG],
+    summary="Verify identity by national ID and phone number",
     request=IdentityVerificationSerializer,
     responses={
         200: OpenApiResponse(
-            description="Verification succeeded",
+            description="Verification succeeded.",
             examples=[
                 OpenApiExample(
                     "OK",
@@ -27,7 +29,7 @@ VERIFY_IDENTITY_SCHEMA = extend_schema(
             ],
         ),
         400: OpenApiResponse(
-            description="Validation error",
+            description="Validation error.",
             examples=[
                 OpenApiExample(
                     "BadRequest",

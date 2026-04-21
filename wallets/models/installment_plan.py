@@ -5,7 +5,6 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
-from wallets.models import PaymentRequest, Transaction
 from wallets.utils.choices import InstallmentPlanStatus, InstallmentSourceType
 
 
@@ -18,7 +17,9 @@ class InstallmentPlan(BaseModel):
     )
 
     source_type = models.CharField(
-        max_length=32, choices=InstallmentSourceType.choices, verbose_name=_("نوع منبع")
+        max_length=32,
+        choices=InstallmentSourceType.choices,
+        verbose_name=_("نوع منبع"),
     )
     source_object_id = models.PositiveBigIntegerField(verbose_name=_("شناسه مرجع منبع"))
 
@@ -30,7 +31,7 @@ class InstallmentPlan(BaseModel):
     interest_rate = models.FloatField(verbose_name=_("نرخ بهره سالیانه (٪)"))
 
     initial_transaction = models.ForeignKey(
-        Transaction,
+        "wallets.Transaction",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -39,9 +40,15 @@ class InstallmentPlan(BaseModel):
     )
     description = models.TextField(blank=True, verbose_name=_("توضیحات"))
     created_by = models.CharField(
-        max_length=32, default="system", verbose_name=_("ایجاد شده توسط")
+        max_length=32,
+        default="system",
+        verbose_name=_("ایجاد شده توسط"),
     )
-    closed_at = models.DateTimeField(null=True, blank=True, verbose_name=_("زمان بستن"))
+    closed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name=_("زمان بستن"),
+    )
 
     status = models.CharField(
         max_length=16,
@@ -51,14 +58,21 @@ class InstallmentPlan(BaseModel):
     )
 
     def get_source_object(self):
-        mapping = {
-            InstallmentSourceType.PAYMENT_REQUEST: PaymentRequest,
-            # InstallmentSourceType.OFFLINE_PURCHASE: OfflinePurchaseRecord,
-            # InstallmentSourceType.STORE_ORDER: StoreOrder,
-        }
-        model_class = mapping.get(self.source_type)
-        if model_class:
-            return model_class.objects.filter(id=self.source_object_id).first()
+        if self.source_type == InstallmentSourceType.PAYMENT_REQUEST:
+            from wallets.models.payment_request import PaymentRequest
+
+            return PaymentRequest.objects.filter(id=self.source_object_id).first()
+
+        # if self.source_type == InstallmentSourceType.OFFLINE_PURCHASE:
+        #     from wallets.models.offline_purchase import OfflinePurchaseRecord
+        #     return OfflinePurchaseRecord.objects.filter(
+        #         id=self.source_object_id
+        #     ).first()
+
+        # if self.source_type == InstallmentSourceType.STORE_ORDER:
+        #     from wallets.models.store_order import StoreOrder
+        #     return StoreOrder.objects.filter(id=self.source_object_id).first()
+
         return None
 
     def __str__(self):

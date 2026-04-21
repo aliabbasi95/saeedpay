@@ -13,9 +13,11 @@ from banking.api.public.v1.serializers import (
     BankSerializer,
 )
 
+BANKS_TAG = "Banking · Banks"
+
 bank_viewset_schema = extend_schema_view(
     list=extend_schema(
-        tags=["Banks"],
+        tags=[BANKS_TAG],
         summary="List all banks",
         description=(
             "Retrieve a list of all available banks. "
@@ -39,7 +41,7 @@ bank_viewset_schema = extend_schema_view(
         ],
     ),
     retrieve=extend_schema(
-        tags=["Banks"],
+        tags=[BANKS_TAG],
         summary="Get bank details",
         description="Retrieve detailed information about a specific bank by its ID.",
         parameters=[

@@ -4,14 +4,14 @@ from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 
 from profiles.api.public.v1.serializers.video_kyc import VideoKYCSerializer
 
-PROFILE_TAG = "Profile"
+PROFILE_KYC_TAG = "Profile · KYC"
 
 VIDEO_KYC_SUBMIT_SCHEMA = extend_schema(
-    tags=[PROFILE_TAG],
+    tags=[PROFILE_KYC_TAG],
     summary="Submit video KYC",
     description=(
         "Upload a selfie video for video-based identity verification. "
-        "This operation is asynchronous and returns a Celery task id."
+        "This operation is asynchronous and returns a Celery task ID."
     ),
     request=VideoKYCSerializer,
     responses={

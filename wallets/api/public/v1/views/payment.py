@@ -18,8 +18,7 @@ from wallets.api.payment_responses import (
 )
 from wallets.api.public.v1.schema import (
     payment_confirm_schema,
-    payment_list_schema,
-    payment_retrieve_schema,
+    payment_request_viewset_schema,
 )
 from wallets.api.public.v1.serializers.payment import (
     PaymentActionResponseSerializer,
@@ -73,6 +72,7 @@ def _extract_validation_code(exc, default="validation_error"):
     return getattr(exc, "code", default)
 
 
+@payment_request_viewset_schema
 class PaymentRequestViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,
@@ -195,13 +195,11 @@ class PaymentRequestViewSet(
 
         return qs.order_by(ordering)
 
-    @payment_list_schema
     def list(self, request, *args, **kwargs):
         self._require_authenticated_user(request)
         self.serializer_class = PaymentRequestListItemSerializer
         return super().list(request, *args, **kwargs)
 
-    @payment_retrieve_schema
     def retrieve(self, request, *args, **kwargs):
         self.serializer_class = PaymentRequestDetailWithWalletsSerializer
         payment_request = self.get_object()

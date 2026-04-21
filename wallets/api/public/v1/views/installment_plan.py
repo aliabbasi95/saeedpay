@@ -1,5 +1,4 @@
 # wallets/api/public/v1/views/installment_plan.py
-# Read-only ViewSet for user's installment plans + nested installments action.
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets
@@ -9,7 +8,7 @@ from rest_framework.response import Response
 
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 from wallets.api.public.v1.schema import (
-    installment_plans_schema,
+    installment_plan_viewset_schema,
     plan_installments_action_schema,
 )
 from wallets.api.public.v1.serializers import (
@@ -20,7 +19,7 @@ from wallets.filters import InstallmentPlanFilter
 from wallets.models import Installment, InstallmentPlan
 
 
-@installment_plans_schema
+@installment_plan_viewset_schema
 class InstallmentPlanViewSet(
     ScopedThrottleByActionMixin,
     mixins.ListModelMixin,

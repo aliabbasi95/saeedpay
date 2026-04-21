@@ -14,9 +14,11 @@ from banking.api.public.v1.serializers import (
     BankCardUpdateSerializer,
 )
 
+BANK_CARDS_TAG = "Banking · Cards"
+
 bank_card_viewset_schema = extend_schema_view(
     list=extend_schema(
-        tags=["Bank Cards"],
+        tags=[BANK_CARDS_TAG],
         summary="List user's bank cards",
         description=(
             "List active bank cards of the authenticated user (soft-deleted excluded). "
@@ -45,7 +47,7 @@ bank_card_viewset_schema = extend_schema_view(
         ],
     ),
     create=extend_schema(
-        tags=["Bank Cards"],
+        tags=[BANK_CARDS_TAG],
         summary="Add a new bank card",
         request=BankCardCreateSerializer,
         responses={
@@ -86,7 +88,7 @@ bank_card_viewset_schema = extend_schema_view(
         ],
     ),
     retrieve=extend_schema(
-        tags=["Bank Cards"],
+        tags=[BANK_CARDS_TAG],
         summary="Get bank card details",
         parameters=[
             OpenApiParameter(
@@ -105,7 +107,7 @@ bank_card_viewset_schema = extend_schema_view(
         },
     ),
     update=extend_schema(
-        tags=["Bank Cards"],
+        tags=[BANK_CARDS_TAG],
         summary="Update bank card",
         request=BankCardUpdateSerializer,
         parameters=[
@@ -142,7 +144,7 @@ bank_card_viewset_schema = extend_schema_view(
         ],
     ),
     partial_update=extend_schema(
-        tags=["Bank Cards"],
+        tags=[BANK_CARDS_TAG],
         summary="Partially update bank card",
         request=BankCardUpdateSerializer,
         parameters=[
@@ -172,7 +174,7 @@ bank_card_viewset_schema = extend_schema_view(
         },
     ),
     destroy=extend_schema(
-        tags=["Bank Cards"],
+        tags=[BANK_CARDS_TAG],
         summary="Delete bank card",
         parameters=[
             OpenApiParameter(
@@ -199,7 +201,7 @@ bank_card_viewset_schema = extend_schema_view(
 )
 
 set_default_action_schema = extend_schema(
-    tags=["Bank Cards"],
+    tags=[BANK_CARDS_TAG],
     summary="Set bank card as default",
     description=(
         "Set a verified card as default for current user. "

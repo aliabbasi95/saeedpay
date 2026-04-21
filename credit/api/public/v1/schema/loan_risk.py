@@ -17,8 +17,10 @@ from credit.api.public.v1.serializers import (
     LoanRiskReportSerializer,
 )
 
+LOAN_RISK_TAG = "Credit · Loan Risk"
+
 otp_request_schema = extend_schema(
-    tags=["Credit · Loan Risk"],
+    tags=[LOAN_RISK_TAG],
     summary="Request OTP for loan risk validation",
     description=(
         "Start the loan risk validation flow by sending an OTP to the user's "
@@ -46,7 +48,7 @@ otp_request_schema = extend_schema(
 )
 
 otp_verify_schema = extend_schema(
-    tags=["Credit · Loan Risk"],
+    tags=[LOAN_RISK_TAG],
     summary="Verify OTP and request loan risk report",
     description=(
         "Verify the OTP with the provider and trigger loan risk report generation."
@@ -74,7 +76,7 @@ otp_verify_schema = extend_schema(
 
 report_viewset_schema = extend_schema_view(
     list=extend_schema(
-        tags=["Credit · Loan Risk"],
+        tags=[LOAN_RISK_TAG],
         summary="List user's loan risk reports",
         description=(
             "Return all loan risk reports for the authenticated user, "
@@ -83,7 +85,7 @@ report_viewset_schema = extend_schema_view(
         responses={200: LoanRiskReportListSerializer(many=True)},
     ),
     retrieve=extend_schema(
-        tags=["Credit · Loan Risk"],
+        tags=[LOAN_RISK_TAG],
         summary="Retrieve a loan risk report",
         description="Return a single loan risk report belonging to the authenticated user.",
         parameters=[
@@ -91,7 +93,7 @@ report_viewset_schema = extend_schema_view(
                 name="id",
                 location=OpenApiParameter.PATH,
                 type=OpenApiTypes.INT,
-                description="Loan risk report id.",
+                description="Loan risk report ID.",
             ),
         ],
         responses={200: LoanRiskReportDetailSerializer},
@@ -99,7 +101,7 @@ report_viewset_schema = extend_schema_view(
 )
 
 report_latest_schema = extend_schema(
-    tags=["Credit · Loan Risk"],
+    tags=[LOAN_RISK_TAG],
     summary="Get latest loan risk report",
     description="Return the most recent loan risk report for the authenticated user.",
     responses={
@@ -109,11 +111,11 @@ report_latest_schema = extend_schema(
 )
 
 report_check_schema = extend_schema(
-    tags=["Credit · Loan Risk"],
+    tags=[LOAN_RISK_TAG],
     summary="Check report status",
     description=(
         "If the report is completed, return the report. "
-        "If the report can be checked, enqueue a background task and return its task id. "
+        "If the report can be checked, enqueue a background task and return its task ID. "
         "Otherwise return the current report payload."
     ),
     parameters=[
@@ -121,7 +123,7 @@ report_check_schema = extend_schema(
             name="id",
             location=OpenApiParameter.PATH,
             type=OpenApiTypes.INT,
-            description="Loan risk report id.",
+            description="Loan risk report ID.",
         ),
     ],
     responses={

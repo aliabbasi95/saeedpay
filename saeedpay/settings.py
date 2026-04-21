@@ -117,18 +117,12 @@ KYC_VIDEO_SUBMIT_MAX_RETRIES = config(
 KYC_VIDEO_SUBMIT_RETRY_DELAY = config(
     "KYC_VIDEO_SUBMIT_RETRY_DELAY", default=60, cast=int
 )
-KYC_VIDEO_CHECK_MAX_RETRIES = config(
-    "KYC_VIDEO_CHECK_MAX_RETRIES", default=6, cast=int
-)
+KYC_VIDEO_CHECK_MAX_RETRIES = config("KYC_VIDEO_CHECK_MAX_RETRIES", default=6, cast=int)
 KYC_VIDEO_CHECK_RETRY_DELAY = config(
     "KYC_VIDEO_CHECK_RETRY_DELAY", default=30, cast=int
 )
-KYC_SHAHKAR_MAX_RETRIES = config(
-    "KYC_SHAHKAR_MAX_RETRIES", default=3, cast=int
-)
-KYC_SHAHKAR_RETRY_DELAY = config(
-    "KYC_SHAHKAR_RETRY_DELAY", default=60, cast=int
-)
+KYC_SHAHKAR_MAX_RETRIES = config("KYC_SHAHKAR_MAX_RETRIES", default=3, cast=int)
+KYC_SHAHKAR_RETRY_DELAY = config("KYC_SHAHKAR_RETRY_DELAY", default=60, cast=int)
 CREDIT_DEFAULT_APPROVED_LIMIT = config(
     "CREDIT_DEFAULT_APPROVED_LIMIT", default=5000000, cast=int
 )
@@ -149,16 +143,12 @@ KIAHOOSHAN_PASSWORD = config("KIAHOOSHAN_PASSWORD", default="")
 KIAHOOSHAN_ORGNAME = config("KIAHOOSHAN_ORGNAME", default="")
 KIAHOOSHAN_ORGNATIONALCODE = config("KIAHOOSHAN_ORGNATIONALCODE", default="")
 
-KYC_VIDEO_RETENTION_MODE = os.getenv(
-    "KYC_VIDEO_RETENTION_MODE", "approved_only"
-)
+KYC_VIDEO_RETENTION_MODE = os.getenv("KYC_VIDEO_RETENTION_MODE", "approved_only")
 
 KYC_VIDEO_RETENTION_DAYS_APPROVED = os.getenv(
     "KYC_VIDEO_RETENTION_DAYS_APPROVED", "permanent"
 )
-KYC_VIDEO_RETENTION_DAYS_REJECTED = os.getenv(
-    "KYC_VIDEO_RETENTION_DAYS_REJECTED", "7"
-)
+KYC_VIDEO_RETENTION_DAYS_REJECTED = os.getenv("KYC_VIDEO_RETENTION_DAYS_REJECTED", "7")
 KYC_VIDEO_STORAGE_PREFIX = os.getenv("KYC_VIDEO_STORAGE_PREFIX", "kyc_videos/")
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -174,10 +164,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "lib.erp_base.validators.SymbolValidator",
     },
-    {
-        "NAME": "lib.erp_base.validators.LengthValidator",
-        "OPTIONS": {"min_length": 8}
-    },
+    {"NAME": "lib.erp_base.validators.LengthValidator", "OPTIONS": {"min_length": 8}},
 ]
 
 LANGUAGE_CODE = "en-us"
@@ -202,11 +189,9 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-
     # ── Pagination ────────────────────────────────────────────────────────────
     "DEFAULT_PAGINATION_CLASS": "lib.erp_base.utils.pagination.StandardPagination",
     "PAGE_SIZE": 20,
-
     # ── Throttling ────────────────────────────────────────────────────────────
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
@@ -217,7 +202,6 @@ REST_FRAMEWORK = {
         # ── Coarse limits ─────────────────────────────────────────────────────
         "anon": "100/hour",
         "user": "1000/hour",
-
         # ── Auth ─────────────────────────────────────────────────────────────
         "auth-login": "20/hour",
         "auth-logout": "60/hour",
@@ -227,69 +211,55 @@ REST_FRAMEWORK = {
         "auth-reset-password": "10/hour",
         "auth-otp": "60/hour",
         "otp-by-phone": "100/hour",
-
         # ── Blogs / Comments ─────────────────────────────────────────────────
         "comments": "300/hour",
         "comment-create": "60/hour",
         "comment-like": "60/minute",
-
         # ── Banking / Cards ──────────────────────────────────────────────────
         "bank-cards-read": "300/hour",
         "bank-cards-write": "30/minute",
-
         # ── Credit (Statements) ──────────────────────────────────────────────
         "credit-statements-read": "300/hour",
         "credit-statement-lines-read": "600/hour",
         "credit-statements-write": "60/min",
-
         # ── Wallets / Payment Requests ───────────────────────────────────────
         "payment-requests-read": "300/hour",
         "payment-requests-write": "30/minute",
         "payment-confirm": "10/minute",
-
         "merchant-pos-payment-read": "120/min",
         "merchant-pos-payment-write": "60/min",
-
         # ── Wallets / Balances & History ────────────────────────────────────
         "wallets-read": "300/hour",
-
         # ── Wallets / Credit Limits ─────────────────────────────────────────
         "credit-limits-read": "300/hour",
-
         # ── Wallets / Installments ──────────────────────────────────────────
         "installments-read": "300/hour",
         "installment-plans-read": "300/hour",
         "installments-apply": "30/hour",
-
         # ── Wallets / Transfers ─────────────────────────────────────────────
         "wallet-transfers-read": "300/hour",
         "wallet-transfers-write": "60/minute",
-
         # ── Partner (Store API Key) ─────────────────────────────────────────
         "partner-payment-read": "600/hour",
         "partner-payment-write": "60/minute",
         "store-apikey-regen": "5/hour",
-
         # ── Store (Backoffice) ──────────────────────────────────────────────
         "stores-read": "200/hour",
         "stores-write": "30/hour",
         "public-stores-read": "500/hour",
         "store-contract-read": "100/hour",
         "store-contract-write": "20/hour",
-
         # ── Chatbot ─────────────────────────────────────────────────────────
         "chat-sessions": "300/hour",
         "chat-start": "20/hour",
         "chat-talk": "60/minute",
         "chat-messages": "300/hour",
-
         # ── Contact / Tickets ───────────────────────────────────────────────
         "contact-create": "10/hour",
         "tickets-read": "300/hour",
         "tickets-write": "30/hour",
         "ticket-message-add": "60/hour",
         "ticket-categories-read": "500/hour",
-
         # ── Credit · Loan Risk (NEW) ────────────────────────────────────────
         # collection actions (OTP request/verify)
         "loan-risk-otp": "30/hour",
@@ -347,11 +317,15 @@ def spectacular_preprocess_hook(endpoints):
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaeedPay API",
-    "DESCRIPTION": "مستندات احراز هویت کاربران (مشتری، فروشگاه)",
+    "DESCRIPTION": "SaeedPay public API documentation",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    "SECURITY": [{"PublicAuth": []}],
     "COMPONENT_SPLIT_REQUEST": True,
+    "SORT_OPERATIONS": True,
+    "SORT_OPERATION_PARAMETERS": True,
+    "TAGS_SORTER": "alpha",
+    "OPERATION_ID_METHOD_POSITION": "POST",
+    "SECURITY": [{"PublicAuth": []}],
     "COMPONENTS": {
         "securitySchemes": {
             "PublicAuth": {

@@ -5,23 +5,25 @@ from rest_framework import status
 
 from contact.api.public.v1.serializers.contact import ContactCreateSerializer
 
+CONTACT_TAG = "Public · Contact"
+
 contact_create_schema = extend_schema(
-    tags=["Contact"],
-    summary="ارسال فرم تماس",
-    description="ثبت پیام تماس عمومی توسط کاربر.",
+    tags=[CONTACT_TAG],
+    summary="Submit contact form",
+    description="Submit a public contact message.",
     request=ContactCreateSerializer,
     responses={
         status.HTTP_201_CREATED: OpenApiResponse(
             response=ContactCreateSerializer,
-            description="پیام تماس با موفقیت ثبت شد.",
+            description="Contact message created successfully.",
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            description="خطای اعتبارسنجی یا محدودیت درخواست.",
+            description="Validation error or throttling limitation.",
         ),
     },
     examples=[
         OpenApiExample(
-            "نمونه درخواست",
+            "Request",
             value={
                 "name": "علی رضایی",
                 "email": "ali@example.com",
@@ -31,7 +33,7 @@ contact_create_schema = extend_schema(
             request_only=True,
         ),
         OpenApiExample(
-            "نمونه پاسخ موفق",
+            "SuccessResponse",
             value={
                 "name": "علی رضایی",
                 "email": "ali@example.com",
@@ -42,7 +44,7 @@ contact_create_schema = extend_schema(
             status_codes=[str(status.HTTP_201_CREATED)],
         ),
         OpenApiExample(
-            "نمونه خطا",
+            "ErrorResponse",
             value={"detail": "BAD REQUEST"},
             response_only=True,
             status_codes=[str(status.HTTP_400_BAD_REQUEST)],

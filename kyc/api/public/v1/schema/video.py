@@ -1,4 +1,4 @@
-# kyc/api/public/v1/schema/schema_video.py
+# kyc/api/public/v1/schema/video.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -11,13 +11,15 @@ from ..serializers.video_verification import (
     VideoVerificationSubmitSerializer,
 )
 
+PROFILE_KYC_TAG = "Profile · KYC"
+
 SUBMIT_VIDEO_SCHEMA = extend_schema(
-    tags=["KYC"],
+    tags=[PROFILE_KYC_TAG],
     summary="Submit selfie video for KYC",
     request=VideoVerificationSubmitSerializer,
     responses={
         200: OpenApiResponse(
-            description="Submitted",
+            description="Submitted successfully.",
             examples=[
                 OpenApiExample(
                     "OK",
@@ -30,7 +32,7 @@ SUBMIT_VIDEO_SCHEMA = extend_schema(
             ],
         ),
         400: OpenApiResponse(
-            description="Validation error",
+            description="Validation error.",
             examples=[
                 OpenApiExample(
                     "BadRequest",
@@ -50,12 +52,12 @@ SUBMIT_VIDEO_SCHEMA = extend_schema(
 )
 
 POLL_VIDEO_SCHEMA = extend_schema(
-    tags=["KYC"],
+    tags=[PROFILE_KYC_TAG],
     summary="Poll selfie video KYC result",
     request=VideoVerificationPollSerializer,
     responses={
         200: OpenApiResponse(
-            description="Result",
+            description="Verification result returned successfully.",
             examples=[
                 OpenApiExample(
                     "OK",
@@ -73,7 +75,7 @@ POLL_VIDEO_SCHEMA = extend_schema(
             ],
         ),
         400: OpenApiResponse(
-            description="Not ready / error",
+            description="Result not ready or error.",
             examples=[
                 OpenApiExample(
                     "Pending",

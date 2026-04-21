@@ -100,7 +100,7 @@ store_update_put_schema = extend_schema(
             name="id",
             type=OpenApiTypes.INT,
             location=OpenApiParameter.PATH,
-            description="Store id.",
+            description="Store ID.",
         )
     ],
     responses={
@@ -133,7 +133,7 @@ store_partial_update_schema = extend_schema(
             name="id",
             type=OpenApiTypes.INT,
             location=OpenApiParameter.PATH,
-            description="Store id.",
+            description="Store ID.",
         )
     ],
     responses={

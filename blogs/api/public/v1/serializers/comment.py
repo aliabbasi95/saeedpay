@@ -20,22 +20,20 @@ class CommentAuthorSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.CharField)
     def get_first_name(self, obj) -> str:
-        # Safe access to optional profile.first_name
         try:
-            prof = obj.profile
-            if getattr(prof, "first_name", None):
-                return prof.first_name
+            profile = obj.profile
+            if getattr(profile, "first_name", None):
+                return profile.first_name
         except Exception:
             pass
         return ""
 
     @extend_schema_field(serializers.CharField)
     def get_last_name(self, obj) -> str:
-        # Safe access to optional profile.last_name
         try:
-            prof = obj.profile
-            if getattr(prof, "last_name", None):
-                return prof.last_name
+            profile = obj.profile
+            if getattr(profile, "last_name", None):
+                return profile.last_name
         except Exception:
             pass
         return ""
@@ -74,9 +72,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class CommentListSerializer(serializers.ModelSerializer):
-    """
-    Serializer for listing root comments with a limited set of direct replies.
-    """
+    """Serializer for listing root comments with limited direct replies."""
 
     author = CommentAuthorSerializer(read_only=True)
     replies = serializers.SerializerMethodField()
@@ -99,10 +95,7 @@ class CommentListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_replies(self, obj):
-        """
-        Return up to 5 approved direct replies.
-        NOTE: Deep nesting should be handled in the client if needed.
-        """
+        """Return up to five approved direct replies."""
         if obj.reply_to is None:
             replies = obj.get_replies()[:5]
             return CommentSerializer(replies, many=True, context=self.context).data
@@ -120,8 +113,6 @@ class CommentListSerializer(serializers.ModelSerializer):
 class CommentCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating comments."""
 
-    # recaptcha_token = ReCaptchaField(required=True)
-
     class Meta:
         model = Comment
         fields = [
@@ -130,7 +121,6 @@ class CommentCreateSerializer(serializers.ModelSerializer):
             "reply_to",
             "content",
             "rating",
-            # "recaptcha_token",
         ]
 
     def validate_rating(self, value):
@@ -139,7 +129,7 @@ class CommentCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_article(self, value):
-        """Validate article exists, set to None if it doesn't"""
+        """Validate article existence and normalize missing values to None."""
         if value is not None:
             try:
                 Article.objects.get(pk=value.pk)
@@ -149,7 +139,7 @@ class CommentCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_store(self, value):
-        """Validate store exists, set to None if it doesn't"""
+        """Validate store existence and normalize missing values to None."""
         if value is not None:
             try:
                 Store.objects.get(pk=value.pk)
@@ -163,15 +153,12 @@ class CommentCreateSerializer(serializers.ModelSerializer):
         article = attrs.get("article")
         store = attrs.get("store")
 
-        # Prevent both article and store being provided
         if article is not None and store is not None:
             raise serializers.ValidationError(
                 "نظر نمی‌تواند همزمان به مقاله و فروشگاه مرتبط باشد."
             )
 
-        # Handle reply validation
         if reply_to:
-            # Validate reply_to comment belongs to same article/store
             if article and reply_to.article != article:
                 raise serializers.ValidationError(
                     "نظر پاسخ باید متعلق به همان مقاله باشد."
@@ -181,22 +168,17 @@ class CommentCreateSerializer(serializers.ModelSerializer):
                     "نظر پاسخ باید متعلق به همان فروشگاه باشد."
                 )
 
-            # If replying to a comment, inherit the parent's article/store
             if not article and not store:
                 attrs["article"] = reply_to.article
                 attrs["store"] = reply_to.store
-            elif article and not store:
-                # Ensure we're replying to an article comment
-                if reply_to.store is not None:
-                    raise serializers.ValidationError(
-                        "نمی‌توان به نظر فروشگاه، پاسخ مقاله داد."
-                    )
-            elif store and not article:
-                # Ensure we're replying to a store comment
-                if reply_to.article is not None:
-                    raise serializers.ValidationError(
-                        "نمی‌توان به نظر مقاله، پاسخ فروشگاه داد."
-                    )
+            elif article and not store and reply_to.store is not None:
+                raise serializers.ValidationError(
+                    "نمی‌توان به نظر فروشگاه، پاسخ مقاله داد."
+                )
+            elif store and not article and reply_to.article is not None:
+                raise serializers.ValidationError(
+                    "نمی‌توان به نظر مقاله، پاسخ فروشگاه داد."
+                )
 
         return attrs
 
@@ -214,7 +196,6 @@ class CommentUpdateSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        # Enforce author-only updates
         request = self.context.get("request")
         if request and request.user != instance.author:
             raise serializers.ValidationError(

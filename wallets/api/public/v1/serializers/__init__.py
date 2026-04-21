@@ -6,6 +6,10 @@ from typing import TYPE_CHECKING, Any
 __all__ = [
     "InstallmentPlanSerializer",
     "InstallmentSerializer",
+    "MerchantPosPaymentRequestCreateResponseSerializer",
+    "MerchantPosPaymentRequestCreateSerializer",
+    "MerchantPosPaymentRequestDetailSerializer",
+    "MerchantPosPaymentRequestListItemSerializer",
     "PaymentActionResponseSerializer",
     "PaymentConfirmResponseSerializer",
     "PaymentConfirmSerializer",
@@ -77,6 +81,22 @@ _MODULE_MAP = {
         "wallets.api.public.v1.serializers.payment",
         "PaymentRequestListItemSerializer",
     ),
+    "MerchantPosPaymentRequestCreateSerializer": (
+        "wallets.api.public.v1.serializers.payment_pos",
+        "MerchantPosPaymentRequestCreateSerializer",
+    ),
+    "MerchantPosPaymentRequestListItemSerializer": (
+        "wallets.api.public.v1.serializers.payment_pos",
+        "MerchantPosPaymentRequestListItemSerializer",
+    ),
+    "MerchantPosPaymentRequestDetailSerializer": (
+        "wallets.api.public.v1.serializers.payment_pos",
+        "MerchantPosPaymentRequestDetailSerializer",
+    ),
+    "MerchantPosPaymentRequestCreateResponseSerializer": (
+        "wallets.api.public.v1.serializers.payment_pos",
+        "MerchantPosPaymentRequestCreateResponseSerializer",
+    ),
 }
 
 if TYPE_CHECKING:
@@ -89,6 +109,12 @@ if TYPE_CHECKING:
         PaymentRequestDetailSerializer,
         PaymentRequestDetailWithWalletsSerializer,
         PaymentRequestListItemSerializer,
+    )
+    from .payment_pos import (
+        MerchantPosPaymentRequestCreateResponseSerializer,
+        MerchantPosPaymentRequestCreateSerializer,
+        MerchantPosPaymentRequestDetailSerializer,
+        MerchantPosPaymentRequestListItemSerializer,
     )
     from .transaction import TransactionSerializer
     from .transfer import (

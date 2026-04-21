@@ -4,14 +4,18 @@ from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 __all__ = [
+    "installment_plan_viewset_schema",
     "installment_plans_schema",
+    "installment_viewset_schema",
     "installments_schema",
     "merchant_pos_payment_cancel_schema",
     "merchant_pos_payment_create_schema",
     "merchant_pos_payment_list_schema",
     "merchant_pos_payment_retrieve_schema",
+    "merchant_pos_payment_viewset_schema",
     "payment_confirm_schema",
     "payment_list_schema",
+    "payment_request_viewset_schema",
     "payment_retrieve_schema",
     "plan_installments_action_schema",
     "transfer_confirm_schema",
@@ -19,6 +23,7 @@ __all__ = [
     "transfer_reject_schema",
     "transfer_retrieve_schema",
     "transfers_list_schema",
+    "wallets_list_schema",
 ]
 
 _MODULE_MAP = {
@@ -26,9 +31,17 @@ _MODULE_MAP = {
         "wallets.api.public.v1.schema.installment",
         "installments_schema",
     ),
+    "installment_viewset_schema": (
+        "wallets.api.public.v1.schema.installment",
+        "installment_viewset_schema",
+    ),
     "installment_plans_schema": (
         "wallets.api.public.v1.schema.installment_plan",
         "installment_plans_schema",
+    ),
+    "installment_plan_viewset_schema": (
+        "wallets.api.public.v1.schema.installment_plan",
+        "installment_plan_viewset_schema",
     ),
     "plan_installments_action_schema": (
         "wallets.api.public.v1.schema.installment_plan",
@@ -50,6 +63,10 @@ _MODULE_MAP = {
         "wallets.api.public.v1.schema.payment_requests",
         "merchant_pos_payment_retrieve_schema",
     ),
+    "merchant_pos_payment_viewset_schema": (
+        "wallets.api.public.v1.schema.payment_requests",
+        "merchant_pos_payment_viewset_schema",
+    ),
     "payment_confirm_schema": (
         "wallets.api.public.v1.schema.payment_requests",
         "payment_confirm_schema",
@@ -57,6 +74,10 @@ _MODULE_MAP = {
     "payment_list_schema": (
         "wallets.api.public.v1.schema.payment_requests",
         "payment_list_schema",
+    ),
+    "payment_request_viewset_schema": (
+        "wallets.api.public.v1.schema.payment_requests",
+        "payment_request_viewset_schema",
     ),
     "payment_retrieve_schema": (
         "wallets.api.public.v1.schema.payment_requests",
@@ -82,11 +103,16 @@ _MODULE_MAP = {
         "wallets.api.public.v1.schema.transfer",
         "transfer_reject_schema",
     ),
+    "wallets_list_schema": (
+        "wallets.api.public.v1.schema.wallet",
+        "wallets_list_schema",
+    ),
 }
 
 if TYPE_CHECKING:
-    from .installment import installments_schema
+    from .installment import installment_viewset_schema, installments_schema
     from .installment_plan import (
+        installment_plan_viewset_schema,
         installment_plans_schema,
         plan_installments_action_schema,
     )
@@ -95,8 +121,10 @@ if TYPE_CHECKING:
         merchant_pos_payment_create_schema,
         merchant_pos_payment_list_schema,
         merchant_pos_payment_retrieve_schema,
+        merchant_pos_payment_viewset_schema,
         payment_confirm_schema,
         payment_list_schema,
+        payment_request_viewset_schema,
         payment_retrieve_schema,
     )
     from .transfer import (
@@ -106,6 +134,7 @@ if TYPE_CHECKING:
         transfer_retrieve_schema,
         transfers_list_schema,
     )
+    from .wallet import wallets_list_schema
 
 
 def __getattr__(name: str) -> Any:

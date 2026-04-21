@@ -20,9 +20,12 @@ from blogs.models import Article, ArticleSection, Comment
 @article_viewset_schema
 class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Read-only ViewSet for Article.
-    - List: published & time passed for non-authors; include author's own drafts if authenticated.
-    - Retrieve: same visibility; increments view_count atomically.
+    Read-only ViewSet for articles.
+
+    List:
+        Published articles for anonymous users, plus authenticated authors' own drafts.
+    Retrieve:
+        Same visibility rules, with atomic view-count increment.
     """
 
     serializer_class = ArticleListSerializer
@@ -35,14 +38,10 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = "slug"
 
     def get_object(self):
-        """
-        Override to support both ID and slug lookup.
-        """
+        """Support lookup by numeric ID or slug."""
         lookup_value = self.kwargs.get(self.lookup_url_kwarg or self.lookup_field)
 
-        # Try to determine if it's an ID (numeric) or slug (string)
         if lookup_value.isdigit():
-            # It's an ID, use pk lookup
             queryset = self.get_queryset()
             obj = queryset.filter(pk=lookup_value).first()
             if obj is None:
@@ -50,26 +49,25 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
 
                 raise NotFound("Article not found")
             return obj
-        else:
-            # It's a slug, use slug lookup
-            return super().get_object()
+
+        return super().get_object()
 
     def get_queryset(self):
         now = timezone.localtime(timezone.now())
-        qs = Article.objects.select_related("author", "author__profile")
+        queryset = Article.objects.select_related("author", "author__profile")
 
         if self.action in ["list", "retrieve"]:
             if self.request.user.is_authenticated:
-                qs = qs.filter(
+                queryset = queryset.filter(
                     Q(author=self.request.user)
                     | Q(status="published", published_at__lte=now)
                 )
             else:
-                qs = qs.filter(status="published", published_at__lte=now)
+                queryset = queryset.filter(status="published", published_at__lte=now)
 
         if self.action == "list":
-            qs = (
-                qs.only(
+            queryset = (
+                queryset.only(
                     "id",
                     "title",
                     "slug",
@@ -85,8 +83,8 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
                 .distinct()
             )
         else:
-            qs = (
-                qs.prefetch_related(
+            queryset = (
+                queryset.prefetch_related(
                     "tags",
                     Prefetch(
                         "sections",
@@ -103,7 +101,8 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
                     Prefetch(
                         "comments",
                         queryset=Comment.objects.select_related(
-                            "author", "author__profile"
+                            "author",
+                            "author__profile",
                         )
                         .only(
                             "id",
@@ -134,7 +133,8 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
                 )
                 .distinct()
             )
-        return qs
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -142,9 +142,7 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
         return ArticleDetailSerializer
 
     def retrieve(self, request, *args, **kwargs):
-        """
-        Override retrieve to increment view count atomically.
-        """
+        """Increment view count atomically and return article details."""
         instance = self.get_object()
         instance.increment_view_count()
         serializer = self.get_serializer(instance)
