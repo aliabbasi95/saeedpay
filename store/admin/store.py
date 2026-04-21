@@ -44,7 +44,7 @@ class StoreAdmin(dynamic_cardboard_model_admin(Store, BaseAdmin)):
                     )
                 },
             ),
-        ) + super(StoreAdmin, self).get_fieldsets(request, obj)
+        ) + super().get_fieldsets(request, obj)
         if request.user.is_superuser:
             fieldsets += (("ادمین", {"fields": ("extra_document",)}),)
         return fieldsets
@@ -53,7 +53,7 @@ class StoreAdmin(dynamic_cardboard_model_admin(Store, BaseAdmin)):
         rfs = ("get_status",)
         if request.user.is_superuser:
             return rfs
-        rfs += super(StoreAdmin, self).get_readonly_fields(
+        rfs += super().get_readonly_fields(
             request,
             obj=obj,
             user_roles={

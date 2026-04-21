@@ -21,8 +21,8 @@ class StoreApiKeyAuthentication(BaseAuthentication):
 
         try:
             api_key_obj = StoreApiKey.objects.get(key_hash=key_hash, is_active=True)
-        except StoreApiKey.DoesNotExist:
-            raise AuthenticationFailed("Invalid API Key")
+        except StoreApiKey.DoesNotExist as e:
+            raise AuthenticationFailed("Invalid API Key") from e
 
         user = api_key_obj.store.merchant.user
         request.store = api_key_obj.store
