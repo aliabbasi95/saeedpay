@@ -288,7 +288,7 @@ def submit_profile_video_auth(
         retry_delay = getattr(settings, "KYC_VIDEO_SUBMIT_RETRY_DELAY", 60)
         attempt.bump_retry()
         if self.request.retries < max_retries:
-            raise self.retry(exc=e, countdown=retry_delay)
+            raise self.retry(exc=e, countdown=retry_delay) from None
         attempt.mark_failed(
             error_message=str(e),
             error_code="service_unavailable",
@@ -426,7 +426,7 @@ def check_profile_video_auth_result(self, profile_id: int) -> dict:
                 pass
 
         if self.request.retries < max_retries:
-            raise self.retry(exc=e, countdown=retry_delay)
+            raise self.retry(exc=e, countdown=retry_delay) from None
 
         attempt.mark_failed(error_message=str(e), error_code="network_error")
         logger.error(f"Profile {profile_id}: Network error after max retries")
@@ -653,7 +653,7 @@ def verify_identity_phone_national_id(self, profile_id: int) -> dict:
         attempt.bump_retry()
         if self.request.retries < max_retries:
             logger.warning(f"Profile {profile_id}: Shahkar API error, retrying: {e}")
-            raise self.retry(exc=e, countdown=retry_delay)
+            raise self.retry(exc=e, countdown=retry_delay) from None
 
         logger.error(f"Profile {profile_id}: Shahkar API error after max retries: {e}")
         try:

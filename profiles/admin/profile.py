@@ -156,9 +156,7 @@ class ProfileAdmin(admin.ModelAdmin):
         info = obj.get_video_auth_status_display_info()
         pretty = json.dumps(info, ensure_ascii=False, indent=2, default=str)
         return mark_safe(
-            '<pre style="white-space:pre-wrap; direction:ltr; margin:0">{}</pre>'.format(
-                pretty
-            )
+            f'<pre style="white-space:pre-wrap; direction:ltr; margin:0">{pretty}</pre>'
         )
 
     # ---- actions ----

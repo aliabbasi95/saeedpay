@@ -67,9 +67,7 @@ def _pretty_json(obj: dict | None) -> str:
     except Exception:
         pretty = str(obj)
     return mark_safe(
-        '<pre style="white-space:pre-wrap; direction:ltr; margin:0">{}</pre>'.format(
-            pretty
-        )
+        f'<pre style="white-space:pre-wrap; direction:ltr; margin:0">{pretty}</pre>'
     )
 
 

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from django.db import IntegrityError, models
 from django.db.models import Q
 from django.utils import timezone
@@ -97,7 +95,7 @@ class ProfileKYCAttempt(BaseModel):
         profile_id: int,
         attempt_type: str,
         request_payload: dict | None = None,
-    ) -> "ProfileKYCAttempt":
+    ) -> ProfileKYCAttempt:
         """
         Create a new attempt already in PROCESSING state.
         If a PROCESSING attempt (unfinished) of same type exists, raise AttemptAlreadyProcessing.
@@ -120,7 +118,7 @@ class ProfileKYCAttempt(BaseModel):
         response_payload: dict | None = None,
         external_id: str | None = None,
         http_status: int | None = None,
-    ) -> "ProfileKYCAttempt":
+    ) -> ProfileKYCAttempt:
         """Mark attempt as SUCCESS and persist optional fields."""
         self.status = AttemptStatus.SUCCESS
         self.finished_at = timezone.now()
@@ -147,7 +145,7 @@ class ProfileKYCAttempt(BaseModel):
         response_payload: dict | None = None,
         http_status: int | None = None,
         error_message: str | None = None,
-    ) -> "ProfileKYCAttempt":
+    ) -> ProfileKYCAttempt:
         """Mark attempt as REJECTED (e.g., business rule) with optional payload."""
         self.status = AttemptStatus.REJECTED
         self.finished_at = timezone.now()
@@ -175,7 +173,7 @@ class ProfileKYCAttempt(BaseModel):
         error_code: str | None = None,
         http_status: int | None = None,
         response_payload: dict | None = None,
-    ) -> "ProfileKYCAttempt":
+    ) -> ProfileKYCAttempt:
         """Mark attempt as FAILED (technical/transport errors)."""
         self.status = AttemptStatus.FAILED
         self.finished_at = timezone.now()
@@ -199,7 +197,7 @@ class ProfileKYCAttempt(BaseModel):
         )
         return self
 
-    def bump_retry(self) -> "ProfileKYCAttempt":
+    def bump_retry(self) -> ProfileKYCAttempt:
         """Increment retry counter atomically."""
         self.retry_count = models.F("retry_count") + 1
         self.save(update_fields=["retry_count", "updated_at"])
@@ -207,7 +205,7 @@ class ProfileKYCAttempt(BaseModel):
         return self
 
     @property
-    def duration_ms(self) -> Optional[int]:
+    def duration_ms(self) -> int | None:
         """Return duration in milliseconds if finished."""
         if self.started_at and self.finished_at:
             return int((self.finished_at - self.started_at).total_seconds() * 1000)
