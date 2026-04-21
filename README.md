@@ -2,37 +2,37 @@
 
 ## Overview
 
-SaeedPay is a modular microservice-based wallet and payment system designed with security, extensibility, and best-practice Django/DRF patterns.  
+SaeedPay is a modular microservice-based wallet and payment system designed with security, extensibility, and best-practice Django/DRF patterns.
 It supports customer and merchant wallet operations, real-time payment requests, and a secure, double-confirmation payment flow with full auditability.
 
 ---
 
 ## Features
 
-- **Role-Based Registration**:  
+- **Role-Based Registration**:
   Separate registration flows for customers and merchants, supporting OTP and password validation, profile association, and role assignment.
 
-- **Wallet System**:  
-  Each user (customer/merchant) gets default wallet(s) on registration.  
+- **Wallet System**:
+  Each user (customer/merchant) gets default wallet(s) on registration.
   Supports multiple wallet types: micro credit, cash, cashback, credit, merchant gateway, escrow, etc.
 
-- **Secure Payment Flow**:  
+- **Secure Payment Flow**:
   - Merchant creates a payment request via API key.
   - Customer reviews and confirms payment from their wallet.
   - Amount moves to the escrow wallet until merchant confirms payment.
   - After final merchant verification, funds are released to the merchant's wallet.
   - If expired or canceled, full rollback and audit trail is enforced.
 
-- **Reference Codes**:  
+- **Reference Codes**:
   Each PaymentRequest and Transaction is assigned a unique, user-friendly reference code (e.g. `PR240712654321`, `TRX240712123456`).
 
-- **Atomic Rollback**:  
+- **Atomic Rollback**:
   All payment and transfer operations are ACID-safe and will rollback on failure, with automatic handling for expired or canceled requests.
 
-- **Admin/Staff Extensibility**:  
+- **Admin/Staff Extensibility**:
   Clear separation of concerns for roles, permissions, and future extensibility.
 
-- **API-First Design**:  
+- **API-First Design**:
   All flows are available as REST APIs with JWT/ApiKey authentication, full OpenAPI schema, and documented endpoints.
 
 ---

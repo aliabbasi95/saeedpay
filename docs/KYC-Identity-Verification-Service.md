@@ -69,10 +69,10 @@ service = IdentityAuthService()
 try:
     validated_data = validate_user_data(user_data)
     sanitized_data = sanitize_user_data(validated_data)
-    
+
     # Verify identity
     result = service.verify_identity(sanitized_data)
-    
+
 except ValidationError as e:
     print(f"Validation error: {e}")
 ```
@@ -93,7 +93,7 @@ def verify_user_identity(user_data):
 The service expects the following endpoints from your KYC provider:
 
 - `POST /auth/login` - Authentication endpoint
-- `POST /auth/refresh` - Token refresh endpoint  
+- `POST /auth/refresh` - Token refresh endpoint
 - `POST /verify/identity` - Identity verification endpoint
 
 ## Error Handling
