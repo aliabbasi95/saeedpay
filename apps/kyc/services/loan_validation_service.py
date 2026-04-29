@@ -1,4 +1,4 @@
-# kyc/services/loan_validation_service.py
+# apps/kyc/services/loan_validation_service.py
 
 import logging
 from urllib.parse import urljoin

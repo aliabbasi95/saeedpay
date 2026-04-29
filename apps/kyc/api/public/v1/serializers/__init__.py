@@ -1,4 +1,4 @@
-# kyc/api/public/v1/serializers/__init__.py
+# apps/kyc/api/public/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -11,15 +11,15 @@ __all__ = [
 
 _MODULE_MAP = {
     "IdentityVerificationSerializer": (
-        "kyc.api.public.v1.serializers.identity_verification",
+        "apps.kyc.api.public.v1.serializers.identity_verification",
         "IdentityVerificationSerializer",
     ),
     "VideoVerificationSubmitSerializer": (
-        "kyc.api.public.v1.serializers.video_verification",
+        "apps.kyc.api.public.v1.serializers.video_verification",
         "VideoVerificationSubmitSerializer",
     ),
     "VideoVerificationPollSerializer": (
-        "kyc.api.public.v1.serializers.video_verification",
+        "apps.kyc.api.public.v1.serializers.video_verification",
         "VideoVerificationPollSerializer",
     ),
 }

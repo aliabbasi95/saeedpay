@@ -1,4 +1,4 @@
-# kyc/api/public/v1/views/video_verification.py
+# apps/kyc/api/public/v1/views/video_verification.py
 
 import os
 import tempfile
@@ -8,16 +8,16 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from kyc.api.public.v1.permissions import IsIdentityVerified
-from kyc.api.public.v1.schema import (
+from apps.kyc.api.public.v1.permissions import IsIdentityVerified
+from apps.kyc.api.public.v1.schema import (
     POLL_VIDEO_SCHEMA,
     SUBMIT_VIDEO_SCHEMA,
 )
-from kyc.api.public.v1.serializers.video_verification import (
+from apps.kyc.api.public.v1.serializers.video_verification import (
     VideoVerificationPollSerializer,
     VideoVerificationSubmitSerializer,
 )
-from kyc.services import get_identity_auth_service
+from apps.kyc.services import get_identity_auth_service
 
 
 class VideoVerificationViewSet(viewsets.GenericViewSet):

@@ -1,4 +1,4 @@
-# kyc/api/public/v1/serializers/video_verification.py
+# apps/kyc/api/public/v1/serializers/video_verification.py
 
 import re
 

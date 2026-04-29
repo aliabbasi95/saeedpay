@@ -1,4 +1,4 @@
-# kyc/api/public/v1/schema/__init__.py
+# apps/kyc/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -11,15 +11,15 @@ __all__ = [
 
 _MODULE_MAP = {
     "VERIFY_IDENTITY_SCHEMA": (
-        "kyc.api.public.v1.schema.identity",
+        "apps.kyc.api.public.v1.schema.identity",
         "VERIFY_IDENTITY_SCHEMA",
     ),
     "SUBMIT_VIDEO_SCHEMA": (
-        "kyc.api.public.v1.schema.video",
+        "apps.kyc.api.public.v1.schema.video",
         "SUBMIT_VIDEO_SCHEMA",
     ),
     "POLL_VIDEO_SCHEMA": (
-        "kyc.api.public.v1.schema.video",
+        "apps.kyc.api.public.v1.schema.video",
         "POLL_VIDEO_SCHEMA",
     ),
 }

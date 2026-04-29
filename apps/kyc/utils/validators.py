@@ -1,4 +1,4 @@
-# kyc/utils/validators.py
+# apps/kyc/utils/validators.py
 
 import re
 from typing import Any

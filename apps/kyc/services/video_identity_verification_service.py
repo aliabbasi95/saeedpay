@@ -1,4 +1,4 @@
-# kyc/services/video_identity_verification_service.py
+# apps/kyc/services/video_identity_verification_service.py
 
 import logging
 import os

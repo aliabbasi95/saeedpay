@@ -1,11 +1,11 @@
-# kyc/api/public/v1/permissions.py
+# apps/kyc/api/public/v1/permissions.py
 
 from typing import Any
 
 from rest_framework.permissions import BasePermission
 
-from profiles.models import Profile
-from profiles.utils.choices import AuthenticationStage
+from apps.profiles.models import Profile
+from apps.profiles.utils.choices import AuthenticationStage
 
 
 class IsIdentityVerified(BasePermission):

@@ -1,4 +1,4 @@
-# kyc/utils/__init__.py
+# apps/kyc/utils/__init__.py
 
 from .validators import (
     sanitize_user_data,

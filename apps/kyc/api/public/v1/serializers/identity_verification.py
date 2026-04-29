@@ -1,8 +1,8 @@
-# kyc/api/public/v1/serializers/identity_verification.py
+# apps/kyc/api/public/v1/serializers/identity_verification.py
 
 from rest_framework import serializers
 
-from kyc.utils import validate_national_id, validate_phone_number
+from apps.kyc.utils import validate_national_id, validate_phone_number
 
 
 class IdentityVerificationSerializer(serializers.Serializer):

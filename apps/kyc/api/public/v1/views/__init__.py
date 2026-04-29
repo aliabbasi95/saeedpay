@@ -1,4 +1,4 @@
-# kyc/api/public/v1/views/__init__.py
+# apps/kyc/api/public/v1/views/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -10,11 +10,11 @@ __all__ = [
 
 _MODULE_MAP = {
     "IdentityVerificationViewSet": (
-        "kyc.api.public.v1.views.identity_verification",
+        "apps.kyc.api.public.v1.views.identity_verification",
         "IdentityVerificationViewSet",
     ),
     "VideoVerificationViewSet": (
-        "kyc.api.public.v1.views.video_verification",
+        "apps.kyc.api.public.v1.views.video_verification",
         "VideoVerificationViewSet",
     ),
 }

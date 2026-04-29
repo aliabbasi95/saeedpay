@@ -1,4 +1,4 @@
-# kyc/services/__init__.py
+# apps/kyc/services/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -10,11 +10,11 @@ __all__ = [
 
 _MODULE_MAP = {
     "IdentityAuthService": (
-        "kyc.services.identity_auth_service",
+        "apps.kyc.services.identity_auth_service",
         "IdentityAuthService",
     ),
     "get_identity_auth_service": (
-        "kyc.services.identity_auth_service",
+        "apps.kyc.services.identity_auth_service",
         "get_identity_auth_service",
     ),
 }

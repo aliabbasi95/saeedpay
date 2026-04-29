@@ -1,4 +1,4 @@
-# kyc/services/identity_auth_service.py
+# apps/kyc/services/identity_auth_service.py
 
 import logging
 import time

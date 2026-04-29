@@ -1,4 +1,4 @@
-# kyc/api/public/v1/schema/identity.py
+# apps/kyc/api/public/v1/schema/identity.py
 
 from drf_spectacular.utils import (
     OpenApiExample,

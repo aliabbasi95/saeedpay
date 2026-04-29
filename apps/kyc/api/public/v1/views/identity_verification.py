@@ -1,13 +1,13 @@
-# kyc/api/public/v1/views/identity_verification.py
+# apps/kyc/api/public/v1/views/identity_verification.py
 
 from rest_framework import mixins, status, viewsets
 from rest_framework.response import Response
 
-from kyc.api.public.v1.schema import VERIFY_IDENTITY_SCHEMA
-from kyc.api.public.v1.serializers.identity_verification import (
+from apps.kyc.api.public.v1.schema import VERIFY_IDENTITY_SCHEMA
+from apps.kyc.api.public.v1.serializers.identity_verification import (
     IdentityVerificationSerializer,
 )
-from kyc.services import get_identity_auth_service
+from apps.kyc.services import get_identity_auth_service
 
 
 class IdentityVerificationViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):

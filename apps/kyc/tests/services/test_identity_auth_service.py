@@ -1,4 +1,4 @@
-# kyc/tests/services/test_identity_auth_service.py
+# apps/kyc/tests/services/test_identity_auth_service.py
 
 from unittest.mock import Mock, patch
 
@@ -6,11 +6,11 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from kyc.services import IdentityAuthService, get_identity_auth_service
-from kyc.utils import sanitize_user_data, validate_user_data
-from kyc.utils.validators import validate_national_id, validate_phone_number
+from apps.kyc.services import IdentityAuthService, get_identity_auth_service
+from apps.kyc.utils import sanitize_user_data, validate_user_data
+from apps.kyc.utils.validators import validate_national_id, validate_phone_number
 
-IDENTITY_POST_PATH = "kyc.services.identity_auth_service.requests.Session.post"
+IDENTITY_POST_PATH = "apps.kyc.services.identity_auth_service.requests.Session.post"
 
 
 class IdentityAuthServiceTestCase(TestCase):
