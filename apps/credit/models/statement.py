@@ -1,4 +1,4 @@
-# credit/models/statement.py
+# apps/credit/models/statement.py
 
 from datetime import timedelta
 
@@ -9,8 +9,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from persiantools.jdatetime import JalaliDate
 
-from credit.utils.choices import StatementLineType, StatementStatus
-from credit.utils.constants import (
+from apps.credit.utils.choices import StatementLineType, StatementStatus
+from apps.credit.utils.constants import (
     MINIMUM_PAYMENT_PERCENTAGE,
     MINIMUM_PAYMENT_THRESHOLD,
     MONTHLY_INTEREST_RATE,
@@ -199,7 +199,7 @@ class Statement(BaseModel):
 
         self.update_balances()
 
-        from credit.models.credit_limit import CreditLimit
+        from apps.credit.models.credit_limit import CreditLimit
 
         credit_limit = CreditLimit.objects.get_user_credit_limit(self.user)
         grace_days = credit_limit.grace_days if credit_limit else 0
@@ -218,7 +218,7 @@ class Statement(BaseModel):
         Negative amounts = charges (purchase/fee/penalty/interest).
         Positive amounts = payments/repayments.
         """
-        from credit.models.statement_line import StatementLine
+        from apps.credit.models.statement_line import StatementLine
 
         signed_amount = int(amount)
         if (
@@ -245,8 +245,8 @@ class Statement(BaseModel):
 
     def add_purchase(self, transaction, description: str = "Purchase", amount=None):
         """Add a purchase to CURRENT statement after validating ownership and credit availability."""
-        from credit.models.credit_limit import CreditLimit
-        from wallets.utils.choices import TransactionStatus
+        from apps.credit.models.credit_limit import CreditLimit
+        from apps.wallets.utils.choices import TransactionStatus
 
         if self.status != StatementStatus.CURRENT:
             raise ValueError("Purchases can only be added to the current statement.")

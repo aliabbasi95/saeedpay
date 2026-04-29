@@ -1,4 +1,4 @@
-# credit/api/public/v1/serializers/__init__.py
+# apps/credit/api/public/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -18,43 +18,43 @@ __all__ = [
 
 _MODULE_MAP = {
     "CreditLimitSerializer": (
-        "credit.api.public.v1.serializers.credit",
+        "apps.credit.api.public.v1.serializers.credit",
         "CreditLimitSerializer",
     ),
     "StatementLineSerializer": (
-        "credit.api.public.v1.serializers.credit",
+        "apps.credit.api.public.v1.serializers.credit",
         "StatementLineSerializer",
     ),
     "StatementListSerializer": (
-        "credit.api.public.v1.serializers.credit",
+        "apps.credit.api.public.v1.serializers.credit",
         "StatementListSerializer",
     ),
     "StatementDetailSerializer": (
-        "credit.api.public.v1.serializers.credit",
+        "apps.credit.api.public.v1.serializers.credit",
         "StatementDetailSerializer",
     ),
     "CloseStatementResponseSerializer": (
-        "credit.api.public.v1.serializers.credit",
+        "apps.credit.api.public.v1.serializers.credit",
         "CloseStatementResponseSerializer",
     ),
     "LoanRiskOTPRequestSerializer": (
-        "credit.api.public.v1.serializers.loan_risk",
+        "apps.credit.api.public.v1.serializers.loan_risk",
         "LoanRiskOTPRequestSerializer",
     ),
     "LoanRiskOTPVerifySerializer": (
-        "credit.api.public.v1.serializers.loan_risk",
+        "apps.credit.api.public.v1.serializers.loan_risk",
         "LoanRiskOTPVerifySerializer",
     ),
     "LoanRiskReportSerializer": (
-        "credit.api.public.v1.serializers.loan_risk",
+        "apps.credit.api.public.v1.serializers.loan_risk",
         "LoanRiskReportSerializer",
     ),
     "LoanRiskReportDetailSerializer": (
-        "credit.api.public.v1.serializers.loan_risk",
+        "apps.credit.api.public.v1.serializers.loan_risk",
         "LoanRiskReportDetailSerializer",
     ),
     "LoanRiskReportListSerializer": (
-        "credit.api.public.v1.serializers.loan_risk",
+        "apps.credit.api.public.v1.serializers.loan_risk",
         "LoanRiskReportListSerializer",
     ),
 }

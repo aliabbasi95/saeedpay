@@ -1,8 +1,8 @@
-# credit/api/public/v1/schema/credit_limit.py
+# apps/credit/api/public/v1/schema/credit_limit.py
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
-from credit.api.public.v1.serializers.credit import CreditLimitSerializer
+from apps.credit.api.public.v1.serializers.credit import CreditLimitSerializer
 
 CREDIT_LIMITS_TAG = "Credit · Limits"
 

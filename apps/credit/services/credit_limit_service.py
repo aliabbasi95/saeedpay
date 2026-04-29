@@ -1,4 +1,4 @@
-# credit/services/credit_limit_service.py
+# apps/credit/services/credit_limit_service.py
 from __future__ import annotations
 
 import logging
@@ -8,9 +8,9 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from credit.models.credit_limit import CreditLimit
-from credit.utils.choices import LoanRiskLevel
-from profiles.utils.choices import AuthenticationStage
+from apps.credit.models.credit_limit import CreditLimit
+from apps.credit.utils.choices import LoanRiskLevel
+from apps.profiles.utils.choices import AuthenticationStage
 
 logger = logging.getLogger(__name__)
 

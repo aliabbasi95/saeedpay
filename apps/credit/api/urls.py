@@ -1,5 +1,5 @@
 from django.urls import include, path
 
 urlpatterns = [
-    path("public/", include("credit.api.public.urls")),
+    path("public/", include("apps.credit.api.public.urls")),
 ]

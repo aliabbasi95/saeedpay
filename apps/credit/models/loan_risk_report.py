@@ -1,11 +1,11 @@
-# credit/models/loan_risk_report.py
+# apps/credit/models/loan_risk_report.py
 
 from django.db import models
 from django.utils import timezone
 
-from credit.utils.choices import LoanReportStatus, LoanRiskLevel
+from apps.credit.utils.choices import LoanReportStatus, LoanRiskLevel
+from apps.profiles.models.profile import Profile
 from lib.erp_base.models.base import BaseModel
-from profiles.models.profile import Profile
 
 
 class LoanRiskReport(BaseModel):
@@ -170,7 +170,7 @@ class LoanRiskReport(BaseModel):
         )
 
         # Trigger credit limit grant (post-commit, idempotent)
-        from credit.services.credit_limit_service import (
+        from apps.credit.services.credit_limit_service import (
             maybe_grant_credit_after_risk_report,
         )
 

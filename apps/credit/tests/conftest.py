@@ -1,4 +1,4 @@
-# credit/tests/conftest.py
+# apps/credit/tests/conftest.py
 
 import contextlib
 from collections.abc import Callable
@@ -9,9 +9,9 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from persiantools.jdatetime import JalaliDate
 
-from credit.models.credit_limit import CreditLimit
-from credit.models.statement import Statement
-from credit.utils.choices import StatementLineType, StatementStatus
+from apps.credit.models.credit_limit import CreditLimit
+from apps.credit.models.statement import Statement
+from apps.credit.utils.choices import StatementLineType, StatementStatus
 
 User = get_user_model()
 

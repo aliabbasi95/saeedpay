@@ -1,13 +1,13 @@
-# credit/tests/unit/models/test_statement_line.py
+# apps/credit/tests/unit/models/test_statement_line.py
 
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from persiantools.jdatetime import JalaliDate
 
-from credit.models.statement import Statement
-from credit.models.statement_line import StatementLine
-from credit.utils.choices import StatementLineType, StatementStatus
+from apps.credit.models.statement import Statement
+from apps.credit.models.statement_line import StatementLine
+from apps.credit.utils.choices import StatementLineType, StatementStatus
 
 pytestmark = pytest.mark.django_db
 
@@ -272,8 +272,8 @@ class TestDBCheckConstraintsBulkPaths:
 class TestTransactionOwnershipClean:
     def test_mismatch_raises(self, user, monkeypatch):
         """Transaction must belong to the statement's user."""
-        from credit.models import statement_line as stl_mod
-        from credit.models.statement_line import StatementLine as SL
+        from apps.credit.models import statement_line as stl_mod
+        from apps.credit.models.statement_line import StatementLine as SL
 
         stmt = _make_statement(user, StatementStatus.CURRENT)
         fk_field = SL._meta.get_field("transaction")
@@ -301,8 +301,8 @@ class TestTransactionOwnershipClean:
             )
 
     def test_passes_on_from_side(self, user, monkeypatch):
-        from credit.models import statement_line as stl_mod
-        from credit.models.statement_line import StatementLine as SL
+        from apps.credit.models import statement_line as stl_mod
+        from apps.credit.models.statement_line import StatementLine as SL
 
         stmt = _make_statement(user, StatementStatus.CURRENT)
         fk_field = SL._meta.get_field("transaction")
@@ -335,8 +335,8 @@ class TestTransactionOwnershipClean:
         line.full_clean()  # no raise
 
     def test_passes_on_to_side(self, user, monkeypatch):
-        from credit.models import statement_line as stl_mod
-        from credit.models.statement_line import StatementLine as SL
+        from apps.credit.models import statement_line as stl_mod
+        from apps.credit.models.statement_line import StatementLine as SL
 
         stmt = _make_statement(user, StatementStatus.CURRENT)
         fk_field = SL._meta.get_field("transaction")

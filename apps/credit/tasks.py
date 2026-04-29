@@ -1,8 +1,8 @@
-# credit/tasks.py
+# apps/credit/tasks.py
 
 from celery import shared_task
 
-from credit.services.use_cases import StatementUseCases
+from apps.credit.services.use_cases import StatementUseCases
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=300)

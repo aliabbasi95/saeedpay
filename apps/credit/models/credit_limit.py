@@ -1,11 +1,11 @@
-# credit/models/credit_limit.py
+# apps/credit/models/credit_limit.py
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from credit.utils.constants import STATEMENT_GRACE_DAYS
+from apps.credit.utils.constants import STATEMENT_GRACE_DAYS
 from lib.erp_base.models import BaseModel
 from utils.reference import generate_reference_code
 
@@ -81,8 +81,8 @@ class CreditLimit(BaseModel):
         )
 
     def _current_active_debt(self) -> int:
-        from credit.models.statement import Statement
-        from credit.utils.choices import StatementStatus
+        from apps.credit.models.statement import Statement
+        from apps.credit.utils.choices import StatementStatus
 
         agg = Statement.objects.filter(
             user=self.user,
@@ -94,7 +94,7 @@ class CreditLimit(BaseModel):
 
     def _active_credit_holds(self) -> int:
         # Local import to avoid circular dependencies
-        from credit.models.authorization import CreditAuthorization as Auth
+        from apps.credit.models.authorization import CreditAuthorization as Auth
 
         agg = Auth.objects.filter(
             user=self.user,

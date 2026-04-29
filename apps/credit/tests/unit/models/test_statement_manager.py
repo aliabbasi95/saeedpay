@@ -1,11 +1,11 @@
-# credit/tests/unit/models/test_statement_manager.py
+# apps/credit/tests/unit/models/test_statement_manager.py
 
 import pytest
 from persiantools.jdatetime import JalaliDate
 
-from credit.models.statement import Statement
-from credit.utils.choices import StatementLineType, StatementStatus
-from credit.utils.constants import MONTHLY_INTEREST_RATE
+from apps.credit.models.statement import Statement
+from apps.credit.utils.choices import StatementLineType, StatementStatus
+from apps.credit.utils.constants import MONTHLY_INTEREST_RATE
 
 pytestmark = pytest.mark.django_db
 

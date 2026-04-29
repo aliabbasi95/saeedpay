@@ -1,8 +1,8 @@
-# credit/management/commands/credit_record_purchase.py
+# apps/credit/management/commands/credit_record_purchase.py
 
 from django.core.management.base import BaseCommand, CommandError
 
-from credit.services.use_cases import StatementUseCases
+from apps.credit.services.use_cases import StatementUseCases
 
 
 class Command(BaseCommand):

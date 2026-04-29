@@ -1,4 +1,4 @@
-# credit/models/__init__.py
+# apps/credit/models/__init__.py
 
 from .authorization import CreditAuthorization
 from .credit_limit import CreditLimit

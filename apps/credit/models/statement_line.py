@@ -1,4 +1,4 @@
-# credit/models/statement_line.py
+# apps/credit/models/statement_line.py
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -7,9 +7,9 @@ from django.db import transaction as db_transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from credit.utils.choices import StatementLineType, StatementStatus
+from apps.credit.utils.choices import StatementLineType, StatementStatus
+from apps.wallets.models import Transaction
 from lib.erp_base.models import BaseModel
-from wallets.models import Transaction
 
 
 class StatementLine(BaseModel):

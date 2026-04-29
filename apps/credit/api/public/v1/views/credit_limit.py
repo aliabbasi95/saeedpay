@@ -1,10 +1,10 @@
-# credit/api/public/v1/views/credit_limit.py
+# apps/credit/api/public/v1/views/credit_limit.py
 
 from rest_framework import mixins, viewsets
 
-from credit.api.public.v1.schema import credit_limit_viewset_schema
-from credit.api.public.v1.serializers.credit import CreditLimitSerializer
-from credit.models.credit_limit import CreditLimit
+from apps.credit.api.public.v1.schema import credit_limit_viewset_schema
+from apps.credit.api.public.v1.serializers.credit import CreditLimitSerializer
+from apps.credit.models.credit_limit import CreditLimit
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 

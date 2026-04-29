@@ -1,8 +1,8 @@
-# credit/management/commands/credit_finalize_due_windows.py
+# apps/credit/management/commands/credit_finalize_due_windows.py
 
 from django.core.management.base import BaseCommand
 
-from credit.services.use_cases import StatementUseCases
+from apps.credit.services.use_cases import StatementUseCases
 
 
 class Command(BaseCommand):

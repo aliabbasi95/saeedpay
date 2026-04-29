@@ -1,4 +1,4 @@
-# credit/api/public/v1/schema/statement_line.py
+# apps/credit/api/public/v1/schema/statement_line.py
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -9,7 +9,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 
-from credit.api.public.v1.serializers.credit import StatementLineSerializer
+from apps.credit.api.public.v1.serializers.credit import StatementLineSerializer
 
 STATEMENT_LINES_TAG = "Credit · Statement Lines"
 

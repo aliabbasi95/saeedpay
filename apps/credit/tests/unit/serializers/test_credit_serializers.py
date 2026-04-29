@@ -1,4 +1,4 @@
-# credit/tests/unit/serializers/test_credit_serializers.py
+# apps/credit/tests/unit/serializers/test_credit_serializers.py
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -6,16 +6,16 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from persiantools.jdatetime import JalaliDate
 
-from credit.api.public.v1.serializers.credit import (
+from apps.credit.api.public.v1.serializers.credit import (
     CloseStatementResponseSerializer,
     CreditLimitSerializer,
     StatementDetailSerializer,
     StatementLineSerializer,
     StatementListSerializer,
 )
-from credit.models.statement import Statement
-from credit.models.statement_line import StatementLine
-from credit.utils.choices import StatementLineType, StatementStatus
+from apps.credit.models.statement import Statement
+from apps.credit.models.statement_line import StatementLine
+from apps.credit.utils.choices import StatementLineType, StatementStatus
 
 pytestmark = pytest.mark.django_db
 

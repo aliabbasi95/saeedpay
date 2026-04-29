@@ -1,13 +1,13 @@
-# credit/api/public/v1/serializers/loan_risk.py
+# apps/credit/api/public/v1/serializers/loan_risk.py
 
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import Throttled
 
-from credit.models import LoanRiskReport
-from credit.utils.choices import LoanReportStatus
-from profiles.models.profile import Profile
-from profiles.utils.choices import AuthenticationStage
+from apps.credit.models import LoanRiskReport
+from apps.credit.utils.choices import LoanReportStatus
+from apps.profiles.models.profile import Profile
+from apps.profiles.utils.choices import AuthenticationStage
 
 
 class LoanRiskOTPRequestSerializer(serializers.Serializer):

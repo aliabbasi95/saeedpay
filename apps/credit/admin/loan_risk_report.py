@@ -1,4 +1,4 @@
-# credit/admin/loan_risk_report.py
+# apps/credit/admin/loan_risk_report.py
 
 from __future__ import annotations
 
@@ -12,12 +12,12 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from persiantools.jdatetime import JalaliDateTime
 
-from credit.models.loan_risk_report import LoanRiskReport
-from credit.tasks_loan_validation import (
+from apps.credit.models.loan_risk_report import LoanRiskReport
+from apps.credit.tasks_loan_validation import (
     check_loan_report_result,
     send_loan_validation_otp,
 )
-from credit.utils.choices import LoanReportStatus, LoanRiskLevel
+from apps.credit.utils.choices import LoanReportStatus, LoanRiskLevel
 
 
 # ---------- date & formatting helpers ----------

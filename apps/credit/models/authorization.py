@@ -1,4 +1,4 @@
-# credit/models/authorization.py
+# apps/credit/models/authorization.py
 
 from django.conf import settings
 from django.core.exceptions import ValidationError

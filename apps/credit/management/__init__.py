@@ -1,1 +1,1 @@
-# credit/management/__init__.py
+# apps/credit/management/__init__.py

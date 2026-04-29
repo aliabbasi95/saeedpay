@@ -1,11 +1,11 @@
-# credit/api/public/v1/views/statement_line.py
+# apps/credit/api/public/v1/views/statement_line.py
 
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from credit.api.public.v1.schema import statement_line_viewset_schema
-from credit.api.public.v1.serializers import StatementLineSerializer
-from credit.models.statement_line import StatementLine
+from apps.credit.api.public.v1.schema import statement_line_viewset_schema
+from apps.credit.api.public.v1.serializers import StatementLineSerializer
+from apps.credit.models.statement_line import StatementLine
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 

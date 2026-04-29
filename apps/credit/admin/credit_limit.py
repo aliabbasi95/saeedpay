@@ -1,10 +1,10 @@
-# credit/admin/credit_limit.py
+# apps/credit/admin/credit_limit.py
 
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from credit.models import CreditLimit
+from apps.credit.models import CreditLimit
 from lib.erp_base.admin import BaseAdmin
 
 

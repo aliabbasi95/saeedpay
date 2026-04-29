@@ -1,4 +1,4 @@
-# credit/utils/persian_calendar.py
+# apps/credit/utils/persian_calendar.py
 
 """
 Utility functions for Persian (Jalali) calendar operations

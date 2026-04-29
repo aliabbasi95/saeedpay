@@ -1,12 +1,12 @@
-# credit/admin/statement_line.py
+# apps/credit/admin/statement_line.py
 
 from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from credit.models.statement_line import StatementLine
-from credit.utils.choices import StatementLineType
+from apps.credit.models.statement_line import StatementLine
+from apps.credit.utils.choices import StatementLineType
 from lib.erp_base.admin import BaseAdmin
 
 

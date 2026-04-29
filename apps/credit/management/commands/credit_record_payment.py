@@ -1,10 +1,10 @@
-# credit/management/commands/credit_record_payment.py
+# apps/credit/management/commands/credit_record_payment.py
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
-from credit.services.use_cases import StatementUseCases
-from wallets.models import Transaction as WalletTransaction
+from apps.credit.services.use_cases import StatementUseCases
+from apps.wallets.models import Transaction as WalletTransaction
 
 User = get_user_model()
 

@@ -1,4 +1,4 @@
-# credit/admin/statement.py
+# apps/credit/admin/statement.py
 
 from django.contrib import admin, messages
 from django.urls import reverse
@@ -6,9 +6,9 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from credit.models import Statement
-from credit.models.statement_line import StatementLine
-from credit.utils.choices import StatementLineType
+from apps.credit.models import Statement
+from apps.credit.models.statement_line import StatementLine
+from apps.credit.utils.choices import StatementLineType
 from lib.erp_base.admin import BaseAdmin, BaseInlineAdmin
 
 

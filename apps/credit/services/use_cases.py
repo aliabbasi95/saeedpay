@@ -1,4 +1,4 @@
-# credit/services/use_cases.py
+# apps/credit/services/use_cases.py
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
-from credit.models import Statement
-from credit.utils.choices import StatementLineType, StatementStatus
-from wallets.models import Transaction as WalletTransaction
-from wallets.utils.choices import TransactionStatus
+from apps.credit.models import Statement
+from apps.credit.utils.choices import StatementLineType, StatementStatus
+from apps.wallets.models import Transaction as WalletTransaction
+from apps.wallets.utils.choices import TransactionStatus
 
 
 @dataclass(frozen=True)

@@ -1,13 +1,13 @@
-# credit/tests/unit/models/test_credit_limit.py
+# apps/credit/tests/unit/models/test_credit_limit.py
 
 import pytest
 from django.db import IntegrityError
 from django.utils import timezone
 from persiantools.jdatetime import JalaliDate
 
-from credit.models.credit_limit import CreditLimit
-from credit.models.statement import Statement
-from credit.utils.choices import StatementLineType, StatementStatus
+from apps.credit.models.credit_limit import CreditLimit
+from apps.credit.models.statement import Statement
+from apps.credit.utils.choices import StatementLineType, StatementStatus
 
 pytestmark = pytest.mark.django_db
 
@@ -149,7 +149,7 @@ class TestGraceDays:
         self, monkeypatch, user, active_credit_limit_factory
     ):
         monkeypatch.setattr(
-            "credit.models.credit_limit.STATEMENT_GRACE_DAYS", 15, raising=False
+            "apps.credit.models.credit_limit.STATEMENT_GRACE_DAYS", 15, raising=False
         )
         limit = active_credit_limit_factory(user=user, grace_days=None)
         assert limit.grace_days == 15
@@ -202,7 +202,7 @@ class TestDBConstraintsAndReferenceCode:
         assert CreditLimit.objects.exclude(reference_code=None).count() == 1
 
     def test_reference_code_retries_on_collision(self, monkeypatch, user):
-        from credit.models import credit_limit as cl_mod
+        from apps.credit.models import credit_limit as cl_mod
 
         CreditLimit.objects.create(
             user=user,
@@ -228,7 +228,7 @@ class TestDBConstraintsAndReferenceCode:
         assert obj.reference_code == "CR-UNIQ"
 
     def test_reference_code_five_collisions_then_null(self, monkeypatch, user):
-        from credit.models import credit_limit as cl_mod
+        from apps.credit.models import credit_limit as cl_mod
 
         def dup_gen(prefix="CR"):
             return "CR-DUP"

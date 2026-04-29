@@ -1,4 +1,4 @@
-# credit/admin/__init__.py
+# apps/credit/admin/__init__.py
 
 from .credit_limit import CreditLimitAdmin
 from .loan_risk_report import LoanRiskReportAdmin

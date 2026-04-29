@@ -1,4 +1,4 @@
-# credit/tests/api/test_credit_views.py
+# apps/credit/tests/api/test_credit_views.py
 
 import json
 from unittest.mock import Mock
@@ -7,11 +7,11 @@ import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from credit.models.statement import Statement
-from credit.models.statement_line import StatementLine
-from credit.services.use_cases import StatementUseCases
-from credit.utils.choices import StatementLineType, StatementStatus
-from wallets.utils.choices import TransactionStatus, WalletKind
+from apps.credit.models.statement import Statement
+from apps.credit.models.statement_line import StatementLine
+from apps.credit.services.use_cases import StatementUseCases
+from apps.credit.utils.choices import StatementLineType, StatementStatus
+from apps.wallets.utils.choices import TransactionStatus, WalletKind
 
 pytestmark = pytest.mark.django_db
 
@@ -421,7 +421,7 @@ class TestAddPurchaseView:
     ):
         trx = self._mock_transaction(user.id, belongs=False)
         mocker.patch(
-            "credit.api.public.v1.views.statement.get_object_or_404",
+            "apps.credit.api.public.v1.views.statement.get_object_or_404",
             return_value=trx,
         )
 
@@ -433,7 +433,7 @@ class TestAddPurchaseView:
     def test_bad_request_when_wallet_not_credit(self, auth_client, user, mocker):
         trx = self._mock_transaction(user.id, from_wallet_kind="NON_CREDIT")
         mocker.patch(
-            "credit.api.public.v1.views.statement.get_object_or_404",
+            "apps.credit.api.public.v1.views.statement.get_object_or_404",
             return_value=trx,
         )
 
@@ -447,7 +447,7 @@ class TestAddPurchaseView:
     def test_bad_request_when_transaction_not_success(self, auth_client, user, mocker):
         trx = self._mock_transaction(user.id, status=TransactionStatus.PENDING)
         mocker.patch(
-            "credit.api.public.v1.views.statement.get_object_or_404",
+            "apps.credit.api.public.v1.views.statement.get_object_or_404",
             return_value=trx,
         )
 
@@ -459,7 +459,7 @@ class TestAddPurchaseView:
     def test_success_calls_usecase_and_returns_201(self, auth_client, user, mocker):
         trx = self._mock_transaction(user.id)
         mocker.patch(
-            "credit.api.public.v1.views.statement.get_object_or_404",
+            "apps.credit.api.public.v1.views.statement.get_object_or_404",
             return_value=trx,
         )
 
@@ -483,7 +483,7 @@ class TestAddPurchaseView:
     def test_usecase_exception_returns_400(self, auth_client, user, mocker):
         trx = self._mock_transaction(user.id)
         mocker.patch(
-            "credit.api.public.v1.views.statement.get_object_or_404",
+            "apps.credit.api.public.v1.views.statement.get_object_or_404",
             return_value=trx,
         )
 
@@ -549,7 +549,7 @@ class TestAddPaymentView:
             user_id_from=user.id, user_id_to=user.id, status=TransactionStatus.FAILED
         )
         mocker.patch(
-            "credit.api.public.v1.views.statement.get_object_or_404",
+            "apps.credit.api.public.v1.views.statement.get_object_or_404",
             return_value=trx_not_success,
         )
         url = reverse(self.url_name)
@@ -563,7 +563,7 @@ class TestAddPaymentView:
             user_id_from=other.id, user_id_to=other.id, status=TransactionStatus.SUCCESS
         )
         mocker.patch(
-            "credit.api.public.v1.views.statement.get_object_or_404",
+            "apps.credit.api.public.v1.views.statement.get_object_or_404",
             return_value=trx_not_belong,
         )
 
@@ -594,7 +594,7 @@ class TestAddPaymentView:
     ):
         trx = self._mock_transaction(user_id_from=user.id, user_id_to=999)
         mocker.patch(
-            "credit.api.public.v1.views.statement.get_object_or_404",
+            "apps.credit.api.public.v1.views.statement.get_object_or_404",
             return_value=trx,
         )
         uc_mock = mocker.patch.object(
@@ -656,7 +656,7 @@ class TestCloseStatementView:
         stmt = Mock()
         stmt.close_statement.side_effect = RuntimeError("cannot close")
         mocker.patch(
-            "credit.api.public.v1.views.statement.Statement.objects.get_current_statement",
+            "apps.credit.api.public.v1.views.statement.Statement.objects.get_current_statement",
             return_value=stmt,
         )
         url = reverse(self.url_name)
@@ -776,7 +776,7 @@ class TestAddPurchaseViewMore:
         trx.from_wallet = Mock(user_id=user.id, kind=WalletKind.CREDIT)
         trx.to_wallet = Mock(user_id=999)
         mocker.patch(
-            "credit.api.public.v1.views.statement.get_object_or_404",
+            "apps.credit.api.public.v1.views.statement.get_object_or_404",
             return_value=trx,
         )
 

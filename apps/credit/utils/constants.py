@@ -1,4 +1,4 @@
-# credit/utils/constants.py
+# apps/credit/utils/constants.py
 from django.conf import settings
 
 # Credit Limit

@@ -1,4 +1,4 @@
-# credit/tests/e2e/test_credit_workflow_e2e.py
+# apps/credit/tests/e2e/test_credit_workflow_e2e.py
 
 import datetime as dt
 from contextlib import contextmanager
@@ -9,9 +9,9 @@ from django.utils import timezone
 from freezegun import freeze_time
 from persiantools.jdatetime import JalaliDate
 
-from credit.models import Statement
-from credit.tasks import task_finalize_due_windows, task_month_end_rollover
-from credit.utils.choices import StatementLineType, StatementStatus
+from apps.credit.models import Statement
+from apps.credit.tasks import task_finalize_due_windows, task_month_end_rollover
+from apps.credit.utils.choices import StatementLineType, StatementStatus
 
 pytestmark = pytest.mark.django_db
 
@@ -362,7 +362,7 @@ class TestE2EThresholdAndInterest:
         self, user, active_credit_limit_factory
     ):
         """Debt below MINIMUM_PAYMENT_THRESHOLD should close without penalty."""
-        from credit.utils.constants import MINIMUM_PAYMENT_THRESHOLD
+        from apps.credit.utils.constants import MINIMUM_PAYMENT_THRESHOLD
 
         active_credit_limit_factory(
             user=user, is_active=True, expiry_days=60, grace_days=5

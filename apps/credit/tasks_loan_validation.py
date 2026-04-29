@@ -1,4 +1,4 @@
-# credit/tasks_loan_validation.py
+# apps/credit/tasks_loan_validation.py
 
 import logging
 
@@ -7,9 +7,9 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from credit.models import LoanRiskReport
-from credit.utils.choices import LoanReportStatus
-from kyc.services.identity_auth_service import get_identity_auth_service
+from apps.credit.models import LoanRiskReport
+from apps.credit.utils.choices import LoanReportStatus
+from apps.kyc.services.identity_auth_service import get_identity_auth_service
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-# credit/api/public/v1/views/__init__.py
+# apps/credit/api/public/v1/views/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -13,23 +13,23 @@ __all__ = [
 
 _MODULE_MAP = {
     "CreditLimitViewSet": (
-        "credit.api.public.v1.views.credit_limit",
+        "apps.credit.api.public.v1.views.credit_limit",
         "CreditLimitViewSet",
     ),
     "LoanRiskAuthViewSet": (
-        "credit.api.public.v1.views.loan_risk",
+        "apps.credit.api.public.v1.views.loan_risk",
         "LoanRiskAuthViewSet",
     ),
     "LoanRiskReportViewSet": (
-        "credit.api.public.v1.views.loan_risk",
+        "apps.credit.api.public.v1.views.loan_risk",
         "LoanRiskReportViewSet",
     ),
     "StatementViewSet": (
-        "credit.api.public.v1.views.statement",
+        "apps.credit.api.public.v1.views.statement",
         "StatementViewSet",
     ),
     "StatementLineViewSet": (
-        "credit.api.public.v1.views.statement_line",
+        "apps.credit.api.public.v1.views.statement_line",
         "StatementLineViewSet",
     ),
 }

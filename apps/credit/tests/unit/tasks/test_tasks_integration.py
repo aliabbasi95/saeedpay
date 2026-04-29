@@ -1,4 +1,4 @@
-# credit/tests/unit/tasks/test_tasks_integration.py
+# apps/credit/tests/unit/tasks/test_tasks_integration.py
 
 import datetime as dt
 
@@ -6,13 +6,13 @@ import pytest
 from django.utils import timezone
 from persiantools.jdatetime import JalaliDate
 
-from credit.models import Statement
-from credit.tasks import (
+from apps.credit.models import Statement
+from apps.credit.tasks import (
     task_daily_credit_maintenance,
     task_finalize_due_windows,
     task_month_end_rollover,
 )
-from credit.utils.choices import StatementLineType, StatementStatus
+from apps.credit.utils.choices import StatementLineType, StatementStatus
 
 pytestmark = pytest.mark.django_db
 
@@ -166,7 +166,7 @@ class TestFinalizeDueWindowsTask:
         """
         If debt is below MINIMUM_PAYMENT_THRESHOLD, finalization should close without penalty.
         """
-        from credit.utils.constants import MINIMUM_PAYMENT_THRESHOLD
+        from apps.credit.utils.constants import MINIMUM_PAYMENT_THRESHOLD
 
         active_credit_limit_factory(user=user, is_active=True, expiry_days=60)
         stmt = _make_pending_past_due_on_prev_month(

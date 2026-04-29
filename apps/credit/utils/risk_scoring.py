@@ -1,4 +1,4 @@
-# credit/utils/risk_scoring.py
+# apps/credit/utils/risk_scoring.py
 
 from typing import Any
 
@@ -58,7 +58,7 @@ class RiskScoringEngine:
 
         # Transaction history (if available)
         try:
-            from wallets.models import Transaction
+            from apps.wallets.models import Transaction
 
             transaction_count = Transaction.objects.filter(
                 models.Q(from_wallet__user=user) | models.Q(to_wallet__user=user),

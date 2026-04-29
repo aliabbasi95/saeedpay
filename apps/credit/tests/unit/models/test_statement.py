@@ -1,4 +1,4 @@
-# credit/tests/unit/models/test_statement.py
+# apps/credit/tests/unit/models/test_statement.py
 
 from datetime import timedelta
 
@@ -8,9 +8,9 @@ from django.db import IntegrityError
 from django.utils import timezone
 from persiantools.jdatetime import JalaliDate
 
-from credit.models.statement import Statement
-from credit.utils.choices import StatementLineType, StatementStatus
-from credit.utils.constants import (
+from apps.credit.models.statement import Statement
+from apps.credit.utils.choices import StatementLineType, StatementStatus
+from apps.credit.utils.constants import (
     MINIMUM_PAYMENT_PERCENTAGE,
     MINIMUM_PAYMENT_THRESHOLD,
     MONTHLY_INTEREST_RATE,
@@ -451,7 +451,7 @@ class TestReferenceCode:
             status=StatementStatus.CURRENT,
             reference_code="ST-DUP",
         )
-        from credit.models import statement as st_mod
+        from apps.credit.models import statement as st_mod
 
         calls = {"n": 0}
 
@@ -470,7 +470,7 @@ class TestReferenceCode:
         assert obj.reference_code == "ST-UNIQ"
 
     def test_five_collisions_then_null(self, monkeypatch, user):
-        from credit.models import statement as st_mod
+        from apps.credit.models import statement as st_mod
 
         def dup_gen(prefix="ST"):
             return "ST-DUP"
@@ -565,7 +565,7 @@ class TestAddPurchase:
         class _T:
             pass
 
-        from wallets.utils.choices import TransactionStatus
+        from apps.wallets.utils.choices import TransactionStatus
 
         t = _T()
         t.amount = amount
@@ -594,7 +594,7 @@ class TestAddPurchase:
             month=today.month,
             status=StatementStatus.PENDING_PAYMENT,
         )
-        from credit.models.credit_limit import CreditLimit
+        from apps.credit.models.credit_limit import CreditLimit
 
         monkeypatch.setattr(
             CreditLimit.objects,
@@ -614,7 +614,7 @@ class TestAddPurchase:
             month=today.month,
             status=StatementStatus.CURRENT,
         )
-        from credit.models.credit_limit import CreditLimit
+        from apps.credit.models.credit_limit import CreditLimit
 
         monkeypatch.setattr(
             CreditLimit.objects,
@@ -634,7 +634,7 @@ class TestAddPurchase:
             month=today.month,
             status=StatementStatus.CURRENT,
         )
-        from credit.models.credit_limit import CreditLimit
+        from apps.credit.models.credit_limit import CreditLimit
 
         monkeypatch.setattr(
             CreditLimit.objects,
@@ -654,7 +654,7 @@ class TestAddPurchase:
             month=today.month,
             status=StatementStatus.CURRENT,
         )
-        from credit.models.credit_limit import CreditLimit
+        from apps.credit.models.credit_limit import CreditLimit
 
         monkeypatch.setattr(
             CreditLimit.objects, "get_user_credit_limit", lambda u: None
@@ -675,7 +675,7 @@ class TestAddPurchase:
             month=today.month,
             status=StatementStatus.CURRENT,
         )
-        from credit.models.credit_limit import CreditLimit
+        from apps.credit.models.credit_limit import CreditLimit
 
         monkeypatch.setattr(
             CreditLimit.objects,
@@ -697,7 +697,7 @@ class TestAddPurchase:
             month=today.month,
             status=StatementStatus.CURRENT,
         )
-        from credit.models.credit_limit import CreditLimit
+        from apps.credit.models.credit_limit import CreditLimit
 
         monkeypatch.setattr(
             CreditLimit.objects,
@@ -717,7 +717,7 @@ class TestAddPurchase:
             month=today.month,
             status=StatementStatus.CURRENT,
         )
-        from credit.models.credit_limit import CreditLimit
+        from apps.credit.models.credit_limit import CreditLimit
 
         monkeypatch.setattr(
             CreditLimit.objects,

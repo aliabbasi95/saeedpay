@@ -1,11 +1,11 @@
-# credit/tests/unit/tasks/test_tasks_unit.py
+# apps/credit/tests/unit/tasks/test_tasks_unit.py
 
 from types import SimpleNamespace
 
 import pytest
 
-from credit.services.use_cases import FinalizeResult
-from credit.tasks import (
+from apps.credit.services.use_cases import FinalizeResult
+from apps.credit.tasks import (
     task_daily_credit_maintenance,
     task_finalize_due_windows,
     task_month_end_rollover,
@@ -33,7 +33,7 @@ class TestTaskMetadata:
 class TestMonthEndRolloverUnit:
     def test_success_wraps_usecase_result(self, mocker):
         mocked = mocker.patch(
-            "credit.tasks.StatementUseCases.perform_month_end_rollover",
+            "apps.credit.tasks.StatementUseCases.perform_month_end_rollover",
             return_value={
                 "statements_closed": 2,
                 "statements_created": 1,
@@ -54,7 +54,7 @@ class TestMonthEndRolloverUnit:
     def test_exception_triggers_retry(self, mocker):
         boom = RuntimeError("db down")
         mocker.patch(
-            "credit.tasks.StatementUseCases.perform_month_end_rollover",
+            "apps.credit.tasks.StatementUseCases.perform_month_end_rollover",
             side_effect=boom,
         )
         retry_spy = mocker.patch.object(
@@ -75,7 +75,7 @@ class TestFinalizeDueWindowsUnit:
             closed_with_penalty_count=1,
         )
         mocked = mocker.patch(
-            "credit.tasks.StatementUseCases.finalize_due_windows",
+            "apps.credit.tasks.StatementUseCases.finalize_due_windows",
             return_value=result,
         )
         out = task_finalize_due_windows.apply().result
@@ -92,7 +92,7 @@ class TestFinalizeDueWindowsUnit:
     def test_exception_triggers_retry(self, mocker):
         boom = ValueError("compute failed")
         mocker.patch(
-            "credit.tasks.StatementUseCases.finalize_due_windows", side_effect=boom
+            "apps.credit.tasks.StatementUseCases.finalize_due_windows", side_effect=boom
         )
         retry_spy = mocker.patch.object(
             task_finalize_due_windows, "retry", side_effect=Exception("retry-called")

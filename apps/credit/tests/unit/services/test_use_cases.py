@@ -5,10 +5,10 @@ import datetime as dt
 import pytest
 from django.utils import timezone
 
-from credit.models import Statement
-from credit.services.use_cases import StatementUseCases
-from credit.utils.choices import StatementLineType, StatementStatus
-from wallets.utils.choices import OwnerType, TransactionStatus, WalletKind
+from apps.credit.models import Statement
+from apps.credit.services.use_cases import StatementUseCases
+from apps.credit.utils.choices import StatementLineType, StatementStatus
+from apps.wallets.utils.choices import OwnerType, TransactionStatus, WalletKind
 
 pytestmark = pytest.mark.django_db
 
@@ -22,7 +22,7 @@ def wallets_for_user(user, django_user_model):
     Create a 'from' wallet owned by the test user (customer/credit)
     and a 'to' wallet owned by a merchant (merchant_gateway).
     """
-    from wallets.models import Wallet
+    from apps.wallets.models import Wallet
 
     merchant_user = django_user_model.objects.create(
         username="merchant_user", password="x"
@@ -48,7 +48,7 @@ def success_transaction(wallets_for_user):
     """
     SUCCESS transaction from user's wallet to merchant's wallet.
     """
-    from wallets.models import Transaction
+    from apps.wallets.models import Transaction
 
     w_from, w_to = wallets_for_user
     return Transaction.objects.create(
@@ -62,7 +62,7 @@ def success_transaction(wallets_for_user):
 
 @pytest.fixture
 def failed_transaction(wallets_for_user):
-    from wallets.models import Transaction
+    from apps.wallets.models import Transaction
 
     w_from, w_to = wallets_for_user
     return Transaction.objects.create(
@@ -123,8 +123,8 @@ class TestPurchases:
         """
         Ensure the created purchase line carries transaction_id and the provided description.
         """
-        from wallets.models import Transaction
-        from wallets.utils.choices import TransactionStatus as TxS
+        from apps.wallets.models import Transaction
+        from apps.wallets.utils.choices import TransactionStatus as TxS
 
         active_credit_limit_factory(
             user=user, is_active=True, expiry_days=30, approved_limit=1_000_000
@@ -197,7 +197,7 @@ class TestPurchases:
         If the transaction does not belong to the caller user (neither from nor to side),
         the use-case should reject it.
         """
-        from wallets.models import Transaction, Wallet
+        from apps.wallets.models import Transaction, Wallet
 
         active_credit_limit_factory(user=user, is_active=True, expiry_days=30)
 
@@ -234,8 +234,8 @@ class TestPurchases:
         """
         Extra guard: inactive or expired credit limit must reject purchase.
         """
-        from wallets.models import Transaction
-        from wallets.utils.choices import TransactionStatus as TxS
+        from apps.wallets.models import Transaction
+        from apps.wallets.utils.choices import TransactionStatus as TxS
 
         # Prepare a tx that belongs to the user
         current_statement_factory(user)
@@ -286,8 +286,8 @@ class TestPayments:
         self, user, current_statement_factory, wallets_for_user
     ):
         # Arrange
-        from wallets.models import Transaction
-        from wallets.utils.choices import TransactionStatus as TxS
+        from apps.wallets.models import Transaction
+        from apps.wallets.utils.choices import TransactionStatus as TxS
 
         w_from, w_to = wallets_for_user
         pay_tx = Transaction.objects.create(
@@ -562,7 +562,7 @@ class TestMonthEndRollover:
     ):
         from persiantools.jdatetime import JalaliDate
 
-        from credit.utils.constants import MONTHLY_INTEREST_RATE
+        from apps.credit.utils.constants import MONTHLY_INTEREST_RATE
 
         active_credit_limit_factory(user=user, is_active=True, expiry_days=30)
         stmt = current_statement_factory(user)
@@ -797,7 +797,7 @@ class TestFinalizeDueWindows:
         """
         If |closing_balance| < MINIMUM_PAYMENT_THRESHOLD, it must close with no penalty regardless of payments.
         """
-        from credit.utils.constants import MINIMUM_PAYMENT_THRESHOLD
+        from apps.credit.utils.constants import MINIMUM_PAYMENT_THRESHOLD
 
         active_credit_limit_factory(user=user, is_active=True, expiry_days=30)
         small_debt = -(MINIMUM_PAYMENT_THRESHOLD - 1)
@@ -822,7 +822,7 @@ class TestFinalizeDueWindows:
         """
         For large overdue days, the computed daily penalty must be capped by STATEMENT_MAX_PENALTY_RATE.
         """
-        from credit.utils.constants import STATEMENT_MAX_PENALTY_RATE
+        from apps.credit.utils.constants import STATEMENT_MAX_PENALTY_RATE
 
         active_credit_limit_factory(user=user, is_active=True, expiry_days=30)
         debt = -5_000_000
@@ -1151,8 +1151,8 @@ class TestAutoCreateCurrent:
     def test_record_successful_purchase_auto_creates_current_if_missing(
         self, user, active_credit_limit_factory, wallets_for_user
     ):
-        from wallets.models import Transaction
-        from wallets.utils.choices import TransactionStatus as TxS
+        from apps.wallets.models import Transaction
+        from apps.wallets.utils.choices import TransactionStatus as TxS
 
         # No CURRENT for user
         Statement.objects.filter(user=user).delete()

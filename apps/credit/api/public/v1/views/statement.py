@@ -1,4 +1,4 @@
-# credit/api/public/v1/views/statement.py
+# apps/credit/api/public/v1/views/statement.py
 
 import logging
 
@@ -7,21 +7,21 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from credit.api.public.v1.schema import (
+from apps.credit.api.public.v1.schema import (
     add_payment_schema,
     add_purchase_schema,
     close_current_schema,
     statement_viewset_schema,
 )
-from credit.api.public.v1.serializers.credit import (
+from apps.credit.api.public.v1.serializers.credit import (
     StatementDetailSerializer,
     StatementListSerializer,
 )
-from credit.models.statement import Statement
-from credit.services.use_cases import StatementUseCases
+from apps.credit.models.statement import Statement
+from apps.credit.services.use_cases import StatementUseCases
+from apps.wallets.models import Transaction
+from apps.wallets.utils.choices import TransactionStatus, WalletKind
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from wallets.models import Transaction
-from wallets.utils.choices import TransactionStatus, WalletKind
 
 logger = logging.getLogger(__name__)
 

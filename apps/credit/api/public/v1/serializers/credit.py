@@ -1,4 +1,4 @@
-# credit/api/public/v1/serializers/credit.py
+# apps/credit/api/public/v1/serializers/credit.py
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from credit.models.credit_limit import CreditLimit
-from credit.models.statement import Statement
-from credit.models.statement_line import StatementLine
-from credit.utils.choices import StatementLineType
+from apps.credit.models.credit_limit import CreditLimit
+from apps.credit.models.statement import Statement
+from apps.credit.models.statement_line import StatementLine
+from apps.credit.utils.choices import StatementLineType
 
 User = get_user_model()
 

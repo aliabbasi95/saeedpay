@@ -1,4 +1,4 @@
-# credit/api/public/v1/views/loan_risk.py
+# apps/credit/api/public/v1/views/loan_risk.py
 # Clean, modular ViewSets for Loan Risk flows (RESTful + actions)
 
 from django.shortcuts import get_object_or_404
@@ -7,29 +7,29 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from credit.api.public.v1.schema import (
+from apps.credit.api.public.v1.schema import (
     otp_request_schema,
     otp_verify_schema,
     report_check_schema,
     report_latest_schema,
     report_viewset_schema,
 )
-from credit.api.public.v1.serializers import (
+from apps.credit.api.public.v1.serializers import (
     LoanRiskOTPRequestSerializer,
     LoanRiskOTPVerifySerializer,
     LoanRiskReportDetailSerializer,
     LoanRiskReportListSerializer,
     LoanRiskReportSerializer,
 )
-from credit.models import LoanRiskReport
-from credit.tasks_loan_validation import (
+from apps.credit.models import LoanRiskReport
+from apps.credit.tasks_loan_validation import (
     check_loan_report_result,
     send_loan_validation_otp,
     verify_loan_otp_and_request_report,
 )
-from credit.utils.choices import LoanReportStatus
+from apps.credit.utils.choices import LoanReportStatus
+from apps.profiles.models.profile import Profile
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from profiles.models.profile import Profile
 
 # ---------- Collection-level flows: OTP request/verify ----------
 

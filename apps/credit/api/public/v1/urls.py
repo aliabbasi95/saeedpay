@@ -1,9 +1,9 @@
-# credit/api/public/v1/urls.py
+# apps/credit/api/public/v1/urls.py
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from credit.api.public.v1.views import (
+from apps.credit.api.public.v1.views import (
     CreditLimitViewSet,
     LoanRiskAuthViewSet,
     LoanRiskReportViewSet,
