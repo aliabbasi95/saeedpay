@@ -1,12 +1,12 @@
-# tickets/admin/ticket.py
+# apps/tickets/admin/ticket.py
 
 from django.contrib import admin
 from django.db.models import Count, OuterRef, Subquery
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from apps.tickets.models import Ticket, TicketMessage
 from lib.erp_base.admin import BaseAdmin, BaseStackedInlineAdmin
-from tickets.models import Ticket, TicketMessage
 
 
 class TicketMessageInline(BaseStackedInlineAdmin):

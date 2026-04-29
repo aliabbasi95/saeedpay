@@ -1,4 +1,4 @@
-# tickets/api/public/v1/schema/category.py
+# apps/tickets/api/public/v1/schema/category.py
 
 from drf_spectacular.utils import (
     OpenApiExample,

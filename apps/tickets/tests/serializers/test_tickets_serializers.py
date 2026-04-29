@@ -1,20 +1,20 @@
-# tickets/tests/serializers/test_tickets_serializers.py
+# apps/tickets/tests/serializers/test_tickets_serializers.py
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIRequestFactory
 
-from tickets.api.public.v1.serializers.ticket import (
+from apps.tickets.api.public.v1.serializers.ticket import (
     TicketCreateSerializer,
     TicketMessageCreateSerializer,
 )
-from tickets.models import (
+from apps.tickets.models import (
     Ticket,
     TicketCategory,
     TicketMessage,
     TicketMessageAttachment,
 )
-from tickets.utils.choices import TicketPriority, TicketStatus
+from apps.tickets.utils.choices import TicketPriority, TicketStatus
 
 User = get_user_model()
 

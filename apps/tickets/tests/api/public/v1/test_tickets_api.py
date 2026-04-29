@@ -1,4 +1,4 @@
-# tickets/tests/api/public/v1/test_tickets_api.py
+# apps/tickets/tests/api/public/v1/test_tickets_api.py
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -6,13 +6,13 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from tickets.models import (
+from apps.tickets.models import (
     Ticket,
     TicketCategory,
     TicketMessage,
     TicketMessageAttachment,
 )
-from tickets.utils.choices import TicketPriority, TicketStatus
+from apps.tickets.utils.choices import TicketPriority, TicketStatus
 
 User = get_user_model()
 

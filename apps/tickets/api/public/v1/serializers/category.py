@@ -1,8 +1,8 @@
-# tickets/api/public/v1/serializers/category.py
+# apps/tickets/api/public/v1/serializers/category.py
 
 from rest_framework import serializers
 
-from tickets.models import TicketCategory
+from apps.tickets.models import TicketCategory
 
 
 class TicketCategoryListSerializer(serializers.ModelSerializer):

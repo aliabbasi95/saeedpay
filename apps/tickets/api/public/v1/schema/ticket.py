@@ -1,4 +1,4 @@
-# tickets/api/public/v1/schema/ticket.py
+# apps/tickets/api/public/v1/schema/ticket.py
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -9,8 +9,8 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 
-from tickets.api.public.v1.serializers import TicketMessageSerializer
-from tickets.utils.choices import TicketPriority, TicketStatus
+from apps.tickets.api.public.v1.serializers import TicketMessageSerializer
+from apps.tickets.utils.choices import TicketPriority, TicketStatus
 
 TICKETS_TAG = "Support · Tickets"
 TICKET_MESSAGES_TAG = "Support · Tickets · Messages"

@@ -1,4 +1,4 @@
-# tickets/api/public/v1/serializers/__init__.py
+# apps/tickets/api/public/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -14,27 +14,27 @@ __all__ = [
 
 _MODULE_MAP = {
     "TicketCategoryListSerializer": (
-        "tickets.api.public.v1.serializers.category",
+        "apps.tickets.api.public.v1.serializers.category",
         "TicketCategoryListSerializer",
     ),
     "TicketCategoryDetailSerializer": (
-        "tickets.api.public.v1.serializers.category",
+        "apps.tickets.api.public.v1.serializers.category",
         "TicketCategoryDetailSerializer",
     ),
     "TicketSerializer": (
-        "tickets.api.public.v1.serializers.ticket",
+        "apps.tickets.api.public.v1.serializers.ticket",
         "TicketSerializer",
     ),
     "TicketCreateSerializer": (
-        "tickets.api.public.v1.serializers.ticket",
+        "apps.tickets.api.public.v1.serializers.ticket",
         "TicketCreateSerializer",
     ),
     "TicketMessageSerializer": (
-        "tickets.api.public.v1.serializers.ticket",
+        "apps.tickets.api.public.v1.serializers.ticket",
         "TicketMessageSerializer",
     ),
     "TicketMessageCreateSerializer": (
-        "tickets.api.public.v1.serializers.ticket",
+        "apps.tickets.api.public.v1.serializers.ticket",
         "TicketMessageCreateSerializer",
     ),
 }

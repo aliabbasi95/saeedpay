@@ -1,10 +1,10 @@
-# tickets/api/public/v1/serializers/ticket.py
+# apps/tickets/api/public/v1/serializers/ticket.py
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from tickets.models import (
+from apps.tickets.models import (
     Ticket,
     TicketCategory,
     TicketMessage,

@@ -1,10 +1,10 @@
-# tickets/api/public/v1/urls.py
+# apps/tickets/api/public/v1/urls.py
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from tickets.api.public.v1.views import TicketViewSet
-from tickets.api.public.v1.views.category import TicketCategoryViewSet
+from apps.tickets.api.public.v1.views import TicketViewSet
+from apps.tickets.api.public.v1.views.category import TicketCategoryViewSet
 
 app_name = "tickets_public_v1"
 

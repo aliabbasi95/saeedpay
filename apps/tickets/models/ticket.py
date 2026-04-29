@@ -1,11 +1,11 @@
-# tickets/models/ticket.py
+# apps/tickets/models/ticket.py
 
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.tickets.utils.choices import TicketPriority, TicketStatus
 from lib.erp_base.models import BaseModel
-from tickets.utils.choices import TicketPriority, TicketStatus
 
 from .category import TicketCategory
 

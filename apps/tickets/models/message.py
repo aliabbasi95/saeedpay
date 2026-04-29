@@ -1,10 +1,10 @@
-# tickets/models/message.py
+# apps/tickets/models/message.py
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.tickets.utils.choices import TicketMessageSender
 from lib.erp_base.models import BaseAttachment, BaseModel
-from tickets.utils.choices import TicketMessageSender
 
 from .ticket import Ticket
 

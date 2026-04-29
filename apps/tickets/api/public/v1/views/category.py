@@ -1,15 +1,15 @@
-# tickets/api/public/v1/views/category.py
+# apps/tickets/api/public/v1/views/category.py
 
 from rest_framework import mixins, viewsets
 from rest_framework.permissions import AllowAny
 
-from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from tickets.api.public.v1.schema import ticket_category_viewset_schema
-from tickets.api.public.v1.serializers.category import (
+from apps.tickets.api.public.v1.schema import ticket_category_viewset_schema
+from apps.tickets.api.public.v1.serializers.category import (
     TicketCategoryDetailSerializer,
     TicketCategoryListSerializer,
 )
-from tickets.models import TicketCategory
+from apps.tickets.models import TicketCategory
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 
 @ticket_category_viewset_schema

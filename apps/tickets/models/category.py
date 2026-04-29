@@ -1,4 +1,4 @@
-# tickets/models/category.py
+# apps/tickets/models/category.py
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _

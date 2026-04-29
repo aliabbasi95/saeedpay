@@ -1,8 +1,8 @@
-# tickets/filters.py
+# apps/tickets/filters.py
 from django_filters import rest_framework as filters
 
-from tickets.models import Ticket
-from tickets.utils.choices import TicketPriority, TicketStatus
+from apps.tickets.models import Ticket
+from apps.tickets.utils.choices import TicketPriority, TicketStatus
 
 
 class TicketFilter(filters.FilterSet):

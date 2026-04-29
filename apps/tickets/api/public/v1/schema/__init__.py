@@ -1,4 +1,4 @@
-# tickets/api/public/v1/schema/__init__.py
+# apps/tickets/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -12,19 +12,19 @@ __all__ = [
 
 _MODULE_MAP = {
     "ticket_viewset_schema": (
-        "tickets.api.public.v1.schema.ticket",
+        "apps.tickets.api.public.v1.schema.ticket",
         "ticket_viewset_schema",
     ),
     "messages_list_schema": (
-        "tickets.api.public.v1.schema.ticket",
+        "apps.tickets.api.public.v1.schema.ticket",
         "messages_list_schema",
     ),
     "add_message_schema": (
-        "tickets.api.public.v1.schema.ticket",
+        "apps.tickets.api.public.v1.schema.ticket",
         "add_message_schema",
     ),
     "ticket_category_viewset_schema": (
-        "tickets.api.public.v1.schema.category",
+        "apps.tickets.api.public.v1.schema.category",
         "ticket_category_viewset_schema",
     ),
 }

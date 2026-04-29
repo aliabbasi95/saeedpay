@@ -1,11 +1,11 @@
-# tickets/admin/category.py
+# apps/tickets/admin/category.py
 
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from apps.tickets.models import TicketCategory
 from lib.erp_base.admin import BaseAdmin
-from tickets.models import TicketCategory
 
 
 @admin.register(TicketCategory)

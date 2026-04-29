@@ -1,11 +1,11 @@
-# tickets/admin/message.py
+# apps/tickets/admin/message.py
 
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from apps.tickets.models import TicketMessage, TicketMessageAttachment
 from lib.erp_base.admin import BaseAdmin, BaseInlineAdmin
-from tickets.models import TicketMessage, TicketMessageAttachment
 
 
 class TicketMessageAttachmentInline(BaseInlineAdmin):

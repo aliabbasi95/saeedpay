@@ -1,7 +1,7 @@
-# tickets/management/commands/create_ticket_categories.py
+# apps/tickets/management/commands/create_ticket_categories.py
 from django.core.management.base import BaseCommand
 
-from tickets.models import TicketCategory
+from apps.tickets.models import TicketCategory
 
 
 class Command(BaseCommand):
