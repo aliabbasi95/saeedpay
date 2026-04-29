@@ -1,9 +1,9 @@
-# chatbot/api/public/v1/urls.py
+# apps/chatbot/api/public/v1/urls.py
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from chatbot.api.public.v1.views import ChatSessionViewSet
+from apps.chatbot.api.public.v1.views import ChatSessionViewSet
 
 app_name = "chatbot_public_v1"
 

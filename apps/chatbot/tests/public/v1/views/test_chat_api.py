@@ -1,11 +1,11 @@
-# chatbot/tests/public/v1/views/test_chat_api.py
+# apps/chatbot/tests/public/v1/views/test_chat_api.py
 
 
 import pytest
 from django.conf import settings
 from django.urls import reverse
 
-from chatbot.models import ChatSession
+from apps.chatbot.models import ChatSession
 
 
 @pytest.mark.django_db

@@ -1,11 +1,11 @@
-# chatbot/api/public/v1/views/test_security.py
+# apps/chatbot/api/public/v1/views/test_security.py
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from chatbot.models import ChatSession
+from apps.chatbot.models import ChatSession
 
 User = get_user_model()
 

@@ -1,4 +1,4 @@
-# chatbot/api/public/v1/serializers/__init__.py
+# apps/chatbot/api/public/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -13,23 +13,23 @@ __all__ = [
 
 _MODULE_MAP = {
     "ChatMessageSerializer": (
-        "chatbot.api.public.v1.serializers.message",
+        "apps.chatbot.api.public.v1.serializers.message",
         "ChatMessageSerializer",
     ),
     "ChatRequestSerializer": (
-        "chatbot.api.public.v1.serializers.chat",
+        "apps.chatbot.api.public.v1.serializers.chat",
         "ChatRequestSerializer",
     ),
     "ChatResponseSerializer": (
-        "chatbot.api.public.v1.serializers.chat",
+        "apps.chatbot.api.public.v1.serializers.chat",
         "ChatResponseSerializer",
     ),
     "ChatSessionSerializer": (
-        "chatbot.api.public.v1.serializers.session",
+        "apps.chatbot.api.public.v1.serializers.session",
         "ChatSessionSerializer",
     ),
     "ChatSessionDetailSerializer": (
-        "chatbot.api.public.v1.serializers.session",
+        "apps.chatbot.api.public.v1.serializers.session",
         "ChatSessionDetailSerializer",
     ),
 }

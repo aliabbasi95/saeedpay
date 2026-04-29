@@ -1,4 +1,4 @@
-# chatbot/models/session.py
+# apps/chatbot/models/session.py
 
 from django.conf import settings
 from django.db import models

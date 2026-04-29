@@ -1,4 +1,4 @@
-# chatbot/api/public/v1/schema/session.py
+# apps/chatbot/api/public/v1/schema/session.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -10,7 +10,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status
 
-from chatbot.api.public.v1.serializers import (
+from apps.chatbot.api.public.v1.serializers import (
     ChatMessageSerializer,
     ChatRequestSerializer,
     ChatResponseSerializer,

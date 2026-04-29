@@ -1,4 +1,4 @@
-# chatbot/api/public/v1/serializers/chat.py
+# apps/chatbot/api/public/v1/serializers/chat.py
 
 from rest_framework import serializers
 

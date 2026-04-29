@@ -1,6 +1,6 @@
 import pytest
 
-from chatbot.api.public.v1.serializers import ChatRequestSerializer
+from apps.chatbot.api.public.v1.serializers import ChatRequestSerializer
 
 
 @pytest.mark.django_db

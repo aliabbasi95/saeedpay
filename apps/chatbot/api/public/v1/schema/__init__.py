@@ -1,4 +1,4 @@
-# chatbot/api/public/v1/schema/__init__.py
+# apps/chatbot/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -11,15 +11,15 @@ __all__ = [
 
 _MODULE_MAP = {
     "chat_session_viewset_schema": (
-        "chatbot.api.public.v1.schema.session",
+        "apps.chatbot.api.public.v1.schema.session",
         "chat_session_viewset_schema",
     ),
     "chat_action_schema": (
-        "chatbot.api.public.v1.schema.session",
+        "apps.chatbot.api.public.v1.schema.session",
         "chat_action_schema",
     ),
     "messages_action_schema": (
-        "chatbot.api.public.v1.schema.session",
+        "apps.chatbot.api.public.v1.schema.session",
         "messages_action_schema",
     ),
 }

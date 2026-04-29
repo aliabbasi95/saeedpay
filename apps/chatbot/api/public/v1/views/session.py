@@ -1,4 +1,4 @@
-# chatbot/api/public/v1/views/session.py
+# apps/chatbot/api/public/v1/views/session.py
 
 import logging
 from urllib.parse import urljoin
@@ -13,19 +13,19 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from chatbot.api.public.v1.schema import (
+from apps.chatbot.api.public.v1.schema import (
     chat_action_schema,
     chat_session_viewset_schema,
     messages_action_schema,
 )
-from chatbot.api.public.v1.serializers import (
+from apps.chatbot.api.public.v1.serializers import (
     ChatMessageSerializer,
     ChatRequestSerializer,
     ChatResponseSerializer,
     ChatSessionDetailSerializer,
     ChatSessionSerializer,
 )
-from chatbot.models import ChatMessage, ChatSession
+from apps.chatbot.models import ChatMessage, ChatSession
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 logger = logging.getLogger(__name__)

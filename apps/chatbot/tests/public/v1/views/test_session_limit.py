@@ -1,4 +1,4 @@
-# chatbot/tests/public/v1/views/test_session_limit.py
+# apps/chatbot/tests/public/v1/views/test_session_limit.py
 
 import pytest
 from django.conf import settings

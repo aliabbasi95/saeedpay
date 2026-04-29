@@ -1,7 +1,7 @@
 import pytest
 from django.contrib.auth import get_user_model
 
-from chatbot.models import ChatMessage, ChatSession
+from apps.chatbot.models import ChatMessage, ChatSession
 
 
 @pytest.mark.django_db

@@ -30,7 +30,7 @@ def mock_llm_requests_post():
     This prevents real network calls to localhost:8001 during tests.
     """
     with patch(
-        "chatbot.api.public.v1.views.session.requests.post",
+        "apps.chatbot.api.public.v1.views.session.requests.post",
         return_value=DummyLLMResponse({"answer": "pong"}),
     ):
         yield
