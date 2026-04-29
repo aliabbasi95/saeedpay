@@ -1,11 +1,11 @@
-# blogs/api/public/v1/serializers/comment.py
+# apps/blogs/api/public/v1/serializers/comment.py
 
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from blogs.models import Article, Comment
-from store.models import Store
+from apps.blogs.models import Article, Comment
+from apps.store.models import Store
 
 User = get_user_model()
 

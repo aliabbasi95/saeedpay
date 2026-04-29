@@ -1,10 +1,10 @@
-# blogs/filters.py
+# apps/blogs/filters.py
 
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
-from blogs.models import Article
-from blogs.utils.choices import ArticleStatus
+from apps.blogs.models import Article
+from apps.blogs.utils.choices import ArticleStatus
 
 
 class NumberInFilter(filters.BaseInFilter, filters.NumberFilter):

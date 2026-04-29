@@ -1,11 +1,11 @@
-# blogs/admin/comment.py
+# apps/blogs/admin/comment.py
 
 from django.contrib import admin
 from django.db.models import Count, Q
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from blogs.models import Comment
+from apps.blogs.models import Comment
 from lib.erp_base.admin import BaseAdmin
 
 

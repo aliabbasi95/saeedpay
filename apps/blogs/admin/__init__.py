@@ -1,4 +1,4 @@
-# blogs/admin/__init__.py
+# apps/blogs/admin/__init__.py
 
 from .article import ArticleAdmin
 from .comment import CommentAdmin

@@ -1,4 +1,4 @@
-# blogs/api/public/v1/schema/comment.py
+# apps/blogs/api/public/v1/schema/comment.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -8,7 +8,10 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 
-from blogs.api.public.v1.serializers import CommentListSerializer, CommentSerializer
+from apps.blogs.api.public.v1.serializers import (
+    CommentListSerializer,
+    CommentSerializer,
+)
 
 COMMENTS_TAG = "Content · Comments"
 

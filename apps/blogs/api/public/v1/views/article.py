@@ -1,4 +1,4 @@
-# blogs/api/public/v1/views/article.py
+# apps/blogs/api/public/v1/views/article.py
 
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
@@ -8,13 +8,13 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
-from blogs.api.public.v1.schema import article_viewset_schema
-from blogs.api.public.v1.serializers import (
+from apps.blogs.api.public.v1.schema import article_viewset_schema
+from apps.blogs.api.public.v1.serializers import (
     ArticleDetailSerializer,
     ArticleListSerializer,
 )
-from blogs.filters import ArticleFilter
-from blogs.models import Article, ArticleSection, Comment
+from apps.blogs.filters import ArticleFilter
+from apps.blogs.models import Article, ArticleSection, Comment
 
 
 @article_viewset_schema

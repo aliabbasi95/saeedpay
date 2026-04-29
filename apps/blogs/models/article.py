@@ -1,4 +1,4 @@
-# blogs/models/article.py
+# apps/blogs/models/article.py
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, models, transaction
 from django.db.models import F, Max
@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
-from blogs.utils.choices import ArticleStatus, SectionType
+from apps.blogs.utils.choices import ArticleStatus, SectionType
 from lib.erp_base.models import BaseModel
 
 

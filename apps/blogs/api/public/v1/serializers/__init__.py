@@ -1,4 +1,4 @@
-# blogs/api/public/v1/serializers/__init__.py
+# apps/blogs/api/public/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -19,47 +19,47 @@ __all__ = [
 
 _MODULE_MAP = {
     "AuthorSerializer": (
-        "blogs.api.public.v1.serializers.article",
+        "apps.blogs.api.public.v1.serializers.article",
         "AuthorSerializer",
     ),
     "ArticleSectionSerializer": (
-        "blogs.api.public.v1.serializers.article",
+        "apps.blogs.api.public.v1.serializers.article",
         "ArticleSectionSerializer",
     ),
     "ArticleListSerializer": (
-        "blogs.api.public.v1.serializers.article",
+        "apps.blogs.api.public.v1.serializers.article",
         "ArticleListSerializer",
     ),
     "ArticleDetailSerializer": (
-        "blogs.api.public.v1.serializers.article",
+        "apps.blogs.api.public.v1.serializers.article",
         "ArticleDetailSerializer",
     ),
     "CommentAuthorSerializer": (
-        "blogs.api.public.v1.serializers.comment",
+        "apps.blogs.api.public.v1.serializers.comment",
         "CommentAuthorSerializer",
     ),
     "CommentSerializer": (
-        "blogs.api.public.v1.serializers.comment",
+        "apps.blogs.api.public.v1.serializers.comment",
         "CommentSerializer",
     ),
     "CommentListSerializer": (
-        "blogs.api.public.v1.serializers.comment",
+        "apps.blogs.api.public.v1.serializers.comment",
         "CommentListSerializer",
     ),
     "CommentCreateSerializer": (
-        "blogs.api.public.v1.serializers.comment",
+        "apps.blogs.api.public.v1.serializers.comment",
         "CommentCreateSerializer",
     ),
     "CommentUpdateSerializer": (
-        "blogs.api.public.v1.serializers.comment",
+        "apps.blogs.api.public.v1.serializers.comment",
         "CommentUpdateSerializer",
     ),
     "TagSerializer": (
-        "blogs.api.public.v1.serializers.tag",
+        "apps.blogs.api.public.v1.serializers.tag",
         "TagSerializer",
     ),
     "TagListSerializer": (
-        "blogs.api.public.v1.serializers.tag",
+        "apps.blogs.api.public.v1.serializers.tag",
         "TagListSerializer",
     ),
 }

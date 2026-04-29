@@ -1,4 +1,4 @@
-# blogs/api/public/v1/views/comment.py
+# apps/blogs/api/public/v1/views/comment.py
 
 from django.db.models import F, Q
 from django_filters.rest_framework import DjangoFilterBackend
@@ -12,21 +12,21 @@ from rest_framework.permissions import (
 )
 from rest_framework.response import Response
 
-from blogs.api.public.v1.permissions import IsOwnerOrStaff
-from blogs.api.public.v1.schema import (
+from apps.blogs.api.public.v1.permissions import IsOwnerOrStaff
+from apps.blogs.api.public.v1.schema import (
     comment_dislike_schema,
     comment_like_schema,
     comment_viewset_schema,
     my_comments_schema,
     orphaned_comments_schema,
 )
-from blogs.api.public.v1.serializers import (
+from apps.blogs.api.public.v1.serializers import (
     CommentCreateSerializer,
     CommentListSerializer,
     CommentSerializer,
     CommentUpdateSerializer,
 )
-from blogs.models import Comment
+from apps.blogs.models import Comment
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 

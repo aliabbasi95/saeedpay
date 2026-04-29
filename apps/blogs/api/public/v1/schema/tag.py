@@ -1,4 +1,4 @@
-# blogs/api/public/v1/schema/tag.py
+# apps/blogs/api/public/v1/schema/tag.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -7,7 +7,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 
-from blogs.api.public.v1.serializers import TagListSerializer, TagSerializer
+from apps.blogs.api.public.v1.serializers import TagListSerializer, TagSerializer
 
 TAGS_TAG = "Content · Tags"
 

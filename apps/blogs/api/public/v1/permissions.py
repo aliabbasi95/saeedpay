@@ -1,4 +1,4 @@
-# blogs/api/public/v1/permissions.py
+# apps/blogs/api/public/v1/permissions.py
 
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 

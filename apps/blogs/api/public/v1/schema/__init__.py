@@ -1,4 +1,4 @@
-# blogs/api/public/v1/schema/__init__.py
+# apps/blogs/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -15,31 +15,31 @@ __all__ = [
 
 _MODULE_MAP = {
     "article_viewset_schema": (
-        "blogs.api.public.v1.schema.article",
+        "apps.blogs.api.public.v1.schema.article",
         "article_viewset_schema",
     ),
     "comment_viewset_schema": (
-        "blogs.api.public.v1.schema.comment",
+        "apps.blogs.api.public.v1.schema.comment",
         "comment_viewset_schema",
     ),
     "comment_like_schema": (
-        "blogs.api.public.v1.schema.comment",
+        "apps.blogs.api.public.v1.schema.comment",
         "comment_like_schema",
     ),
     "comment_dislike_schema": (
-        "blogs.api.public.v1.schema.comment",
+        "apps.blogs.api.public.v1.schema.comment",
         "comment_dislike_schema",
     ),
     "my_comments_schema": (
-        "blogs.api.public.v1.schema.comment",
+        "apps.blogs.api.public.v1.schema.comment",
         "my_comments_schema",
     ),
     "orphaned_comments_schema": (
-        "blogs.api.public.v1.schema.comment",
+        "apps.blogs.api.public.v1.schema.comment",
         "orphaned_comments_schema",
     ),
     "tag_viewset_schema": (
-        "blogs.api.public.v1.schema.tag",
+        "apps.blogs.api.public.v1.schema.tag",
         "tag_viewset_schema",
     ),
 }

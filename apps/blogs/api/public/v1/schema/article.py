@@ -1,4 +1,4 @@
-# blogs/api/public/v1/schema/article.py
+# apps/blogs/api/public/v1/schema/article.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -8,7 +8,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 
-from blogs.api.public.v1.serializers import (
+from apps.blogs.api.public.v1.serializers import (
     ArticleDetailSerializer,
     ArticleListSerializer,
 )

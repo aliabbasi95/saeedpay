@@ -1,12 +1,12 @@
-# blogs/api/public/v1/serializers/article.py
+# apps/blogs/api/public/v1/serializers/article.py
 
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
 
-from blogs.api.public.v1.serializers.tag import TagListSerializer
-from blogs.models import Article, ArticleSection
+from apps.blogs.api.public.v1.serializers.tag import TagListSerializer
+from apps.blogs.models import Article, ArticleSection
 
 User = get_user_model()
 
@@ -132,7 +132,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_comments(self, obj):
         """Return approved root-level comments."""
-        from blogs.api.public.v1.serializers.comment import CommentListSerializer
+        from apps.blogs.api.public.v1.serializers.comment import CommentListSerializer
 
         approved_roots = obj.comments.filter(
             is_approved=True,

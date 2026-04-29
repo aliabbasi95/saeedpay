@@ -1,4 +1,4 @@
-# blogs/api/public/v1/views/tag.py
+# apps/blogs/api/public/v1/views/tag.py
 
 from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
@@ -6,9 +6,9 @@ from rest_framework import viewsets
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import AllowAny
 
-from blogs.api.public.v1.schema import tag_viewset_schema
-from blogs.api.public.v1.serializers import TagListSerializer, TagSerializer
-from blogs.models import Tag
+from apps.blogs.api.public.v1.schema import tag_viewset_schema
+from apps.blogs.api.public.v1.serializers import TagListSerializer, TagSerializer
+from apps.blogs.models import Tag
 
 
 @tag_viewset_schema

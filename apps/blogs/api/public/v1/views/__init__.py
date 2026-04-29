@@ -1,4 +1,4 @@
-# blogs/api/public/v1/views/__init__.py
+# apps/blogs/api/public/v1/views/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -11,15 +11,15 @@ __all__ = [
 
 _MODULE_MAP = {
     "ArticleViewSet": (
-        "blogs.api.public.v1.views.article",
+        "apps.blogs.api.public.v1.views.article",
         "ArticleViewSet",
     ),
     "CommentViewSet": (
-        "blogs.api.public.v1.views.comment",
+        "apps.blogs.api.public.v1.views.comment",
         "CommentViewSet",
     ),
     "TagViewSet": (
-        "blogs.api.public.v1.views.tag",
+        "apps.blogs.api.public.v1.views.tag",
         "TagViewSet",
     ),
 }

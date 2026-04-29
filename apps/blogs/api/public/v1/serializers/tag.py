@@ -1,8 +1,8 @@
-# blogs/api/public/v1/serializers/tag.py
+# apps/blogs/api/public/v1/serializers/tag.py
 
 from rest_framework import serializers
 
-from blogs.models import Tag
+from apps.blogs.models import Tag
 
 
 class TagSerializer(serializers.ModelSerializer):

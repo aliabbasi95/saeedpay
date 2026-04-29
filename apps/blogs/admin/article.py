@@ -1,4 +1,4 @@
-# blogs/admin/article.py
+# apps/blogs/admin/article.py
 
 from django import forms
 from django.contrib import admin
@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from blogs.models import Article, ArticleSection
+from apps.blogs.models import Article, ArticleSection
 from lib.erp_base.admin.base import BaseAdmin
 
 

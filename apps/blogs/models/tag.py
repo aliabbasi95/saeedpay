@@ -1,4 +1,4 @@
-# blogs/models/tag.py
+# apps/blogs/models/tag.py
 
 from django.db import models
 from django.utils import timezone

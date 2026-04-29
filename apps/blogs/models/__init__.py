@@ -1,4 +1,4 @@
-# blogs/models/__init__.py
+# apps/blogs/models/__init__.py
 
 from .article import Article, ArticleSection
 from .comment import Comment
