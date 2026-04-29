@@ -1,4 +1,4 @@
-# auth_api/api/public/v1/schema/__init__.py
+# apps/auth_api/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -17,39 +17,39 @@ __all__ = [
 
 _MODULE_MAP = {
     "LOGIN_SCHEMA": (
-        "auth_api.api.public.v1.schema.auth",
+        "apps.auth_api.api.public.v1.schema.auth",
         "LOGIN_SCHEMA",
     ),
     "LOGOUT_SCHEMA": (
-        "auth_api.api.public.v1.schema.auth",
+        "apps.auth_api.api.public.v1.schema.auth",
         "LOGOUT_SCHEMA",
     ),
     "REFRESH_SCHEMA": (
-        "auth_api.api.public.v1.schema.auth",
+        "apps.auth_api.api.public.v1.schema.auth",
         "REFRESH_SCHEMA",
     ),
     "SEND_OTP_SCHEMA": (
-        "auth_api.api.public.v1.schema.auth",
+        "apps.auth_api.api.public.v1.schema.auth",
         "SEND_OTP_SCHEMA",
     ),
     "SEND_USER_OTP_SCHEMA": (
-        "auth_api.api.public.v1.schema.auth",
+        "apps.auth_api.api.public.v1.schema.auth",
         "SEND_USER_OTP_SCHEMA",
     ),
     "REGISTER_CUSTOMER_SCHEMA": (
-        "auth_api.api.public.v1.schema.auth",
+        "apps.auth_api.api.public.v1.schema.auth",
         "REGISTER_CUSTOMER_SCHEMA",
     ),
     "REGISTER_MERCHANT_SCHEMA": (
-        "auth_api.api.public.v1.schema.auth",
+        "apps.auth_api.api.public.v1.schema.auth",
         "REGISTER_MERCHANT_SCHEMA",
     ),
     "CHANGE_PASSWORD_SCHEMA": (
-        "auth_api.api.public.v1.schema.auth",
+        "apps.auth_api.api.public.v1.schema.auth",
         "CHANGE_PASSWORD_SCHEMA",
     ),
     "RESET_PASSWORD_SCHEMA": (
-        "auth_api.api.public.v1.schema.auth",
+        "apps.auth_api.api.public.v1.schema.auth",
         "RESET_PASSWORD_SCHEMA",
     ),
 }

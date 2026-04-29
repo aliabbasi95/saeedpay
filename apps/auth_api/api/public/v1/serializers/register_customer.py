@@ -1,4 +1,4 @@
-# auth_api/api/public/v1/serializers/register.py
+# apps/auth_api/api/public/v1/serializers/register.py
 
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -6,17 +6,17 @@ from django.core.validators import RegexValidator
 from django.db import transaction
 from rest_framework import serializers
 
-from auth_api.api.public.v1.serializers.mixins import (
+from apps.auth_api.api.public.v1.serializers.mixins import (
     OTPValidationMixin,
     UserPublicPayloadMixin,
 )
-from customers.models import Customer
+from apps.customers.models import Customer
+from apps.profiles.models import Profile
+from apps.wallets.services import create_default_wallets_for_user
+from apps.wallets.utils.choices import OwnerType
 from lib.erp_base.serializers.persian_error_message import (
     PersianValidationErrorMessages,
 )
-from profiles.models import Profile
-from wallets.services import create_default_wallets_for_user
-from wallets.utils.choices import OwnerType
 
 
 class RegisterCustomerSerializer(

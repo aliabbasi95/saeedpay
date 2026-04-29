@@ -1,4 +1,4 @@
-# auth_api/api/public/v1/serializers/__init__.py
+# apps/auth_api/api/public/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -15,31 +15,31 @@ __all__ = [
 
 _MODULE_MAP = {
     "ChangePasswordSerializer": (
-        "auth_api.api.public.v1.serializers.change_password",
+        "apps.auth_api.api.public.v1.serializers.change_password",
         "ChangePasswordSerializer",
     ),
     "LoginSerializer": (
-        "auth_api.api.public.v1.serializers.login",
+        "apps.auth_api.api.public.v1.serializers.login",
         "LoginSerializer",
     ),
     "SendOTPSerializer": (
-        "auth_api.api.public.v1.serializers.otp",
+        "apps.auth_api.api.public.v1.serializers.otp",
         "SendOTPSerializer",
     ),
     "SendUserOTPSerializer": (
-        "auth_api.api.public.v1.serializers.otp",
+        "apps.auth_api.api.public.v1.serializers.otp",
         "SendUserOTPSerializer",
     ),
     "RegisterCustomerSerializer": (
-        "auth_api.api.public.v1.serializers.register_customer",
+        "apps.auth_api.api.public.v1.serializers.register_customer",
         "RegisterCustomerSerializer",
     ),
     "RegisterMerchantSerializer": (
-        "auth_api.api.public.v1.serializers.register_merchant",
+        "apps.auth_api.api.public.v1.serializers.register_merchant",
         "RegisterMerchantSerializer",
     ),
     "ResetPasswordSerializer": (
-        "auth_api.api.public.v1.serializers.reset_password",
+        "apps.auth_api.api.public.v1.serializers.reset_password",
         "ResetPasswordSerializer",
     ),
 }

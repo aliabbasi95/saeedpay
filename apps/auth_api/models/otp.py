@@ -1,4 +1,4 @@
-# auth_api/models/otp.py
+# apps/auth_api/models/otp.py
 
 from django.conf import settings
 from django.db import models

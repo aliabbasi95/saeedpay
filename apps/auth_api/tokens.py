@@ -1,4 +1,4 @@
-# auth_api/tokens.py
+# apps/auth_api/tokens.py
 
 from rest_framework_simplejwt.tokens import RefreshToken
 

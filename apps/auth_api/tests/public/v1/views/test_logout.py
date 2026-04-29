@@ -1,11 +1,11 @@
-# auth_api/tests/public/v1/views/test_logout.py
+# apps/auth_api/tests/public/v1/views/test_logout.py
 
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from auth_api.tokens import CustomRefreshToken
+from apps.auth_api.tokens import CustomRefreshToken
 
 LOGOUT_URL = "/saeedpay/api/auth/public/v1/logout/"
 

@@ -1,10 +1,10 @@
-# auth_api/api/public/v1/serializers/otp.py
+# apps/auth_api/api/public/v1/serializers/otp.py
 import re
 
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from auth_api.models import PhoneOTP
+from apps.auth_api.models import PhoneOTP
 
 
 class SendOTPSerializer(serializers.Serializer):

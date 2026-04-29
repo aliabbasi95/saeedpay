@@ -1,10 +1,10 @@
-# auth_api/api/public/v1/views/mixins.py
+# apps/auth_api/api/public/v1/views/mixins.py
 
 from rest_framework import status
 from rest_framework.response import Response
 
-from auth_api.tokens import CustomRefreshToken
-from auth_api.utils.cookies import set_refresh_cookie
+from apps.auth_api.tokens import CustomRefreshToken
+from apps.auth_api.utils.cookies import set_refresh_cookie
 
 
 class IssueTokensResponseMixin:

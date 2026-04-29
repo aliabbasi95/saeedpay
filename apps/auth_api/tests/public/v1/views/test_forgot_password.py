@@ -1,11 +1,11 @@
-# auth_api/tests/public/v1/views/test_forgot_password.py
+# apps/auth_api/tests/public/v1/views/test_forgot_password.py
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from auth_api.models import PhoneOTP
-from auth_api.utils.throttles import OTPPhoneRateThrottle
+from apps.auth_api.models import PhoneOTP
+from apps.auth_api.utils.throttles import OTPPhoneRateThrottle
 
 FORGOT_PASSWORD_URL = "/saeedpay/api/auth/public/v1/send-otp/"
 

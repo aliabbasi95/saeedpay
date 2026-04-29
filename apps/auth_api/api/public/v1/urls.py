@@ -1,9 +1,9 @@
-# auth_api/api/public/v1/urls.py
+# apps/auth_api/api/public/v1/urls.py
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from auth_api.api.public.v1.views import AuthViewSet
+from apps.auth_api.api.public.v1.views import AuthViewSet
 
 app_name = "auth_api_public_v1"
 

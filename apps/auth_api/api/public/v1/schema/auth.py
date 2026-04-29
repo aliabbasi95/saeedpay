@@ -1,8 +1,8 @@
-# auth_api/api/public/v1/schema/auth.py
+# apps/auth_api/api/public/v1/schema/auth.py
 
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 
-from auth_api.api.public.v1.serializers import (
+from apps.auth_api.api.public.v1.serializers import (
     ChangePasswordSerializer,
     LoginSerializer,
     RegisterCustomerSerializer,

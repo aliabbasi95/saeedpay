@@ -1,10 +1,10 @@
-# auth_api/tests/public/v1/serializers/test_send_otp.py
+# apps/auth_api/tests/public/v1/serializers/test_send_otp.py
 import pytest
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from auth_api.api.public.v1.serializers import SendOTPSerializer
-from auth_api.models import PhoneOTP
+from apps.auth_api.api.public.v1.serializers import SendOTPSerializer
+from apps.auth_api.models import PhoneOTP
 
 
 @pytest.mark.django_db

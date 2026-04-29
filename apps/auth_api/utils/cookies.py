@@ -1,4 +1,4 @@
-# auth_api/utils/cookies.py
+# apps/auth_api/utils/cookies.py
 
 from datetime import datetime, timezone
 

@@ -1,4 +1,4 @@
-# auth_api/tests/public/v1/views/test_reset_password.py
+# apps/auth_api/tests/public/v1/views/test_reset_password.py
 
 import pytest
 from django.conf import settings
@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
-from auth_api.models import PhoneOTP
+from apps.auth_api.models import PhoneOTP
 
 RESET_PASSWORD_URL = "/saeedpay/api/auth/public/v1/reset-password/"
 

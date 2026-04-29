@@ -1,4 +1,4 @@
-# auth_api/tests/public/v1/serializers/test_register_customer.py
+# apps/auth_api/tests/public/v1/serializers/test_register_customer.py
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -7,9 +7,9 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from auth_api.models import PhoneOTP
-from customers.models import Customer
-from profiles.models import Profile
+from apps.auth_api.models import PhoneOTP
+from apps.customers.models import Customer
+from apps.profiles.models import Profile
 
 REGISTER_URL = "/saeedpay/api/auth/public/v1/register/customer/"
 

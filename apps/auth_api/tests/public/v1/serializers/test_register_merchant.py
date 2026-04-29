@@ -1,13 +1,13 @@
-# auth_api/tests/public/v1/serializers/test_register_merchant.py
+# apps/auth_api/tests/public/v1/serializers/test_register_merchant.py
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from auth_api.api.public.v1.serializers import RegisterMerchantSerializer
-from auth_api.models import PhoneOTP
-from merchants.models import Merchant
+from apps.auth_api.api.public.v1.serializers import RegisterMerchantSerializer
+from apps.auth_api.models import PhoneOTP
+from apps.merchants.models import Merchant
 
 
 @pytest.mark.django_db

@@ -1,13 +1,13 @@
-# auth_api/admin/users.py
+# apps/auth_api/admin/users.py
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from customers.models import Customer
+from apps.customers.models import Customer
+from apps.merchants.models import Merchant
+from apps.profiles.models import Profile
 from lib.erp_base.admin import BaseAdmin
-from merchants.models import Merchant
-from profiles.models import Profile
 
 User = get_user_model()
 

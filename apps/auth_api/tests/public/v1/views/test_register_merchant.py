@@ -1,4 +1,4 @@
-# auth_api/tests/public/v1/views/test_register_merchant.py
+# apps/auth_api/tests/public/v1/views/test_register_merchant.py
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -7,9 +7,9 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from auth_api.models import PhoneOTP
-from merchants.models import Merchant
-from profiles.models import Profile
+from apps.auth_api.models import PhoneOTP
+from apps.merchants.models import Merchant
+from apps.profiles.models import Profile
 
 REGISTER_MERCHANT_URL = "/saeedpay/api/auth/public/v1/register/merchant/"
 

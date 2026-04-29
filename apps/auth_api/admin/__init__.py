@@ -1,4 +1,4 @@
-# auth_api/__init__.py
+# apps/auth_api/__init__.py
 
 from .users import CustomUserAdmin
 

@@ -1,4 +1,4 @@
-# auth_api/tests/public/v1/views/test_send_otp.py
+# apps/auth_api/tests/public/v1/views/test_send_otp.py
 
 from unittest.mock import patch
 
@@ -9,10 +9,10 @@ from freezegun import freeze_time
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from auth_api.models import PhoneOTP
+from apps.auth_api.models import PhoneOTP
 
 SEND_OTP_URL = "/saeedpay/api/auth/public/v1/send-otp/"
-PHONE_OTP_SEND_PATH = "auth_api.models.PhoneOTP.send"
+PHONE_OTP_SEND_PATH = "apps.auth_api.models.PhoneOTP.send"
 
 
 @pytest.mark.django_db
@@ -89,8 +89,8 @@ class TestSendOtpThrottlingTests:
 
     def _get_throttle_config(self):
         """Extract throttle configuration dynamically from the OTP view."""
-        from auth_api.api.public.v1.views import AuthViewSet
-        from auth_api.utils.throttles import OTPPhoneRateThrottle
+        from apps.auth_api.api.public.v1.views import AuthViewSet
+        from apps.auth_api.utils.throttles import OTPPhoneRateThrottle
 
         view = AuthViewSet()
         view.action = "send_otp"
@@ -142,8 +142,8 @@ class TestSendOtpThrottlingTests:
         """Verify that throttle classes are properly configured on the view."""
         from rest_framework.test import APIRequestFactory
 
-        from auth_api.api.public.v1.views import AuthViewSet
-        from auth_api.utils.throttles import OTPPhoneRateThrottle
+        from apps.auth_api.api.public.v1.views import AuthViewSet
+        from apps.auth_api.utils.throttles import OTPPhoneRateThrottle
 
         factory = APIRequestFactory()
         request = factory.post(SEND_OTP_URL)

@@ -1,4 +1,4 @@
-# auth_api/api/public/v1/serializers/change_password.py
+# apps/auth_api/api/public/v1/serializers/change_password.py
 
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError

@@ -1,4 +1,4 @@
-# auth_api/api/public/v1/views/__init__.py
+# apps/auth_api/api/public/v1/views/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -9,7 +9,7 @@ __all__ = [
 
 _MODULE_MAP = {
     "AuthViewSet": (
-        "auth_api.api.public.v1.views.auth",
+        "apps.auth_api.api.public.v1.views.auth",
         "AuthViewSet",
     ),
 }

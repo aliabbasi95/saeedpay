@@ -1,4 +1,4 @@
-# auth_api/models/__init__.py
+# apps/auth_api/models/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 __all__ = ["PhoneOTP"]
 
 _MODULE_MAP = {
-    "PhoneOTP": ("auth_api.models.otp", "PhoneOTP"),
+    "PhoneOTP": ("apps.auth_api.models.otp", "PhoneOTP"),
 }
 
 if TYPE_CHECKING:

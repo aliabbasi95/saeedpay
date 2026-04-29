@@ -1,6 +1,6 @@
-# auth_api/api/public/urls.py
+# apps/auth_api/api/public/urls.py
 from django.urls import include, path
 
 urlpatterns = [
-    path("public/", include("auth_api.api.public.urls")),
+    path("public/", include("apps.auth_api.api.public.urls")),
 ]

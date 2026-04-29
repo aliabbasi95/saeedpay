@@ -1,4 +1,4 @@
-# auth_api/utils/throttles.py
+# apps/auth_api/utils/throttles.py
 
 import re
 

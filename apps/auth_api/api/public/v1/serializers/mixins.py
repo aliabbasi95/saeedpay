@@ -1,8 +1,8 @@
-# auth_api/api/public/v1/serializers/mixins.py
+# apps/auth_api/api/public/v1/serializers/mixins.py
 
 from rest_framework import serializers
 
-from auth_api.models import PhoneOTP
+from apps.auth_api.models import PhoneOTP
 
 
 class UserPublicPayloadMixin:

@@ -1,4 +1,4 @@
-# auth_api/tests/public/v1/views/test_login.py
+# apps/auth_api/tests/public/v1/views/test_login.py
 
 import pytest
 from django.contrib.auth import get_user_model

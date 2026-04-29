@@ -1,10 +1,10 @@
-# auth_api/api/public/v1/serializers/reset_password.py
+# apps/auth_api/api/public/v1/serializers/reset_password.py
 from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from auth_api.models import PhoneOTP
+from apps.auth_api.models import PhoneOTP
 from lib.erp_base.serializers.persian_error_message import (
     PersianValidationErrorMessages,
 )

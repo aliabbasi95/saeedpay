@@ -1,4 +1,4 @@
-# auth_api/api/public/v1/views/auth.py
+# apps/auth_api/api/public/v1/views/auth.py
 
 from datetime import timedelta
 
@@ -9,7 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
-from auth_api.api.public.v1.schema import (
+from apps.auth_api.api.public.v1.schema import (
     CHANGE_PASSWORD_SCHEMA,
     LOGIN_SCHEMA,
     LOGOUT_SCHEMA,
@@ -20,7 +20,7 @@ from auth_api.api.public.v1.schema import (
     SEND_OTP_SCHEMA,
     SEND_USER_OTP_SCHEMA,
 )
-from auth_api.api.public.v1.serializers import (
+from apps.auth_api.api.public.v1.serializers import (
     ChangePasswordSerializer,
     LoginSerializer,
     RegisterCustomerSerializer,
@@ -29,10 +29,10 @@ from auth_api.api.public.v1.serializers import (
     SendOTPSerializer,
     SendUserOTPSerializer,
 )
-from auth_api.api.public.v1.views.mixins import IssueTokensResponseMixin
-from auth_api.services.tokens import rotate_refresh_cookie
-from auth_api.utils.cookies import delete_refresh_cookie, set_refresh_cookie
-from auth_api.utils.throttles import OTPPhoneRateThrottle
+from apps.auth_api.api.public.v1.views.mixins import IssueTokensResponseMixin
+from apps.auth_api.services.tokens import rotate_refresh_cookie
+from apps.auth_api.utils.cookies import delete_refresh_cookie, set_refresh_cookie
+from apps.auth_api.utils.throttles import OTPPhoneRateThrottle
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 MAX_SESSION_LIFETIME = getattr(settings, "MAX_SESSION_LIFETIME", timedelta(hours=24))

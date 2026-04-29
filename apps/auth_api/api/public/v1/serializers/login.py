@@ -1,10 +1,10 @@
-# auth_api/api/public/v1/serializers/login.py
+# apps/auth_api/api/public/v1/serializers/login.py
 
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from auth_api.api.public.v1.serializers.mixins import UserPublicPayloadMixin
+from apps.auth_api.api.public.v1.serializers.mixins import UserPublicPayloadMixin
 from lib.erp_base.serializers.persian_error_message import (
     PersianValidationErrorMessages,
 )

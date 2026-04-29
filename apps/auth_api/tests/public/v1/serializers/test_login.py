@@ -1,10 +1,10 @@
-# auth_api/tests/public/v1/serializers/test_login.py
+# apps/auth_api/tests/public/v1/serializers/test_login.py
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 
-from auth_api.api.public.v1.serializers import LoginSerializer
-from profiles.models import Profile
+from apps.auth_api.api.public.v1.serializers import LoginSerializer
+from apps.profiles.models import Profile
 
 
 @pytest.mark.django_db

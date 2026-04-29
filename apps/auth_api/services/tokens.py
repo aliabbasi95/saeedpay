@@ -1,4 +1,4 @@
-# auth_api/services/tokens.py
+# apps/auth_api/services/tokens.py
 
 from datetime import datetime, timedelta, timezone
 
@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import TokenError
 
-from auth_api.tokens import CustomRefreshToken
+from apps.auth_api.tokens import CustomRefreshToken
 
 
 def rotate_refresh_cookie(
