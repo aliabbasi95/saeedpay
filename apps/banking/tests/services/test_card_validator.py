@@ -1,4 +1,4 @@
-# banking/tests/services/test_card_validator.py
+# apps/banking/tests/services/test_card_validator.py
 
 import logging
 import time
@@ -8,15 +8,15 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 
-from banking.models import Bank, BankCard
-from banking.services.card_validator import (
+from apps.banking.models import Bank, BankCard
+from apps.banking.services.card_validator import (
     _mock_approve_card,
     _mock_reject_card,
     _mock_validation,
     _production_validation,
     validate_pending_card,
 )
-from banking.utils.choices import BankCardStatus
+from apps.banking.utils.choices import BankCardStatus
 
 User = get_user_model()
 
@@ -51,7 +51,7 @@ class TestCardValidator:
     def test_validate_pending_card_skips_non_pending(self, verified_card):
         """Test that validation is skipped for non-pending cards."""
         with patch(
-            "banking.services.card_validator._mock_validation"
+            "apps.banking.services.card_validator._mock_validation"
         ) as mock_validation:
             validate_pending_card(verified_card.id)
             mock_validation.assert_not_called()
@@ -60,7 +60,7 @@ class TestCardValidator:
     def test_validate_pending_card_mock_mode(self, pending_card):
         """Test that mock validation is called in mock mode."""
         with patch(
-            "banking.services.card_validator._mock_validation"
+            "apps.banking.services.card_validator._mock_validation"
         ) as mock_validation:
             validate_pending_card(pending_card.id)
             mock_validation.assert_called_once_with(pending_card.id)
@@ -69,7 +69,7 @@ class TestCardValidator:
     def test_validate_pending_card_production_mode(self, pending_card):
         """Test that production validation is called in production mode."""
         with patch(
-            "banking.services.card_validator._production_validation"
+            "apps.banking.services.card_validator._production_validation"
         ) as prod_validation:
             validate_pending_card(pending_card.id)
             prod_validation.assert_called_once_with(pending_card.id)
@@ -88,7 +88,7 @@ class TestCardValidator:
         with patch(
             "random.random", return_value=0.9
         ):  # Force approval to avoid database changes
-            with patch("banking.services.card_validator._mock_approve_card"):
+            with patch("apps.banking.services.card_validator._mock_approve_card"):
                 _mock_validation(pending_card.id)
         end_time = time.time()
         # Should sleep between 1.5-3.0 seconds
@@ -104,7 +104,7 @@ class TestCardValidator:
             pending_card.save()
 
             with patch(
-                "banking.services.card_validator._mock_approve_card"
+                "apps.banking.services.card_validator._mock_approve_card"
             ) as mock_approve:
                 _mock_validation(pending_card.id)
                 mock_approve.assert_not_called()
@@ -153,7 +153,7 @@ class TestCardValidator:
         """
         # Removed deletion of CARD_VALIDATOR_MOCK to let override_settings work
         with patch(
-            "banking.services.card_validator._production_validation"
+            "apps.banking.services.card_validator._production_validation"
         ) as prod_validation:
             validate_pending_card(pending_card.id)
             prod_validation.assert_called_once_with(pending_card.id)

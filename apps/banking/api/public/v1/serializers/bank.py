@@ -1,8 +1,8 @@
-# banking/api/public/v1/serializers/bank.py
+# apps/banking/api/public/v1/serializers/bank.py
 
 from rest_framework import serializers
 
-from banking.models import Bank
+from apps.banking.models import Bank
 
 
 class BankSerializer(serializers.ModelSerializer):

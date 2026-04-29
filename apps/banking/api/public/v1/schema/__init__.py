@@ -1,4 +1,4 @@
-# banking/api/public/v1/schema/__init__.py
+# apps/banking/api/public/v1/schema/__init__.py
 
 from .schema_bank import bank_viewset_schema
 from .schema_bank_card import (

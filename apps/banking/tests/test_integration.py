@@ -1,4 +1,4 @@
-# banking/tests/test_integration.py
+# apps/banking/tests/test_integration.py
 
 from unittest.mock import MagicMock, patch
 
@@ -8,9 +8,9 @@ from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from banking.models import Bank, BankCard
-from banking.tasks import CardValidationTask, validate_card_task
-from banking.utils.choices import BankCardStatus
+from apps.banking.models import Bank, BankCard
+from apps.banking.tasks import CardValidationTask, validate_card_task
+from apps.banking.utils.choices import BankCardStatus
 
 User = get_user_model()
 
@@ -41,9 +41,9 @@ class TestCardValidationIntegration:
         data = {"card_number": "6362141111393550"}
 
         with (
-            patch("banking.tasks.validate_card_task.delay") as mock_task_delay,
+            patch("apps.banking.tasks.validate_card_task.delay") as mock_task_delay,
             patch(
-                "banking.services.bank_card_service.enqueue_validation_if_pending",
+                "apps.banking.services.bank_card_service.enqueue_validation_if_pending",
                 side_effect=lambda old_status, card: validate_card_task.delay(
                     str(card.id)
                 ),
@@ -89,7 +89,7 @@ class TestCardValidationIntegration:
         # Step 1: Create a card
         data = {"card_number": "6362141111393550"}
 
-        with patch("banking.tasks.validate_card_task.delay"):
+        with patch("apps.banking.tasks.validate_card_task.delay"):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
             card = BankCard.objects.get(card_number="6362141111393550")
 
@@ -109,9 +109,9 @@ class TestCardValidationIntegration:
         # Step 4: Verify rejected card can be updated
         data = {"card_number": "6362141111393154"}
         with (
-            patch("banking.tasks.validate_card_task.delay") as mock_task,
+            patch("apps.banking.tasks.validate_card_task.delay") as mock_task,
             patch(
-                "banking.services.bank_card_service.enqueue_validation_if_pending",
+                "apps.banking.services.bank_card_service.enqueue_validation_if_pending",
                 side_effect=lambda old_status, card: validate_card_task.delay(
                     str(card.id)
                 ),
@@ -133,7 +133,7 @@ class TestCardValidationIntegration:
         """Test that PENDING cards have proper restrictions."""
         # Create a card
         data = {"card_number": "6362141111393550"}
-        with patch("banking.tasks.validate_card_task.delay"):
+        with patch("apps.banking.tasks.validate_card_task.delay"):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
             card = BankCard.objects.get(card_number="6362141111393550")
 
@@ -161,7 +161,7 @@ class TestCardValidationIntegration:
         """Test task retry mechanism and failure handling."""
         # Create a card
         data = {"card_number": "6362141111393550"}
-        with patch("banking.tasks.validate_card_task.delay"):
+        with patch("apps.banking.tasks.validate_card_task.delay"):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
             card = BankCard.objects.get(card_number="6362141111393550")
 
@@ -184,9 +184,9 @@ class TestCardValidationIntegration:
         # Verify rejected card can still be updated to retry validation
         data = {"card_number": "6362141111393154"}
         with (
-            patch("banking.tasks.validate_card_task.delay") as mock_task,
+            patch("apps.banking.tasks.validate_card_task.delay") as mock_task,
             patch(
-                "banking.services.bank_card_service.enqueue_validation_if_pending",
+                "apps.banking.services.bank_card_service.enqueue_validation_if_pending",
                 side_effect=lambda old_status, card: validate_card_task.delay(
                     str(card.id)
                 ),
@@ -203,7 +203,7 @@ class TestCardValidationIntegration:
         """Test that production mode validation is properly triggered."""
         data = {"card_number": "6362141111393550"}
 
-        with patch("banking.tasks.validate_card_task.delay"):
+        with patch("apps.banking.tasks.validate_card_task.delay"):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
             assert response.status_code == status.HTTP_201_CREATED
 
@@ -211,7 +211,7 @@ class TestCardValidationIntegration:
 
         # Test production validation is called
         with patch(
-            "banking.services.card_validator._production_validation"
+            "apps.banking.services.card_validator._production_validation"
         ) as mock_prod:
             validate_card_task(str(card.id))
             mock_prod.assert_called_once_with(str(card.id))
@@ -220,7 +220,7 @@ class TestCardValidationIntegration:
         """Test handling of concurrent operations on the same card."""
         # Create a card
         data = {"card_number": "6362141111393550"}
-        with patch("banking.tasks.validate_card_task.delay"):
+        with patch("apps.banking.tasks.validate_card_task.delay"):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
             assert response.status_code == status.HTTP_201_CREATED
 
@@ -234,7 +234,7 @@ class TestCardValidationIntegration:
             card_instance.save()
 
         with patch(
-            "banking.services.card_validator.validate_pending_card",
+            "apps.banking.services.card_validator.validate_pending_card",
             side_effect=lambda card_id: change_status_during_validation(
                 BankCard.objects.get(id=card_id)
             ),
@@ -253,7 +253,7 @@ class TestCardValidationIntegration:
         client2.force_authenticate(user=user2)
 
         # Both users create cards
-        with patch("banking.tasks.validate_card_task.delay"):
+        with patch("apps.banking.tasks.validate_card_task.delay"):
             response1 = client1.post(
                 "/saeedpay/api/banking/v1/cards/",
                 {"card_number": "6362141111393550"},

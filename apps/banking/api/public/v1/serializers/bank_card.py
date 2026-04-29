@@ -1,11 +1,11 @@
-# banking/api/public/v1/serializers/bank_card.py
+# apps/banking/api/public/v1/serializers/bank_card.py
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from banking.models import BankCard
-from banking.services import bank_card_service
-from banking.utils.choices import BankCardStatus
+from apps.banking.models import BankCard
+from apps.banking.services import bank_card_service
+from apps.banking.utils.choices import BankCardStatus
 
 
 class BankCardSerializer(serializers.ModelSerializer):

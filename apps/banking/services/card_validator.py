@@ -1,4 +1,4 @@
-# banking/services/card_validator.py
+# apps/banking/services/card_validator.py
 
 import logging
 import random
@@ -9,7 +9,7 @@ from django.conf import settings
 from django.db import transaction
 from faker import Faker
 
-from banking.utils.choices import BankCardStatus
+from apps.banking.utils.choices import BankCardStatus
 
 logger = logging.getLogger(__name__)
 fake = Faker("fa_IR")

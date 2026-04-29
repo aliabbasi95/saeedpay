@@ -1,14 +1,14 @@
-# banking/api/public/v1/views/bank.py
+# apps/banking/api/public/v1/views/bank.py
 
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 
-from banking.api.public.v1.schema import bank_viewset_schema
-from banking.api.public.v1.serializers import (
+from apps.banking.api.public.v1.schema import bank_viewset_schema
+from apps.banking.api.public.v1.serializers import (
     BankDetailSerializer,
     BankSerializer,
 )
-from banking.models import Bank
+from apps.banking.models import Bank
 
 
 @bank_viewset_schema

@@ -1,4 +1,4 @@
-# banking/admin/bank_card.py
+# apps/banking/admin/bank_card.py
 
 from django.contrib import admin, messages
 from django.utils.html import format_html

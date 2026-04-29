@@ -1,11 +1,11 @@
-# banking/models/bank_card.py
+# apps/banking/models/bank_card.py
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from banking.utils.choices import BankCardStatus
+from apps.banking.utils.choices import BankCardStatus
 from lib.erp_base.models import BaseModel
 
 from .bank import Bank
@@ -75,7 +75,7 @@ class BankCard(BaseModel):
         super().clean()
         errors = {}
         if self.card_number:
-            from banking.services import bank_card_service
+            from apps.banking.services import bank_card_service
 
             if not bank_card_service.is_luhn_valid(self.card_number):
                 errors["card_number"] = _("شماره کارت نامعتبر است.")

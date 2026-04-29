@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from banking.models import Bank
+from apps.banking.models import Bank
 
 
 class Command(BaseCommand):

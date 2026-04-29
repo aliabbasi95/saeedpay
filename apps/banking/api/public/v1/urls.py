@@ -1,4 +1,4 @@
-# banking/api/public/v1/urls.py
+# apps/banking/api/public/v1/urls.py
 
 from django.urls import include, path
 from rest_framework.routers import SimpleRouter

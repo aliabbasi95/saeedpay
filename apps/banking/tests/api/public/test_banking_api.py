@@ -1,4 +1,4 @@
-# banking/tests/api/public/v1/test_banking_api.py
+# apps/banking/tests/api/public/v1/test_banking_api.py
 
 from unittest.mock import patch
 
@@ -7,8 +7,8 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from banking.models import Bank, BankCard
-from banking.utils.choices import BankCardStatus
+from apps.banking.models import Bank, BankCard
+from apps.banking.utils.choices import BankCardStatus
 
 User = get_user_model()
 
@@ -84,7 +84,7 @@ class TestBankingAPI:
 
         with patch("django.db.transaction.on_commit", lambda func: func()):
             with patch(
-                "banking.services.bank_card_service.validate_card_task.delay"
+                "apps.banking.services.bank_card_service.validate_card_task.delay"
             ) as mock_task:
                 response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
                 print("RESPONSE DATA:", response.data)  # Debug print for error details
@@ -108,7 +108,7 @@ class TestBankingAPI:
 
         with patch("django.db.transaction.on_commit", lambda func: func()):
             with patch(
-                "banking.services.bank_card_service.validate_card_task.delay"
+                "apps.banking.services.bank_card_service.validate_card_task.delay"
             ) as mock_task:
                 response = api_client.patch(
                     f"/saeedpay/api/banking/v1/cards/{rejected_card.id}/", data
@@ -182,7 +182,7 @@ class TestBankingAPI:
         data = {"card_number": "6362141111393550"}
 
         with patch(
-            "banking.tasks.validate_card_task.delay",
+            "apps.banking.tasks.validate_card_task.delay",
             side_effect=Exception("Task scheduling failed"),
         ):
             response = api_client.post("/saeedpay/api/banking/v1/cards/", data)
@@ -194,7 +194,7 @@ class TestBankingAPI:
         # This test assumes we can update some other non-card_number field
         # Since current serializer only allows card_number, this test
         # documents expected behavior
-        with patch("banking.tasks.validate_card_task.delay") as mock_task:
+        with patch("apps.banking.tasks.validate_card_task.delay") as mock_task:
             # This should fail due to serializer validation, but demonstrates
             # the concept
             response = api_client.patch(

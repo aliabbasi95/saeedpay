@@ -1,4 +1,4 @@
-# banking/admin/bank.py
+# apps/banking/admin/bank.py
 
 from django.contrib import admin
 from django.utils.html import format_html

@@ -1,4 +1,4 @@
-# banking/api/public/v1/schema_bank_card.py
+# apps/banking/api/public/v1/schema_bank_card.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -8,7 +8,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 
-from banking.api.public.v1.serializers import (
+from apps.banking.api.public.v1.serializers import (
     BankCardCreateSerializer,
     BankCardSerializer,
     BankCardUpdateSerializer,

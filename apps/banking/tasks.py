@@ -7,10 +7,10 @@ from django.apps import apps
 from django.db import transaction
 from django.utils import timezone
 
-from banking.services.card_validator import (  # noqa: F401 # Re-export for test patching
+from apps.banking.services.card_validator import (  # noqa: F401 # Re-export for test patching
     validate_pending_card,
 )
-from banking.utils.choices import BankCardStatus
+from apps.banking.utils.choices import BankCardStatus
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ def _validate_card_task_logic(task_instance, card_id: str):
             logger.info(f"Card {card_id} is no longer pending, skipping validation")
             return True
 
-        from banking.tasks import validate_pending_card
+        from apps.banking.tasks import validate_pending_card
 
         validate_pending_card(card_id)
 
@@ -98,7 +98,7 @@ def reenqueue_stale_pending_cards(limit=200, older_than_minutes=1):
         .order_by("updated_at")
         .values_list("id", flat=True)[:limit]
     )
-    from banking.tasks import validate_card_task
+    from apps.banking.tasks import validate_card_task
 
     for card_id in qs:
         validate_card_task.delay(str(card_id))

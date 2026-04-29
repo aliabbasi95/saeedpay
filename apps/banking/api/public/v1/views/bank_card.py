@@ -1,4 +1,4 @@
-# banking/api/public/v1/views/bank_card.py
+# apps/banking/api/public/v1/views/bank_card.py
 
 import logging
 
@@ -8,16 +8,16 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from banking.api.public.v1.schema import bank_card_viewset_schema
-from banking.api.public.v1.schema.schema_bank_card import set_default_action_schema
-from banking.api.public.v1.serializers import (
+from apps.banking.api.public.v1.schema import bank_card_viewset_schema
+from apps.banking.api.public.v1.schema.schema_bank_card import set_default_action_schema
+from apps.banking.api.public.v1.serializers import (
     BankCardCreateSerializer,
     BankCardSerializer,
     BankCardUpdateSerializer,
 )
-from banking.models import BankCard
-from banking.services import bank_card_service
-from banking.utils.choices import BankCardStatus
+from apps.banking.models import BankCard
+from apps.banking.services import bank_card_service
+from apps.banking.utils.choices import BankCardStatus
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 logger = logging.getLogger(__name__)

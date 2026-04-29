@@ -1,10 +1,10 @@
-# banking/tests/models/test_banking_models.py
+# apps/banking/tests/models/test_banking_models.py
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
-from banking.models import Bank, BankCard
-from banking.utils.choices import BankCardStatus
+from apps.banking.models import Bank, BankCard
+from apps.banking.utils.choices import BankCardStatus
 
 User = get_user_model()
 

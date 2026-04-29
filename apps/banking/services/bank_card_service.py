@@ -1,9 +1,9 @@
-# banking/services/bank_card_service.py
+# apps/banking/services/bank_card_service.py
 
 from django.db import transaction
 
-from banking.tasks import validate_card_task
-from banking.utils.choices import BankCardStatus
+from apps.banking.tasks import validate_card_task
+from apps.banking.utils.choices import BankCardStatus
 
 
 def normalize_card_number(number: str) -> str:
@@ -44,7 +44,7 @@ def normalize_sheba(sheba: str) -> str:
 
 
 def set_as_default(user, card_id):
-    from banking.models import BankCard
+    from apps.banking.models import BankCard
 
     with transaction.atomic():
         BankCard.objects.filter(user=user, is_default=True).update(is_default=False)

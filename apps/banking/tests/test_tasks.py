@@ -1,4 +1,4 @@
-# banking/tests/test_tasks.py
+# apps/banking/tests/test_tasks.py
 
 import logging
 from unittest.mock import MagicMock, patch
@@ -7,13 +7,13 @@ import pytest
 from celery.exceptions import Retry
 from django.contrib.auth import get_user_model
 
-from banking.models import Bank, BankCard
-from banking.tasks import (
+from apps.banking.models import Bank, BankCard
+from apps.banking.tasks import (
     CardValidationTask,
     _validate_card_task_logic,
     validate_card_task,
 )
-from banking.utils.choices import BankCardStatus
+from apps.banking.utils.choices import BankCardStatus
 
 User = get_user_model()
 
@@ -47,7 +47,7 @@ class TestCardValidationTask:
 
     def test_validate_card_task_success(self, pending_card):
         """Test successful card validation task."""
-        with patch("banking.tasks.validate_pending_card") as mock_validator:
+        with patch("apps.banking.tasks.validate_pending_card") as mock_validator:
             result = validate_card_task.apply(args=[str(pending_card.id)])
             assert result.successful() is True
             mock_validator.assert_called_once_with(str(pending_card.id))
@@ -60,7 +60,7 @@ class TestCardValidationTask:
 
     def test_validate_card_task_skips_non_pending(self, verified_card):
         """Test task skips validation for non-pending cards."""
-        with patch("banking.tasks.validate_pending_card") as mock_validator:
+        with patch("apps.banking.tasks.validate_pending_card") as mock_validator:
             result = validate_card_task.apply(args=[str(verified_card.id)])
             assert result.get() is True
             mock_validator.assert_not_called()
@@ -68,11 +68,11 @@ class TestCardValidationTask:
     def test_validate_card_task_retry_on_exception(self, pending_card):
         """Test task retry mechanism on validation failure."""
         with patch(
-            "banking.tasks.validate_pending_card",
+            "apps.banking.tasks.validate_pending_card",
             side_effect=Exception("Validation failed"),
         ):
             with patch(
-                "banking.tasks.validate_card_task.retry", side_effect=Retry
+                "apps.banking.tasks.validate_card_task.retry", side_effect=Retry
             ) as mock_retry:
                 with pytest.raises(Retry):
                     validate_card_task.apply(args=[str(pending_card.id)], throw=True)
@@ -97,7 +97,7 @@ class TestCardValidationTask:
         args = (str(pending_card.id),)
 
         with patch(
-            "banking.tasks.transaction.atomic",
+            "apps.banking.tasks.transaction.atomic",
             side_effect=Exception("DB Error"),
         ):
             CardValidationTask().on_failure(exc, task_id, args, {}, None)
@@ -113,7 +113,7 @@ class TestCardValidationTask:
         mock_task_self.retry.side_effect = Retry
 
         with patch(
-            "banking.tasks.validate_pending_card",
+            "apps.banking.tasks.validate_pending_card",
             side_effect=Exception("Validation failed"),
         ):
             with pytest.raises(Retry):
@@ -124,7 +124,7 @@ class TestCardValidationTask:
 
     def test_validate_card_task_logging(self, pending_card, caplog):
         """Test that task logs appropriate messages."""
-        with patch("banking.tasks.validate_pending_card"):
+        with patch("apps.banking.tasks.validate_pending_card"):
             with caplog.at_level(logging.INFO):
                 validate_card_task.apply(args=[str(pending_card.id)])
 
@@ -146,7 +146,7 @@ class TestCardValidationTask:
             return True
 
         with patch(
-            "banking.tasks.validate_pending_card",
+            "apps.banking.tasks.validate_pending_card",
             side_effect=change_status_during_validation,
         ):
             result = validate_card_task.apply(args=[str(pending_card.id)])
