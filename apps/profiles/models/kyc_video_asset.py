@@ -1,4 +1,4 @@
-# profiles/models/kyc_video_asset.py
+# apps/profiles/models/kyc_video_asset.py
 
 import hashlib
 

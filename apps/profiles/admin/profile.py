@@ -1,4 +1,4 @@
-# profiles/admin/profile.py
+# apps/profiles/admin/profile.py
 
 from __future__ import annotations
 
@@ -7,14 +7,14 @@ import json
 from django.contrib import admin, messages
 from django.utils.safestring import mark_safe
 
-from profiles.models.kyc_attempt import ProfileKYCAttempt
-from profiles.models.profile import Profile
-from profiles.tasks import (
+from apps.profiles.models.kyc_attempt import ProfileKYCAttempt
+from apps.profiles.models.profile import Profile
+from apps.profiles.tasks import (
     check_profile_video_auth_result,
     reset_profile_video_auth,
     verify_identity_phone_national_id,
 )
-from profiles.utils.choices import AuthenticationStage, KYCStatus
+from apps.profiles.utils.choices import AuthenticationStage, KYCStatus
 
 
 def _badge(text: str, color: str) -> str:

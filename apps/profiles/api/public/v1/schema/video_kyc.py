@@ -1,8 +1,8 @@
-# profiles/api/public/v1/schema/video_kyc.py
+# apps/profiles/api/public/v1/schema/video_kyc.py
 
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 
-from profiles.api.public.v1.serializers.video_kyc import VideoKYCSerializer
+from apps.profiles.api.public.v1.serializers.video_kyc import VideoKYCSerializer
 
 PROFILE_KYC_TAG = "Profile · KYC"
 

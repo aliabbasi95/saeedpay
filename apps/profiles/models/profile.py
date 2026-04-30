@@ -1,4 +1,4 @@
-# profiles/models/profile.py
+# apps/profiles/models/profile.py
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 
 from lib.erp_base.models import BaseModel
 from lib.erp_base.validators import validate_national_id
-from profiles.utils.choices import AuthenticationStage, KYCStatus
+from apps.profiles.utils.choices import AuthenticationStage, KYCStatus
 
 
 class Profile(BaseModel):
@@ -163,7 +163,7 @@ class Profile(BaseModel):
 
     def mark_identity_verified(self) -> None:
         """Shahkar matched => identity verified stage and grant default credit limit."""
-        from credit.services.credit_limit_service import (  # local import to avoid cycles
+        from apps.credit.services.credit_limit_service import (  # local import to avoid cycles
             grant_default_credit_limit,
         )
 

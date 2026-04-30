@@ -1,4 +1,4 @@
-# profiles/utils/choices.py
+# apps/profiles/utils/choices.py
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _

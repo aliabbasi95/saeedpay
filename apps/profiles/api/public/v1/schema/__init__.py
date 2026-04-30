@@ -1,4 +1,4 @@
-# profiles/api/public/v1/schema/__init__.py
+# apps/profiles/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -10,11 +10,11 @@ __all__ = [
 
 _MODULE_MAP = {
     "PROFILE_VIEW_SCHEMA": (
-        "profiles.api.public.v1.schema.profile",
+        "apps.profiles.api.public.v1.schema.profile",
         "PROFILE_VIEW_SCHEMA",
     ),
     "VIDEO_KYC_SUBMIT_SCHEMA": (
-        "profiles.api.public.v1.schema.video_kyc",
+        "apps.profiles.api.public.v1.schema.video_kyc",
         "VIDEO_KYC_SUBMIT_SCHEMA",
     ),
 }

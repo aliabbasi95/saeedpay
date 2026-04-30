@@ -1,9 +1,9 @@
-# profiles/api/public/v1/serializers/video_kyc.py
+# apps/profiles/api/public/v1/serializers/video_kyc.py
 
 from rest_framework import serializers
 
-from profiles.models.profile import Profile
-from profiles.utils.choices import KYCStatus
+from apps.profiles.models.profile import Profile
+from apps.profiles.utils.choices import KYCStatus
 
 
 class VideoKYCSerializer(serializers.Serializer):

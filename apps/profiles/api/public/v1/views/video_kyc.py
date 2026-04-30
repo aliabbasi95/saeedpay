@@ -1,4 +1,4 @@
-# profiles/api/public/v1/views/video_kyc.py
+# apps/profiles/api/public/v1/views/video_kyc.py
 
 import os
 import tempfile
@@ -8,10 +8,10 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from profiles.api.public.v1.schema import VIDEO_KYC_SUBMIT_SCHEMA
-from profiles.api.public.v1.serializers import VideoKYCSerializer
-from profiles.models.kyc_video_asset import KYCVideoAsset
-from profiles.tasks import submit_profile_video_auth
+from apps.profiles.api.public.v1.schema import VIDEO_KYC_SUBMIT_SCHEMA
+from apps.profiles.api.public.v1.serializers import VideoKYCSerializer
+from apps.profiles.models.kyc_video_asset import KYCVideoAsset
+from apps.profiles.tasks import submit_profile_video_auth
 
 
 class VideoKYCSubmitView(generics.GenericAPIView):

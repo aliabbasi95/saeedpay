@@ -1,4 +1,4 @@
-# profiles/api/public/v1/serializers/__init__.py
+# apps/profiles/api/public/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -10,11 +10,11 @@ __all__ = [
 
 _MODULE_MAP = {
     "ProfileSerializer": (
-        "profiles.api.public.v1.serializers.profile",
+        "apps.profiles.api.public.v1.serializers.profile",
         "ProfileSerializer",
     ),
     "VideoKYCSerializer": (
-        "profiles.api.public.v1.serializers.video_kyc",
+        "apps.profiles.api.public.v1.serializers.video_kyc",
         "VideoKYCSerializer",
     ),
 }

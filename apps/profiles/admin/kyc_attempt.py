@@ -1,4 +1,4 @@
-# profiles/admin/kyc_attempt.py
+# apps/profiles/admin/kyc_attempt.py
 
 from __future__ import annotations
 
@@ -12,13 +12,13 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from profiles.models.kyc_attempt import ProfileKYCAttempt
-from profiles.tasks import (
+from apps.profiles.models.kyc_attempt import ProfileKYCAttempt
+from apps.profiles.tasks import (
     check_profile_video_auth_result,
     reset_profile_video_auth,
     verify_identity_phone_national_id,
 )
-from profiles.utils.choices import (
+from apps.profiles.utils.choices import (
     AttemptStatus,
     AttemptType,
     AuthenticationStage,

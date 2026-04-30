@@ -1,4 +1,4 @@
-# profiles/models/kyc_attempt.py
+# apps/profiles/models/kyc_attempt.py
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from apps.profiles.models.profile import Profile
+from apps.profiles.utils.choices import AttemptStatus, AttemptType
 from lib.erp_base.models import BaseModel
-from profiles.models.profile import Profile
-from profiles.utils.choices import AttemptStatus, AttemptType
 
 
 class AttemptAlreadyProcessing(Exception):

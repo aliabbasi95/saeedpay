@@ -1,10 +1,10 @@
-# profiles/api/public/v1/views/profile.py
+# apps/profiles/api/public/v1/views/profile.py
 
 from rest_framework import generics
 
-from profiles.api.public.v1.schema import PROFILE_VIEW_SCHEMA
-from profiles.api.public.v1.serializers import ProfileSerializer
-from profiles.models.profile import Profile
+from apps.profiles.api.public.v1.schema import PROFILE_VIEW_SCHEMA
+from apps.profiles.api.public.v1.serializers import ProfileSerializer
+from apps.profiles.models.profile import Profile
 
 
 @PROFILE_VIEW_SCHEMA

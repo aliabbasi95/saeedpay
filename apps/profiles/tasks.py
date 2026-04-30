@@ -1,4 +1,4 @@
-# profiles/tasks.py
+# apps/profiles/tasks.py
 
 import logging
 import os
@@ -10,16 +10,16 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from kyc.services.identity_auth_service import (
+from apps.kyc.services.identity_auth_service import (
     IdentityAuthService,
     get_identity_auth_service,
 )
-from profiles.models import KYCVideoAsset, Profile
-from profiles.models.kyc_attempt import (
+from apps.profiles.models import KYCVideoAsset, Profile
+from apps.profiles.models.kyc_attempt import (
     AttemptAlreadyProcessing,
     ProfileKYCAttempt,
 )
-from profiles.utils.choices import (
+from apps.profiles.utils.choices import (
     AttemptStatus,
     AttemptType,
     AuthenticationStage,

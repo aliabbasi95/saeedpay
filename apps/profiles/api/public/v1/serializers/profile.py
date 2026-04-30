@@ -1,14 +1,14 @@
-# profiles/api/public/v1/serializers/profile.py
+# apps/profiles/api/public/v1/serializers/profile.py
 
 import re
 
 from django.db import transaction
 from rest_framework import serializers
 
-from auth_api.api.public.v1.serializers.mixins import OTPValidationMixin
-from profiles.models.profile import Profile
-from profiles.tasks import verify_identity_phone_national_id
-from profiles.utils.choices import AuthenticationStage
+from apps.auth_api.api.public.v1.serializers.mixins import OTPValidationMixin
+from apps.profiles.models.profile import Profile
+from apps.profiles.tasks import verify_identity_phone_national_id
+from apps.profiles.utils.choices import AuthenticationStage
 
 
 class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):

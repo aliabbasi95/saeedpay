@@ -1,8 +1,8 @@
-# profiles/api/public/v1/schema/profile.py
+# apps/profiles/api/public/v1/schema/profile.py
 
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 
-from profiles.api.public.v1.serializers import ProfileSerializer
+from apps.profiles.api.public.v1.serializers import ProfileSerializer
 
 PROFILE_TAG = "Profile"
 

@@ -1,4 +1,4 @@
-# profiles/api/public/v1/urls.py
+# apps/profiles/api/public/v1/urls.py
 
 from django.urls import path
 

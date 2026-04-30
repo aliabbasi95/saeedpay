@@ -1,4 +1,4 @@
-# profiles/admin/kyc_video_asset.py
+# apps/profiles/admin/kyc_video_asset.py
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
-from profiles.models.kyc_video_asset import KYCVideoAsset
+from apps.profiles.models.kyc_video_asset import KYCVideoAsset
 
 
 class RetentionStatusFilter(admin.SimpleListFilter):
