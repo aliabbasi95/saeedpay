@@ -69,19 +69,19 @@ DEFAULT_APPS = [
 ]
 
 LOCAL_APPS = [
-    "customers",
-    "profiles",
-    "auth_api",
-    "wallets",
-    "merchants",
-    "store",
-    "chatbot",
-    "banking",
-    "tickets",
-    "credit",
-    "blogs",
-    "contact",
-    "kyc",
+    "apps.customers",
+    "apps.profiles",
+    "apps.auth_api",
+    "apps.wallets",
+    "apps.merchants",
+    "apps.store",
+    "apps.chatbot",
+    "apps.banking",
+    "apps.tickets",
+    "apps.credit",
+    "apps.blogs",
+    "apps.contact",
+    "apps.kyc",
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + LOCAL_APPS
@@ -172,53 +172,53 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_RESULT_SERIALIZER = "json"
 
 CELERY_TASK_ROUTES = {
-    "credit.tasks.statement_tasks.*": {"queue": "statements"},
-    "credit.tasks.credit_tasks.*": {"queue": "credit"},
+    "apps.credit.tasks.statement_tasks.*": {"queue": "statements"},
+    "apps.credit.tasks.credit_tasks.*": {"queue": "credit"},
 }
 
 CELERY_BEAT_SCHEDULE = {
     # wallet
     "expire-pending-payment-requests-every-minute": {
-        "task": "wallets.tasks.task_expire_pending_payment_requests",
+        "task": "apps.wallets.tasks.task_expire_pending_payment_requests",
         "schedule": crontab(minute="*/1"),
     },
     "cleanup-cancelled-and-expired-requests-every-hour": {
-        "task": "wallets.tasks.task_cleanup_cancelled_and_expired_requests",
+        "task": "apps.wallets.tasks.task_cleanup_cancelled_and_expired_requests",
         "schedule": crontab(minute=0, hour="*/1"),
     },
     "expire-pending-transfer-every-minute": {
-        "task": "wallets.tasks.task_expire_pending_transfer_requests",
+        "task": "apps.wallets.tasks.task_expire_pending_transfer_requests",
         "schedule": crontab(minute="*/1"),
     },
     # banking
     "reenqueue-stale-pending-cards-every-minute": {
-        "task": "banking.tasks.reenqueue_stale_pending_cards",
+        "task": "apps.banking.tasks.reenqueue_stale_pending_cards",
         "schedule": crontab(minute="*/1"),
         "kwargs": {"limit": 200, "older_than_minutes": 1},
     },
     # credit
     # Credit: safe daily run; idempotent—only acts when month has rolled over
     "credit-month-end-rollover-daily-0010": {
-        "task": "credit.tasks.task_month_end_rollover",
+        "task": "apps.credit.tasks.task_month_end_rollover",
         "schedule": crontab(minute=10, hour=0),
     },
     # Credit: finalize due windows hourly
     "credit-finalize-due-windows-hourly-0015": {
-        "task": "credit.tasks.task_finalize_due_windows",
+        "task": "apps.credit.tasks.task_finalize_due_windows",
         "schedule": crontab(minute=15, hour="*"),
     },
     # profile
     "rehydrate-shahkar-checks-every-15m": {
-        "task": "profiles.tasks.rehydrate_shahkar_checks",
+        "task": "apps.profiles.tasks.rehydrate_shahkar_checks",
         "schedule": 15 * 60,
     },
     "rehydrate-video-kyc-checks-every-15m": {
-        "task": "profiles.tasks.rehydrate_video_auth_checks",
+        "task": "apps.profiles.tasks.rehydrate_video_auth_checks",
         "schedule": 15 * 60,
     },
     # profiles / KYC videos GC
     "purge-expired-kyc-videos-daily-0330": {
-        "task": "profiles.tasks.purge_expired_kyc_videos",
+        "task": "apps.profiles.tasks.purge_expired_kyc_videos",
         "schedule": crontab(minute=30, hour=3),
     },
 }

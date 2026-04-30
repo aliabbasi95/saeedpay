@@ -34,18 +34,18 @@ urlpatterns_main = [
 ]
 
 api_urlpatterns = [
-    path("api/auth/", include("auth_api.api.urls")),
-    path("api/profiles/", include("profiles.api.urls")),
-    path("api/wallets/", include("wallets.api.urls")),
-    path("api/store/", include("store.api.urls")),
-    path("api/banking/", include("banking.api.urls")),
-    path("api/tickets/", include("tickets.api.urls")),
-    path("api/chatbot/", include("chatbot.api.urls")),
-    path("api/credit/", include("credit.api.urls")),
-    path("api/blogs/", include("blogs.api.urls")),
-    path("api/customers/", include("customers.api.urls")),
-    path("api/contact/", include("contact.api.urls")),
-    path("api/kyc/", include("kyc.api.urls")),
+    path("api/auth/", include("apps.auth_api.api.urls")),
+    path("api/profiles/", include("apps.profiles.api.urls")),
+    path("api/wallets/", include("apps.wallets.api.urls")),
+    path("api/store/", include("apps.store.api.urls")),
+    path("api/banking/", include("apps.banking.api.urls")),
+    path("api/tickets/", include("apps.tickets.api.urls")),
+    path("api/chatbot/", include("apps.chatbot.api.urls")),
+    path("api/credit/", include("apps.credit.api.urls")),
+    path("api/blogs/", include("apps.blogs.api.urls")),
+    path("api/customers/", include("apps.customers.api.urls")),
+    path("api/contact/", include("apps.contact.api.urls")),
+    path("api/kyc/", include("apps.kyc.api.urls")),
 ]
 
 schema_urlpatterns = [
