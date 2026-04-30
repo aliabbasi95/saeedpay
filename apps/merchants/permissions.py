@@ -1,4 +1,4 @@
-# merchants/permissions.py
+# apps/merchants/permissions.py
 from rest_framework import permissions
 
 

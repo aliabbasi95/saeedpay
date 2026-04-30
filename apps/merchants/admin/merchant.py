@@ -1,9 +1,9 @@
-# merchants/admin/merchant.py
+# apps/merchants/admin/merchant.py
 
 from django.contrib import admin
 
+from apps.merchants.models import Merchant
 from lib.erp_base.admin import BaseAdmin
-from merchants.models import Merchant
 
 
 @admin.register(Merchant)

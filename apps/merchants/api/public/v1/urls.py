@@ -1,1 +1,1 @@
-# merchants/api/public/v1/urls.py
+# apps/merchants/api/public/v1/urls.py
