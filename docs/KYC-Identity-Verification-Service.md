@@ -36,7 +36,7 @@ KYC_IDENTITY_TIMEOUT = 30  # seconds, optional, defaults to 30
 ### Basic Usage
 
 ```python
-from kyc.services import get_identity_auth_service
+from apps.kyc.services import get_identity_auth_service
 
 # Get the service instance
 auth_service = get_identity_auth_service()
@@ -59,8 +59,8 @@ else:
 ### Advanced Usage
 
 ```python
-from kyc.services import IdentityAuthService
-from kyc.utils import validate_user_data, sanitize_user_data
+from apps.kyc.services import IdentityAuthService
+from apps.kyc.utils import validate_user_data, sanitize_user_data
 
 # Create service instance
 service = IdentityAuthService()
@@ -81,7 +81,7 @@ except ValidationError as e:
 
 ```python
 # In any other app (e.g., auth_api, profiles, etc.)
-from kyc.services import get_identity_auth_service
+from apps.kyc.services import get_identity_auth_service
 
 def verify_user_identity(user_data):
     auth_service = get_identity_auth_service()
