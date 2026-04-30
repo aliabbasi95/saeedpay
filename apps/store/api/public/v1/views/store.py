@@ -1,4 +1,4 @@
-# store/api/public/v1/views/store.py
+# apps/store/api/public/v1/views/store.py
 
 from drf_spectacular.utils import extend_schema_view
 from rest_framework.decorators import action
@@ -14,9 +14,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from merchants.permissions import IsMerchant
-from store.api.public.v1.schema import (
+from apps.merchants.permissions import IsMerchant
+from apps.store.api.public.v1.schema import (
     public_store_list_schema,
     public_store_retrieve_schema,
     store_create_schema,
@@ -27,14 +26,15 @@ from store.api.public.v1.schema import (
     store_retrieve_schema,
     store_update_put_schema,
 )
-from store.api.public.v1.serializers import (
+from apps.store.api.public.v1.serializers import (
     PublicStoreSerializer,
     StoreApiKeyRegenerateResponseSerializer,
     StoreCreateSerializer,
     StoreSerializer,
 )
-from store.models import Store
-from store.services.apikey import regenerate_store_api_key
+from apps.store.models import Store
+from apps.store.services.apikey import regenerate_store_api_key
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 
 @extend_schema_view(

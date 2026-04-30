@@ -1,4 +1,4 @@
-# merchants/models/apikey.py
+# apps/merchants/models/apikey.py
 
 import hashlib
 import secrets

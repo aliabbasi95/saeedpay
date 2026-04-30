@@ -1,8 +1,8 @@
-# store/api/public/v1/urls.py
+# apps/store/api/public/v1/urls.py
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from store.api.public.v1.views import (
+from apps.store.api.public.v1.views import (
     PublicStoreViewSet,
     StoreViewSet,
 )

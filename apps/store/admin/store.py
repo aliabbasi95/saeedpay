@@ -1,10 +1,10 @@
-# store/admin/store.py
+# apps/store/admin/store.py
 
 from django.contrib import admin
 
+from apps.store.models import Store
 from lib.cas_auth.utils import check_user_role
 from lib.erp_base.admin import BaseAdmin, dynamic_cardboard_model_admin
-from store.models import Store
 
 
 @admin.register(Store)

@@ -1,4 +1,4 @@
-# store/models/__init__.py
+# apps/store/models/__init__.py
 
 from .apikey import StoreApiKey
 from .store import Store

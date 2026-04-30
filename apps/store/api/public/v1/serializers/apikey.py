@@ -1,4 +1,4 @@
-# store/api/public/v1/serializers/apikey.py
+# apps/store/api/public/v1/serializers/apikey.py
 
 from rest_framework import serializers
 

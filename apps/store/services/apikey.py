@@ -1,6 +1,6 @@
-# store/services/apikey.py
+# apps/store/services/apikey.py
 
-from store.models import StoreApiKey
+from apps.store.models import StoreApiKey
 
 
 def regenerate_store_api_key(store):

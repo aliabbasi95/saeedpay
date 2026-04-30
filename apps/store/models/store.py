@@ -1,4 +1,4 @@
-# store/models/store.py
+# apps/store/models/store.py
 
 import os
 import uuid
@@ -7,8 +7,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.merchants.models import Merchant
 from lib.erp_base.models import dynamic_cardboard
-from merchants.models import Merchant
 
 
 def validate_image_extension(value):

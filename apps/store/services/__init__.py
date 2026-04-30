@@ -1,4 +1,4 @@
-# store/services/__init__.py
+# apps/store/services/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -9,7 +9,7 @@ __all__ = [
 
 _MODULE_MAP = {
     "regenerate_store_api_key": (
-        "store.services.apikey",
+        "apps.store.services.apikey",
         "regenerate_store_api_key",
     ),
 }

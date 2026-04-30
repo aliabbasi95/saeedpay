@@ -1,12 +1,12 @@
-# store/models/store_user.py
+# apps/store/models/store_user.py
 
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.store.models.store import Store
+from apps.store.utils.choices import StoreUserRole
 from lib.erp_base.models import BaseModel
-from store.models.store import Store
-from store.utils.choices import StoreUserRole
 
 
 class StoreUser(BaseModel):

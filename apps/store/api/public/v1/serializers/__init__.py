@@ -1,4 +1,4 @@
-# store/api/public/v1/serializers/__init__.py
+# apps/store/api/public/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -12,19 +12,19 @@ __all__ = [
 
 _MODULE_MAP = {
     "StoreApiKeyRegenerateResponseSerializer": (
-        "store.api.public.v1.serializers.apikey",
+        "apps.store.api.public.v1.serializers.apikey",
         "StoreApiKeyRegenerateResponseSerializer",
     ),
     "StoreSerializer": (
-        "store.api.public.v1.serializers.store",
+        "apps.store.api.public.v1.serializers.store",
         "StoreSerializer",
     ),
     "StoreCreateSerializer": (
-        "store.api.public.v1.serializers.store",
+        "apps.store.api.public.v1.serializers.store",
         "StoreCreateSerializer",
     ),
     "PublicStoreSerializer": (
-        "store.api.public.v1.serializers.store",
+        "apps.store.api.public.v1.serializers.store",
         "PublicStoreSerializer",
     ),
 }

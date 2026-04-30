@@ -1,4 +1,4 @@
-# store/api/public/v1/views/__init__.py
+# apps/store/api/public/v1/views/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -10,11 +10,11 @@ __all__ = [
 
 _MODULE_MAP = {
     "StoreViewSet": (
-        "store.api.public.v1.views.store",
+        "apps.store.api.public.v1.views.store",
         "StoreViewSet",
     ),
     "PublicStoreViewSet": (
-        "store.api.public.v1.views.store",
+        "apps.store.api.public.v1.views.store",
         "PublicStoreViewSet",
     ),
 }

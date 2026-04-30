@@ -1,8 +1,8 @@
-# store/api/public/v1/schema/apikey.py
+# apps/store/api/public/v1/schema/apikey.py
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 
-from store.api.public.v1.serializers import StoreApiKeyRegenerateResponseSerializer
+from apps.store.api.public.v1.serializers import StoreApiKeyRegenerateResponseSerializer
 
 STORE_API_KEY_TAG = "Store · API Keys"
 

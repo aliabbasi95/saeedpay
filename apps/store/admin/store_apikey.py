@@ -3,7 +3,7 @@ from django.shortcuts import redirect
 from django.urls import path
 from django.utils.html import format_html
 
-from store.models import StoreApiKey
+from apps.store.models import StoreApiKey
 
 
 @admin.register(StoreApiKey)

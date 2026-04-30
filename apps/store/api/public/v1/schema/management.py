@@ -1,4 +1,4 @@
-# store/api/public/v1/schema/management.py
+# apps/store/api/public/v1/schema/management.py
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -8,7 +8,7 @@ from drf_spectacular.utils import (
     extend_schema,
 )
 
-from store.api.public.v1.serializers import StoreCreateSerializer, StoreSerializer
+from apps.store.api.public.v1.serializers import StoreCreateSerializer, StoreSerializer
 
 STORE_MANAGEMENT_TAG = "Store · Management"
 

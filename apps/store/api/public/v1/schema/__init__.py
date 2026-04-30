@@ -1,4 +1,4 @@
-# store/api/public/v1/schema/__init__.py
+# apps/store/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -17,39 +17,39 @@ __all__ = [
 
 _MODULE_MAP = {
     "store_list_schema": (
-        "store.api.public.v1.schema.management",
+        "apps.store.api.public.v1.schema.management",
         "store_list_schema",
     ),
     "store_create_schema": (
-        "store.api.public.v1.schema.management",
+        "apps.store.api.public.v1.schema.management",
         "store_create_schema",
     ),
     "store_retrieve_schema": (
-        "store.api.public.v1.schema.management",
+        "apps.store.api.public.v1.schema.management",
         "store_retrieve_schema",
     ),
     "store_update_put_schema": (
-        "store.api.public.v1.schema.management",
+        "apps.store.api.public.v1.schema.management",
         "store_update_put_schema",
     ),
     "store_partial_update_schema": (
-        "store.api.public.v1.schema.management",
+        "apps.store.api.public.v1.schema.management",
         "store_partial_update_schema",
     ),
     "store_delete_schema": (
-        "store.api.public.v1.schema.management",
+        "apps.store.api.public.v1.schema.management",
         "store_delete_schema",
     ),
     "public_store_list_schema": (
-        "store.api.public.v1.schema.public",
+        "apps.store.api.public.v1.schema.public",
         "public_store_list_schema",
     ),
     "public_store_retrieve_schema": (
-        "store.api.public.v1.schema.public",
+        "apps.store.api.public.v1.schema.public",
         "public_store_retrieve_schema",
     ),
     "store_regenerate_api_key_schema": (
-        "store.api.public.v1.schema.apikey",
+        "apps.store.api.public.v1.schema.apikey",
         "store_regenerate_api_key_schema",
     ),
 }

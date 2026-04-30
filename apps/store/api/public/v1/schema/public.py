@@ -1,4 +1,4 @@
-# store/api/public/v1/schema/public.py
+# apps/store/api/public/v1/schema/public.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -7,7 +7,7 @@ from drf_spectacular.utils import (
     extend_schema,
 )
 
-from store.api.public.v1.serializers import PublicStoreSerializer
+from apps.store.api.public.v1.serializers import PublicStoreSerializer
 
 STORE_PUBLIC_TAG = "Store · Public"
 

@@ -1,10 +1,10 @@
-# store/api/public/v1/serializers/store.py
+# apps/store/api/public/v1/serializers/store.py
 
 from django.db.models import Avg
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from store.models import Store
+from apps.store.models import Store
 
 
 class StoreSerializer(serializers.ModelSerializer):

@@ -1,4 +1,4 @@
-# store/admin/__init__.py
+# apps/store/admin/__init__.py
 
 from .store import StoreAdmin
 from .store_apikey import StoreApiKeyAdmin

@@ -1,7 +1,7 @@
-# store/api/public/urls.py
+# apps/store/api/public/urls.py
 
 from django.urls import include, path
 
 urlpatterns = [
-    path("public/", include("store.api.public.urls")),
+    path("public/", include("apps.store.api.public.urls")),
 ]

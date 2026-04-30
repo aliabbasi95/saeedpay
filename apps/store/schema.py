@@ -1,4 +1,4 @@
-# store/schema.py
+# apps/store/schema.py
 
 from drf_spectacular.extensions import OpenApiAuthenticationExtension
 
