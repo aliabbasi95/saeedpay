@@ -1,4 +1,4 @@
-# wallets/api/public/v1/serializers/payment.py
+# apps/wallets/api/public/v1/serializers/payment.py
 
 import re
 
@@ -6,11 +6,11 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiTypes, extend_schema_field
 from rest_framework import serializers
 
-from auth_api.models import PhoneOTP
-from wallets.api.public.v1.serializers.wallet import WalletSerializer
-from wallets.models import PaymentRequest
-from wallets.services.payment import list_eligible_wallets_for_payment_request
-from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
+from apps.auth_api.models import PhoneOTP
+from apps.wallets.api.public.v1.serializers.wallet import WalletSerializer
+from apps.wallets.models import PaymentRequest
+from apps.wallets.services.payment import list_eligible_wallets_for_payment_request
+from apps.wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
 
 
 class PaymentRequestDetailSerializer(serializers.ModelSerializer):

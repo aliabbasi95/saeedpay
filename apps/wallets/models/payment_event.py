@@ -1,11 +1,11 @@
-# wallets/models/payment_event.py
+# apps/wallets/models/payment_event.py
 
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.utils.choices import PaymentEventType
 from lib.erp_base.models import BaseModel
-from wallets.utils.choices import PaymentEventType
 
 
 class PaymentEvent(BaseModel):

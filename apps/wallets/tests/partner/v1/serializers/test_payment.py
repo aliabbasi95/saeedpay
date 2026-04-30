@@ -1,11 +1,11 @@
-# wallets/tests/public/v1/serializers/test_payment.py
+# apps/wallets/tests/public/v1/serializers/test_payment.py
 
 import pytest
 
-from wallets.api.partner.v1.serializers.payment import (
+from apps.wallets.api.partner.v1.serializers.payment import (
     PaymentRequestCreateSerializer,
 )
-from wallets.utils.choices import PaymentFlowType
+from apps.wallets.utils.choices import PaymentFlowType
 
 
 @pytest.mark.django_db

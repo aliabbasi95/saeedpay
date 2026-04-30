@@ -1,12 +1,12 @@
-# wallets/models/transaction.py
+# apps/wallets/models/transaction.py
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.models.wallet import Wallet
+from apps.wallets.utils.choices import TransactionPurpose, TransactionStatus
 from lib.erp_base.models import BaseModel
 from utils.reference import generate_reference_code
-from wallets.models.wallet import Wallet
-from wallets.utils.choices import TransactionPurpose, TransactionStatus
 
 
 class Transaction(BaseModel):

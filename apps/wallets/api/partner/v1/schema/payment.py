@@ -1,8 +1,8 @@
-# wallets/api/partner/v1/schema/payment.py
+# apps/wallets/api/partner/v1/schema/payment.py
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 
-from wallets.api.partner.v1.serializers import (
+from apps.wallets.api.partner.v1.serializers import (
     PaymentActionResponseSerializer,
     PaymentRequestCreateResponseSerializer,
     PaymentRequestCreateSerializer,

@@ -1,4 +1,4 @@
-# wallets/api/public/v1/schema/payment_requests.py
+# apps/wallets/api/public/v1/schema/payment_requests.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -9,13 +9,13 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 
-from wallets.api.public.v1.serializers.payment import (
+from apps.wallets.api.public.v1.serializers.payment import (
     PaymentActionResponseSerializer,
     PaymentConfirmSerializer,
     PaymentRequestDetailWithWalletsSerializer,
     PaymentRequestListItemSerializer,
 )
-from wallets.api.public.v1.serializers.payment_pos import (
+from apps.wallets.api.public.v1.serializers.payment_pos import (
     MerchantPosPaymentRequestCreateResponseSerializer,
     MerchantPosPaymentRequestCreateSerializer,
     MerchantPosPaymentRequestDetailSerializer,

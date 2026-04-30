@@ -1,12 +1,12 @@
-# wallets/admin/installment.py
+# apps/wallets/admin/installment.py
 
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.models import Installment
+from apps.wallets.utils.choices import InstallmentStatus
 from lib.erp_base.admin import BaseAdmin
-from wallets.models import Installment
-from wallets.utils.choices import InstallmentStatus
 
 
 @admin.register(Installment)

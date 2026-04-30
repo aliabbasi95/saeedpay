@@ -1,7 +1,9 @@
-# wallets/api/internal/v1/urls.py
+# apps/wallets/api/internal/v1/urls.py
 from django.urls import path
 
-from wallets.api.internal.v1.views import InternalCustomerWalletListByNationalIdView
+from apps.wallets.api.internal.v1.views import (
+    InternalCustomerWalletListByNationalIdView,
+)
 
 app_name = "wallets_internal_v1"
 

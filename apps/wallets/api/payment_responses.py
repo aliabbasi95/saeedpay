@@ -1,9 +1,9 @@
-# wallets/api/payment_responses.py
+# apps/wallets/api/payment_responses.py
 
 from rest_framework import status
 from rest_framework.response import Response
 
-from wallets.utils.choices import PaymentFlowType, PaymentStatus
+from apps.wallets.utils.choices import PaymentFlowType, PaymentStatus
 
 GENERIC_INTERNAL_ERROR_DETAIL = "خطایی رخ داد. لطفاً مجدداً تلاش کنید."
 

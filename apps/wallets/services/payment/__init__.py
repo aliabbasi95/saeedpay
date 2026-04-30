@@ -1,4 +1,4 @@
-# wallets/services/payment/__init__.py
+# apps/wallets/services/payment/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -28,83 +28,83 @@ __all__ = [
 
 _MODULE_MAP = {
     "authorize_cash_payment": (
-        "wallets.services.payment.payment_authorization_service",
+        "apps.wallets.services.payment.payment_authorization_service",
         "authorize_cash_payment",
     ),
     "authorize_credit_payment": (
-        "wallets.services.payment.payment_authorization_service",
+        "apps.wallets.services.payment.payment_authorization_service",
         "authorize_credit_payment",
     ),
     "cleanup_cancelled_and_expired_requests_batch": (
-        "wallets.services.payment.payment_batch_service",
+        "apps.wallets.services.payment.payment_batch_service",
         "cleanup_cancelled_and_expired_requests_batch",
     ),
     "expire_pending_payment_requests_batch": (
-        "wallets.services.payment.payment_batch_service",
+        "apps.wallets.services.payment.payment_batch_service",
         "expire_pending_payment_requests_batch",
     ),
     "create_payment_event": (
-        "wallets.services.payment.payment_event",
+        "apps.wallets.services.payment.payment_event",
         "create_payment_event",
     ),
     "pay_payment_request": (
-        "wallets.services.payment.payment_processing_service",
+        "apps.wallets.services.payment.payment_processing_service",
         "pay_payment_request",
     ),
     "rollback_payment": (
-        "wallets.services.payment.payment_processing_service",
+        "apps.wallets.services.payment.payment_processing_service",
         "rollback_payment",
     ),
     "verify_payment_request": (
-        "wallets.services.payment.payment_processing_service",
+        "apps.wallets.services.payment.payment_processing_service",
         "verify_payment_request",
     ),
     "cancel_payment_request": (
-        "wallets.services.payment.payment_request_service",
+        "apps.wallets.services.payment.payment_request_service",
         "cancel_payment_request",
     ),
     "check_and_expire_payment_request": (
-        "wallets.services.payment.payment_request_service",
+        "apps.wallets.services.payment.payment_request_service",
         "check_and_expire_payment_request",
     ),
     "create_payment_request": (
-        "wallets.services.payment.payment_request_service",
+        "apps.wallets.services.payment.payment_request_service",
         "create_payment_request",
     ),
     "expire_payment_request": (
-        "wallets.services.payment.payment_request_service",
+        "apps.wallets.services.payment.payment_request_service",
         "expire_payment_request",
     ),
     "list_eligible_wallets_for_payment_request": (
-        "wallets.services.payment.payment_request_service",
+        "apps.wallets.services.payment.payment_request_service",
         "list_eligible_wallets_for_payment_request",
     ),
     "resolve_payment_method": (
-        "wallets.services.payment.payment_request_service",
+        "apps.wallets.services.payment.payment_request_service",
         "resolve_payment_method",
     ),
     "validate_payment_request_payer_access": (
-        "wallets.services.payment.payment_request_service",
+        "apps.wallets.services.payment.payment_request_service",
         "validate_payment_request_payer_access",
     ),
     "validate_wallet_ownership": (
-        "wallets.services.payment.payment_request_service",
+        "apps.wallets.services.payment.payment_request_service",
         "validate_wallet_ownership",
     ),
     "rollback_cash_payment": (
-        "wallets.services.payment.payment_rollback_service",
+        "apps.wallets.services.payment.payment_rollback_service",
         "rollback_cash_payment",
     ),
     "rollback_credit_payment": (
-        "wallets.services.payment.payment_rollback_service",
+        "apps.wallets.services.payment.payment_rollback_service",
         "rollback_credit_payment",
     ),
     "settle_cash_payment": (
-        "wallets.services.payment.payment_settlement_service",
+        "apps.wallets.services.payment.payment_settlement_service",
         "settle_cash_payment",
     ),
     "settle_credit_payment": (
-        "wallets.services.payment.payment_settlement_service",
+        "apps.wallets.services.payment.payment_settlement_service",
         "settle_credit_payment",
     ),
 }

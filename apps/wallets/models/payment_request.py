@@ -1,4 +1,4 @@
-# wallets/models/payment_request.py
+# apps/wallets/models/payment_request.py
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -6,13 +6,13 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from customers.models import Customer
+from apps.customers.models import Customer
+from apps.store.models import Store
+from apps.wallets.models.wallet import Wallet
+from apps.wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
+from apps.wallets.utils.consts import PAYMENT_REQUEST_EXPIRY_MINUTES
 from lib.erp_base.models import BaseModel
-from store.models import Store
 from utils.reference import generate_reference_code
-from wallets.models.wallet import Wallet
-from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
-from wallets.utils.consts import PAYMENT_REQUEST_EXPIRY_MINUTES
 
 
 class PaymentRequest(BaseModel):

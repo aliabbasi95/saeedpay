@@ -1,17 +1,17 @@
-# wallets/tests/services/test_payment_events.py
+# apps/wallets/tests/services/test_payment_events.py
 
 import pytest
 from rest_framework.exceptions import ValidationError
 
-from wallets.models import PaymentEvent, Wallet
-from wallets.services.payment import (
+from apps.wallets.models import PaymentEvent, Wallet
+from apps.wallets.services.payment import (
     check_and_expire_payment_request,
     create_payment_request,
     pay_payment_request,
     rollback_payment,
     verify_payment_request,
 )
-from wallets.utils.choices import (
+from apps.wallets.utils.choices import (
     OwnerType,
     PaymentEventType,
     PaymentFlowType,
@@ -19,7 +19,7 @@ from wallets.utils.choices import (
     TransactionPurpose,
     WalletKind,
 )
-from wallets.utils.consts import ESCROW_USER_NAME, ESCROW_WALLET_KIND
+from apps.wallets.utils.consts import ESCROW_USER_NAME, ESCROW_WALLET_KIND
 
 
 @pytest.mark.django_db

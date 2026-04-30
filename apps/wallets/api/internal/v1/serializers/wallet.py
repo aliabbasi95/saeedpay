@@ -1,9 +1,9 @@
-# wallets/api/internal/v1/serializers/wallet.py
+# apps/wallets/api/internal/v1/serializers/wallet.py
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
+from apps.wallets.models import Wallet
 from lib.erp_base.validators import validate_national_id
-from wallets.models import Wallet
 
 
 class NationalIdInputSerializer(serializers.Serializer):

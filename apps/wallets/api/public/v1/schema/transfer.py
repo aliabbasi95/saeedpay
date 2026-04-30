@@ -1,4 +1,4 @@
-# wallets/api/public/v1/schema/transfer.py
+# apps/wallets/api/public/v1/schema/transfer.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -8,7 +8,7 @@ from drf_spectacular.utils import (
     extend_schema,
 )
 
-from wallets.api.public.v1.serializers.transfer import (
+from apps.wallets.api.public.v1.serializers.transfer import (
     WalletTransferConfirmSerializer,
     WalletTransferCreateSerializer,
     WalletTransferDetailSerializer,

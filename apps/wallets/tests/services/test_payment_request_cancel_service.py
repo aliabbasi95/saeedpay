@@ -1,13 +1,13 @@
-# wallets/tests/services/test_payment_request_cancel_service.py
+# apps/wallets/tests/services/test_payment_request_cancel_service.py
 
 import pytest
 from rest_framework.exceptions import ValidationError
 
-from merchants.models import Merchant
-from store.models import Store
-from wallets.models import PaymentEvent, PaymentRequest
-from wallets.services.payment.payment_request_service import cancel_payment_request
-from wallets.utils.choices import (
+from apps.merchants.models import Merchant
+from apps.store.models import Store
+from apps.wallets.models import PaymentEvent, PaymentRequest
+from apps.wallets.services.payment.payment_request_service import cancel_payment_request
+from apps.wallets.utils.choices import (
     PaymentEventType,
     PaymentFlowType,
     PaymentRequestStatus,

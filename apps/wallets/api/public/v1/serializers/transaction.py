@@ -1,8 +1,8 @@
-# wallets/api/public/v1/serializers/transaction.py
+# apps/wallets/api/public/v1/serializers/transaction.py
 
 from rest_framework import serializers
 
-from wallets.models import Transaction
+from apps.wallets.models import Transaction
 
 
 class TransactionSerializer(serializers.ModelSerializer):

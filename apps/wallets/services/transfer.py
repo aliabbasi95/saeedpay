@@ -1,13 +1,13 @@
-# wallets/services/transfer.py
+# apps/wallets/services/transfer.py
 
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.wallets.models.transfer import WalletTransferRequest
+from apps.wallets.models.wallet import Wallet
+from apps.wallets.utils.choices import TransferStatus
 from utils.reference import generate_reference_code
-from wallets.models.transfer import WalletTransferRequest
-from wallets.models.wallet import Wallet
-from wallets.utils.choices import TransferStatus
 
 ALLOWED_SENDER_KINDS = ["cash"]
 ALLOWED_RECEIVER_KINDS = ["cash"]
@@ -68,7 +68,7 @@ def create_wallet_transfer_request(
             )
             receiver_wallet.balance += amount
             receiver_wallet.save()
-            from wallets.models.transaction import Transaction
+            from apps.wallets.models.transaction import Transaction
 
             txn = Transaction.objects.create(
                 from_wallet=sender_wallet,
@@ -126,7 +126,7 @@ def confirm_wallet_transfer_request(
         receiver_wallet.balance += transfer.amount
         receiver_wallet.save()
 
-        from wallets.models.transaction import Transaction
+        from apps.wallets.models.transaction import Transaction
 
         txn = Transaction.objects.create(
             from_wallet=sender_wallet,

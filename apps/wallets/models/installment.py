@@ -1,4 +1,4 @@
-# wallets/models/installment.py
+# apps/wallets/models/installment.py
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.utils.choices import InstallmentStatus
 from lib.erp_base.models import BaseModel
-from wallets.utils.choices import InstallmentStatus
 
 
 class Installment(BaseModel):

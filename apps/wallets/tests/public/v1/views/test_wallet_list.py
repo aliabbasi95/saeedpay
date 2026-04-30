@@ -1,4 +1,4 @@
-# wallets/tests/public/v1/views/test_wallet_list.py
+# apps/wallets/tests/public/v1/views/test_wallet_list.py
 
 import pytest
 from django.conf import settings
@@ -7,8 +7,8 @@ from django.core.cache import cache
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from wallets.models import Wallet
-from wallets.utils.choices import OwnerType, WalletKind
+from apps.wallets.models import Wallet
+from apps.wallets.utils.choices import OwnerType, WalletKind
 
 
 @pytest.mark.django_db

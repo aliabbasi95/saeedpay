@@ -1,12 +1,12 @@
-# wallets/admin/wallet.py
+# apps/wallets/admin/wallet.py
 
 from django.contrib import admin
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.models import Wallet
 from lib.erp_base.admin import BaseAdmin
-from wallets.models import Wallet
 
 
 @admin.register(Wallet)

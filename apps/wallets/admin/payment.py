@@ -1,13 +1,13 @@
-# wallets/admin/payment.py
+# apps/wallets/admin/payment.py
 
 from django.contrib import admin
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.models import Payment
+from apps.wallets.utils.choices import PaymentStatus
 from lib.erp_base.admin import BaseAdmin
-from wallets.models import Payment
-from wallets.utils.choices import PaymentStatus
 
 
 @admin.register(Payment)

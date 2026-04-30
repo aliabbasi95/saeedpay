@@ -1,4 +1,4 @@
-# wallets/api/public/v1/views/payment_pos.py
+# apps/wallets/api/public/v1/views/payment_pos.py
 
 import logging
 
@@ -10,34 +10,34 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from merchants.permissions import IsMerchant
-from saeedpay.logging import log_event
-from store.models import Store
-from wallets.api.payment_responses import (
+from apps.merchants.permissions import IsMerchant
+from apps.store.models import Store
+from apps.wallets.api.payment_responses import (
     build_payment_response_payload,
     payment_error_response,
     payment_internal_error_response,
     payment_success_response,
 )
-from wallets.api.public.v1.schema import (
+from apps.wallets.api.public.v1.schema import (
     merchant_pos_payment_cancel_schema,
     merchant_pos_payment_viewset_schema,
 )
-from wallets.api.public.v1.serializers.payment_pos import (
+from apps.wallets.api.public.v1.serializers.payment_pos import (
     MerchantPosPaymentRequestCreateResponseSerializer,
     MerchantPosPaymentRequestCreateSerializer,
     MerchantPosPaymentRequestDetailSerializer,
     MerchantPosPaymentRequestListItemSerializer,
 )
-from wallets.models import PaymentRequest
-from wallets.services.payment.payment_request_service import (
+from apps.wallets.models import PaymentRequest
+from apps.wallets.services.payment.payment_request_service import (
     cancel_payment_request,
     check_and_expire_payment_request,
     create_payment_request,
 )
-from wallets.utils.choices import PaymentFlowType
-from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
+from apps.wallets.utils.choices import PaymentFlowType
+from apps.wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
+from saeedpay.logging import log_event
 
 logger = logging.getLogger("saeedpay.wallets.payment")
 

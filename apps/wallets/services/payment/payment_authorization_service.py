@@ -1,22 +1,22 @@
-# wallets/services/payment/payment_authorization_service.py
+# apps/wallets/services/payment/payment_authorization_service.py
 
 import logging
 
 from rest_framework.exceptions import ValidationError
 
-from credit.models.authorization import CreditAuthorization
-from saeedpay.logging import log_event
-from wallets.models import Payment, Transaction, Wallet
-from wallets.services.payment.payment_shared import (
+from apps.credit.models.authorization import CreditAuthorization
+from apps.wallets.models import Payment, Transaction, Wallet
+from apps.wallets.services.payment.payment_shared import (
     build_authorized_event_extra,
     create_event,
     credit_auth_hold_expiry,
     get_escrow_wallet,
 )
-from wallets.utils.choices import (
+from apps.wallets.utils.choices import (
     PaymentEventType,
     TransactionPurpose,
 )
+from saeedpay.logging import log_event
 
 logger = logging.getLogger("saeedpay.wallets.payment")
 
@@ -81,7 +81,7 @@ def authorize_cash_payment(payment: Payment, customer_wallet: Wallet):
 
 
 def authorize_credit_payment(payment: Payment):
-    from credit.models.credit_limit import CreditLimit
+    from apps.credit.models.credit_limit import CreditLimit
 
     credit_limit = CreditLimit.objects.get_user_credit_limit(payment.payer)
     if not credit_limit or not credit_limit.is_active:

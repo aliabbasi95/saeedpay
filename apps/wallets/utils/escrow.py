@@ -1,9 +1,9 @@
-# wallets/utils/escrow.py
+# apps/wallets/utils/escrow.py
 from django.contrib.auth import get_user_model
 
-from wallets.models import Wallet
-from wallets.utils.choices import OwnerType
-from wallets.utils.consts import ESCROW_USER_NAME, ESCROW_WALLET_KIND
+from apps.wallets.models import Wallet
+from apps.wallets.utils.choices import OwnerType
+from apps.wallets.utils.consts import ESCROW_USER_NAME, ESCROW_WALLET_KIND
 
 
 def ensure_escrow_wallet_exists():

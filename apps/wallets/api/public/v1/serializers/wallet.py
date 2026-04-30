@@ -1,10 +1,10 @@
-# wallets/api/public/v1/serializers/wallet.py
+# apps/wallets/api/public/v1/serializers/wallet.py
 
 from django.utils import timezone
 from rest_framework import serializers
 
-from wallets.models import Wallet
-from wallets.utils.choices import OwnerType, WalletKind
+from apps.wallets.models import Wallet
+from apps.wallets.utils.choices import OwnerType, WalletKind
 
 
 class WalletSerializer(serializers.ModelSerializer):
@@ -40,7 +40,7 @@ class WalletSerializer(serializers.ModelSerializer):
         if obj.kind != WalletKind.CREDIT:
             return 0
         try:
-            from credit.models.credit_limit import CreditLimit
+            from apps.credit.models.credit_limit import CreditLimit
 
             cl = CreditLimit.objects.get_user_credit_limit(obj.user)
         except Exception:

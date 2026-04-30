@@ -1,12 +1,12 @@
-# wallets/tests/public/v1/views/test_payment_concurrency_api.py
+# apps/wallets/tests/public/v1/views/test_payment_concurrency_api.py
 
 import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from auth_api.models import PhoneOTP
-from wallets.models import Payment, PaymentRequest, Wallet
-from wallets.utils.choices import (
+from apps.auth_api.models import PhoneOTP
+from apps.wallets.models import Payment, PaymentRequest, Wallet
+from apps.wallets.utils.choices import (
     OwnerType,
     PaymentFlowType,
     PaymentMethod,

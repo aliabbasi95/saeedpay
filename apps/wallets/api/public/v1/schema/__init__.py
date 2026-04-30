@@ -1,4 +1,4 @@
-# wallets/api/public/v1/schema/__init__.py
+# apps/wallets/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -28,83 +28,83 @@ __all__ = [
 
 _MODULE_MAP = {
     "installments_schema": (
-        "wallets.api.public.v1.schema.installment",
+        "apps.wallets.api.public.v1.schema.installment",
         "installments_schema",
     ),
     "installment_viewset_schema": (
-        "wallets.api.public.v1.schema.installment",
+        "apps.wallets.api.public.v1.schema.installment",
         "installment_viewset_schema",
     ),
     "installment_plans_schema": (
-        "wallets.api.public.v1.schema.installment_plan",
+        "apps.wallets.api.public.v1.schema.installment_plan",
         "installment_plans_schema",
     ),
     "installment_plan_viewset_schema": (
-        "wallets.api.public.v1.schema.installment_plan",
+        "apps.wallets.api.public.v1.schema.installment_plan",
         "installment_plan_viewset_schema",
     ),
     "plan_installments_action_schema": (
-        "wallets.api.public.v1.schema.installment_plan",
+        "apps.wallets.api.public.v1.schema.installment_plan",
         "plan_installments_action_schema",
     ),
     "merchant_pos_payment_cancel_schema": (
-        "wallets.api.public.v1.schema.payment_requests",
+        "apps.wallets.api.public.v1.schema.payment_requests",
         "merchant_pos_payment_cancel_schema",
     ),
     "merchant_pos_payment_create_schema": (
-        "wallets.api.public.v1.schema.payment_requests",
+        "apps.wallets.api.public.v1.schema.payment_requests",
         "merchant_pos_payment_create_schema",
     ),
     "merchant_pos_payment_list_schema": (
-        "wallets.api.public.v1.schema.payment_requests",
+        "apps.wallets.api.public.v1.schema.payment_requests",
         "merchant_pos_payment_list_schema",
     ),
     "merchant_pos_payment_retrieve_schema": (
-        "wallets.api.public.v1.schema.payment_requests",
+        "apps.wallets.api.public.v1.schema.payment_requests",
         "merchant_pos_payment_retrieve_schema",
     ),
     "merchant_pos_payment_viewset_schema": (
-        "wallets.api.public.v1.schema.payment_requests",
+        "apps.wallets.api.public.v1.schema.payment_requests",
         "merchant_pos_payment_viewset_schema",
     ),
     "payment_confirm_schema": (
-        "wallets.api.public.v1.schema.payment_requests",
+        "apps.wallets.api.public.v1.schema.payment_requests",
         "payment_confirm_schema",
     ),
     "payment_list_schema": (
-        "wallets.api.public.v1.schema.payment_requests",
+        "apps.wallets.api.public.v1.schema.payment_requests",
         "payment_list_schema",
     ),
     "payment_request_viewset_schema": (
-        "wallets.api.public.v1.schema.payment_requests",
+        "apps.wallets.api.public.v1.schema.payment_requests",
         "payment_request_viewset_schema",
     ),
     "payment_retrieve_schema": (
-        "wallets.api.public.v1.schema.payment_requests",
+        "apps.wallets.api.public.v1.schema.payment_requests",
         "payment_retrieve_schema",
     ),
     "transfers_list_schema": (
-        "wallets.api.public.v1.schema.transfer",
+        "apps.wallets.api.public.v1.schema.transfer",
         "transfers_list_schema",
     ),
     "transfer_retrieve_schema": (
-        "wallets.api.public.v1.schema.transfer",
+        "apps.wallets.api.public.v1.schema.transfer",
         "transfer_retrieve_schema",
     ),
     "transfer_create_schema": (
-        "wallets.api.public.v1.schema.transfer",
+        "apps.wallets.api.public.v1.schema.transfer",
         "transfer_create_schema",
     ),
     "transfer_confirm_schema": (
-        "wallets.api.public.v1.schema.transfer",
+        "apps.wallets.api.public.v1.schema.transfer",
         "transfer_confirm_schema",
     ),
     "transfer_reject_schema": (
-        "wallets.api.public.v1.schema.transfer",
+        "apps.wallets.api.public.v1.schema.transfer",
         "transfer_reject_schema",
     ),
     "wallets_list_schema": (
-        "wallets.api.public.v1.schema.wallet",
+        "apps.wallets.api.public.v1.schema.wallet",
         "wallets_list_schema",
     ),
 }

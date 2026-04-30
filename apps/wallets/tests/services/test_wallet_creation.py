@@ -1,12 +1,12 @@
-# wallets/tests/services/test_wallet_creation.py
+# apps/wallets/tests/services/test_wallet_creation.py
 
 import pytest
 from django.contrib.auth import get_user_model
 
-from wallets.models import Wallet
-from wallets.services import create_default_wallets_for_user
-from wallets.utils.choices import OwnerType
-from wallets.utils.consts import DEFAULT_WALLETS
+from apps.wallets.models import Wallet
+from apps.wallets.services import create_default_wallets_for_user
+from apps.wallets.utils.choices import OwnerType
+from apps.wallets.utils.consts import DEFAULT_WALLETS
 
 
 @pytest.mark.django_db

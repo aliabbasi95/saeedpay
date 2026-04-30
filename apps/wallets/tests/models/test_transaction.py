@@ -1,10 +1,10 @@
-# wallets/tests/models/test_transaction.py
+# apps/wallets/tests/models/test_transaction.py
 
 import pytest
 from django.db import IntegrityError
 
-from wallets.models import PaymentRequest, Transaction, Wallet
-from wallets.utils.choices import OwnerType, TransactionStatus, WalletKind
+from apps.wallets.models import PaymentRequest, Transaction, Wallet
+from apps.wallets.utils.choices import OwnerType, TransactionStatus, WalletKind
 
 
 @pytest.mark.django_db

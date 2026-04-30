@@ -1,8 +1,8 @@
-# wallets/tasks/payment.py
+# apps/wallets/tasks/payment.py
 
 from celery import shared_task
 
-from wallets.services.payment import (
+from apps.wallets.services.payment import (
     cleanup_cancelled_and_expired_requests_batch,
     expire_pending_payment_requests_batch,
 )

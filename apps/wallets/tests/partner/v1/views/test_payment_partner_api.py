@@ -1,24 +1,24 @@
-# wallets/tests/partner/v1/views/test_payment_partner_api.py
+# apps/wallets/tests/partner/v1/views/test_payment_partner_api.py
 
 import pytest
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient, APIRequestFactory, force_authenticate
 
-from merchants.models import Merchant
-from store.authentication import StoreApiKeyAuthentication
-from store.models import Store
-from wallets.api.partner.v1.views.payment import PartnerPaymentRequestViewSet
-from wallets.models import PaymentRequest, Wallet
-from wallets.services.payment import pay_payment_request
-from wallets.utils.choices import (
+from apps.merchants.models import Merchant
+from apps.store.authentication import StoreApiKeyAuthentication
+from apps.store.models import Store
+from apps.wallets.api.partner.v1.views.payment import PartnerPaymentRequestViewSet
+from apps.wallets.models import PaymentRequest, Wallet
+from apps.wallets.services.payment import pay_payment_request
+from apps.wallets.utils.choices import (
     OwnerType,
     PaymentFlowType,
     PaymentRequestStatus,
     PaymentStatus,
     WalletKind,
 )
-from wallets.utils.escrow import ensure_escrow_wallet_exists
+from apps.wallets.utils.escrow import ensure_escrow_wallet_exists
 
 
 @pytest.mark.django_db

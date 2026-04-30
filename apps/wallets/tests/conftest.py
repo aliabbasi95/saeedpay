@@ -1,15 +1,15 @@
-# wallets/tests/conftest.py
+# apps/wallets/tests/conftest.py
 
 import pytest
 from django.contrib.auth import get_user_model
 
-from customers.models import Customer
-from merchants.models import Merchant
-from profiles.models import Profile
-from store.models import Store
-from wallets.models import Wallet
-from wallets.utils.choices import OwnerType, WalletKind
-from wallets.utils.escrow import ensure_escrow_wallet_exists
+from apps.customers.models import Customer
+from apps.merchants.models import Merchant
+from apps.profiles.models import Profile
+from apps.store.models import Store
+from apps.wallets.models import Wallet
+from apps.wallets.utils.choices import OwnerType, WalletKind
+from apps.wallets.utils.escrow import ensure_escrow_wallet_exists
 
 
 @pytest.fixture

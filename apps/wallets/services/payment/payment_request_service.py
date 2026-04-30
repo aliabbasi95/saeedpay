@@ -1,13 +1,12 @@
-# wallets/services/payment/payment_request_service.py
+# apps/wallets/services/payment/payment_request_service.py
 
 import logging
 
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
 
-from saeedpay.logging import log_event
-from wallets.models import PaymentRequest, Wallet
-from wallets.services.payment.payment_shared import (
+from apps.wallets.models import PaymentRequest, Wallet
+from apps.wallets.services.payment.payment_shared import (
     create_event,
     credit_auth_hold_expiry,
     ensure_payment_request_status,
@@ -16,7 +15,7 @@ from wallets.services.payment.payment_shared import (
     is_terminal_payment_request_status,
     now_local,
 )
-from wallets.utils.choices import (
+from apps.wallets.utils.choices import (
     OwnerType,
     PaymentEventType,
     PaymentFlowType,
@@ -24,6 +23,7 @@ from wallets.utils.choices import (
     PaymentStatus,
     WalletKind,
 )
+from saeedpay.logging import log_event
 
 logger = logging.getLogger("saeedpay.wallets.payment")
 
@@ -137,7 +137,7 @@ def list_eligible_wallets_for_payment_request(user, payment_request):
             if int(wallet.available_balance or 0) >= int(payment_request.amount):
                 eligible_ids.append(wallet.id)
         elif wallet.kind == WalletKind.CREDIT:
-            from credit.models.credit_limit import CreditLimit
+            from apps.credit.models.credit_limit import CreditLimit
 
             credit_limit = CreditLimit.objects.get_user_credit_limit(user)
             if (
@@ -186,7 +186,9 @@ def check_and_expire_payment_request(
 
 
 def expire_payment_request(payment_request: PaymentRequest):
-    from wallets.services.payment.payment_processing_service import rollback_payment
+    from apps.wallets.services.payment.payment_processing_service import (
+        rollback_payment,
+    )
 
     with transaction.atomic():
         request_obj = PaymentRequest.objects.select_for_update().get(
@@ -251,7 +253,9 @@ def cancel_payment_request(
     store=None,
     actor=None,
 ):
-    from wallets.services.payment.payment_processing_service import rollback_payment
+    from apps.wallets.services.payment.payment_processing_service import (
+        rollback_payment,
+    )
 
     with transaction.atomic():
         request_obj = PaymentRequest.objects.select_for_update().get(

@@ -1,4 +1,4 @@
-# wallets/api/public/v1/views/payment.py
+# apps/wallets/api/public/v1/views/payment.py
 
 import logging
 
@@ -9,32 +9,32 @@ from rest_framework.exceptions import NotAuthenticated, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from saeedpay.logging import log_event
-from wallets.api.payment_responses import (
+from apps.wallets.api.payment_responses import (
     payment_error_response,
     payment_internal_error_response,
     payment_success_response,
 )
-from wallets.api.public.v1.schema import (
+from apps.wallets.api.public.v1.schema import (
     payment_confirm_schema,
     payment_request_viewset_schema,
 )
-from wallets.api.public.v1.serializers.payment import (
+from apps.wallets.api.public.v1.serializers.payment import (
     PaymentActionResponseSerializer,
     PaymentConfirmSerializer,
     PaymentRequestDetailWithWalletsSerializer,
     PaymentRequestListItemSerializer,
 )
-from wallets.models import PaymentRequest, Wallet
-from wallets.services.payment import (
+from apps.wallets.models import PaymentRequest, Wallet
+from apps.wallets.services.payment import (
     check_and_expire_payment_request,
     pay_payment_request,
 )
-from wallets.services.payment.payment_request_service import (
+from apps.wallets.services.payment.payment_request_service import (
     validate_payment_request_payer_access,
 )
-from wallets.utils.choices import OwnerType
+from apps.wallets.utils.choices import OwnerType
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
+from saeedpay.logging import log_event
 
 logger = logging.getLogger("saeedpay.wallets.payment")
 

@@ -1,8 +1,8 @@
-# wallets/api/public/v1/serializers/installment_plan.py
+# apps/wallets/api/public/v1/serializers/installment_plan.py
 
 from rest_framework import serializers
 
-from wallets.models import InstallmentPlan
+from apps.wallets.models import InstallmentPlan
 
 
 class InstallmentPlanSerializer(serializers.ModelSerializer):

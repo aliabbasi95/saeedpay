@@ -1,4 +1,4 @@
-# wallets/api/partner/v1/schema/__init__.py
+# apps/wallets/api/partner/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -10,11 +10,11 @@ __all__ = [
 
 _MODULE_MAP = {
     "partner_payment_request_viewset_schema": (
-        "wallets.api.partner.v1.schema.payment",
+        "apps.wallets.api.partner.v1.schema.payment",
         "partner_payment_request_viewset_schema",
     ),
     "partner_payment_verify_schema": (
-        "wallets.api.partner.v1.schema.payment",
+        "apps.wallets.api.partner.v1.schema.payment",
         "partner_payment_verify_schema",
     ),
 }

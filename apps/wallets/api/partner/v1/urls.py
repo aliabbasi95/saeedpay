@@ -1,9 +1,9 @@
-# wallets/api/partner/v1/urls.py
+# apps/wallets/api/partner/v1/urls.py
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from wallets.api.partner.v1.views import PartnerPaymentRequestViewSet
+from apps.wallets.api.partner.v1.views import PartnerPaymentRequestViewSet
 
 app_name = "wallets_partner_v1"
 

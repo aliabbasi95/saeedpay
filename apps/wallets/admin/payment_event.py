@@ -1,10 +1,10 @@
-# wallets/admin/payment_event.py
+# apps/wallets/admin/payment_event.py
 
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.models import PaymentEvent
 from lib.erp_base.admin import BaseAdmin
-from wallets.models import PaymentEvent
 
 
 @admin.register(PaymentEvent)

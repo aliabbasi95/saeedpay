@@ -1,4 +1,4 @@
-# wallets/api/public/v1/views/installment_plan.py
+# apps/wallets/api/public/v1/views/installment_plan.py
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets
@@ -6,17 +6,17 @@ from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 
-from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from wallets.api.public.v1.schema import (
+from apps.wallets.api.public.v1.schema import (
     installment_plan_viewset_schema,
     plan_installments_action_schema,
 )
-from wallets.api.public.v1.serializers import (
+from apps.wallets.api.public.v1.serializers import (
     InstallmentPlanSerializer,
     InstallmentSerializer,
 )
-from wallets.filters import InstallmentPlanFilter
-from wallets.models import Installment, InstallmentPlan
+from apps.wallets.filters import InstallmentPlanFilter
+from apps.wallets.models import Installment, InstallmentPlan
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 
 @installment_plan_viewset_schema

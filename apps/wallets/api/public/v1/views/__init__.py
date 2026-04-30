@@ -1,4 +1,4 @@
-# wallets/api/public/v1/views/__init__.py
+# apps/wallets/api/public/v1/views/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -14,27 +14,27 @@ __all__ = [
 
 _MODULE_MAP = {
     "InstallmentViewSet": (
-        "wallets.api.public.v1.views.installment",
+        "apps.wallets.api.public.v1.views.installment",
         "InstallmentViewSet",
     ),
     "InstallmentPlanViewSet": (
-        "wallets.api.public.v1.views.installment_plan",
+        "apps.wallets.api.public.v1.views.installment_plan",
         "InstallmentPlanViewSet",
     ),
     "PaymentRequestViewSet": (
-        "wallets.api.public.v1.views.payment",
+        "apps.wallets.api.public.v1.views.payment",
         "PaymentRequestViewSet",
     ),
     "MerchantPosPaymentRequestViewSet": (
-        "wallets.api.public.v1.views.payment_pos",
+        "apps.wallets.api.public.v1.views.payment_pos",
         "MerchantPosPaymentRequestViewSet",
     ),
     "WalletTransferViewSet": (
-        "wallets.api.public.v1.views.transfer",
+        "apps.wallets.api.public.v1.views.transfer",
         "WalletTransferViewSet",
     ),
     "WalletViewSet": (
-        "wallets.api.public.v1.views.wallet",
+        "apps.wallets.api.public.v1.views.wallet",
         "WalletViewSet",
     ),
 }

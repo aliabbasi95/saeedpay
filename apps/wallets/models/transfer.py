@@ -1,13 +1,13 @@
-# wallets/models/transfer.py
+# apps/wallets/models/transfer.py
 
 from django.db import models
 from django.utils import timezone
 
+from apps.wallets.models.transaction import Transaction
+from apps.wallets.models.wallet import Wallet
+from apps.wallets.utils.choices import TransferStatus
 from lib.erp_base.models import BaseModel
 from utils.reference import generate_reference_code
-from wallets.models.transaction import Transaction
-from wallets.models.wallet import Wallet
-from wallets.utils.choices import TransferStatus
 
 
 class WalletTransferRequest(BaseModel):

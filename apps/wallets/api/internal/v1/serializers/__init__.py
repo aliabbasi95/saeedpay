@@ -1,4 +1,4 @@
-# wallets/api/internal/v1/serializers/__init__.py
+# apps/wallets/api/internal/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -11,15 +11,15 @@ __all__ = [
 
 _MODULE_MAP = {
     "NationalIdInputSerializer": (
-        "wallets.api.internal.v1.serializers.wallet",
+        "apps.wallets.api.internal.v1.serializers.wallet",
         "NationalIdInputSerializer",
     ),
     "PhoneNumberInputSerializer": (
-        "wallets.api.internal.v1.serializers.wallet",
+        "apps.wallets.api.internal.v1.serializers.wallet",
         "PhoneNumberInputSerializer",
     ),
     "WalletSerializer": (
-        "wallets.api.internal.v1.serializers.wallet",
+        "apps.wallets.api.internal.v1.serializers.wallet",
         "WalletSerializer",
     ),
 }

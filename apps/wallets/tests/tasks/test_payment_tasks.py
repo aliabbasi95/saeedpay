@@ -1,15 +1,15 @@
-# wallets/tests/tasks/test_payment_tasks.py
+# apps/wallets/tests/tasks/test_payment_tasks.py
 
 import pytest
 from django.utils import timezone
 
-from wallets.models import PaymentEvent, Wallet
-from wallets.services.payment import pay_payment_request
-from wallets.tasks import (
+from apps.wallets.models import PaymentEvent, Wallet
+from apps.wallets.services.payment import pay_payment_request
+from apps.wallets.tasks import (
     cleanup_cancelled_and_expired_requests,
     expire_pending_payment_requests,
 )
-from wallets.utils.choices import (
+from apps.wallets.utils.choices import (
     OwnerType,
     PaymentEventType,
     PaymentRequestStatus,
@@ -25,7 +25,7 @@ class TestPaymentTasks:
         store,
         customer_user,
     ):
-        from wallets.services.payment import create_payment_request
+        from apps.wallets.services.payment import create_payment_request
 
         payment_request_created = create_payment_request(
             store=store,
@@ -65,7 +65,7 @@ class TestPaymentTasks:
         customer_user,
         ensure_escrow,
     ):
-        from wallets.services.payment import create_payment_request
+        from apps.wallets.services.payment import create_payment_request
 
         customer_wallet = Wallet.objects.create(
             user=customer_user,
@@ -129,7 +129,7 @@ class TestPaymentTasks:
         customer_user,
         ensure_escrow,
     ):
-        from wallets.services.payment import create_payment_request
+        from apps.wallets.services.payment import create_payment_request
 
         customer_wallet = Wallet.objects.create(
             user=customer_user,

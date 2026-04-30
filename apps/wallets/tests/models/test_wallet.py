@@ -1,4 +1,4 @@
-# wallets/tests/models/test_wallet.py
+# apps/wallets/tests/models/test_wallet.py
 
 from datetime import timedelta
 
@@ -7,8 +7,8 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.utils import timezone
 
-from wallets.models import Wallet
-from wallets.utils.choices import OwnerType, WalletKind
+from apps.wallets.models import Wallet
+from apps.wallets.utils.choices import OwnerType, WalletKind
 
 
 @pytest.mark.django_db

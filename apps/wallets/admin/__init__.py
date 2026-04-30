@@ -1,4 +1,4 @@
-# wallets/admin/__init__.py
+# apps/wallets/admin/__init__.py
 
 from .installment import InstallmentAdmin as InstallmentAdmin
 from .installment_plan import InstallmentPlanAdmin as InstallmentPlanAdmin

@@ -1,4 +1,4 @@
-# wallets/services/payment/payment_shared.py
+# apps/wallets/services/payment/payment_shared.py
 
 import logging
 from datetime import timedelta
@@ -6,15 +6,15 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from wallets.models import Payment, Wallet
-from wallets.services.payment.payment_event import create_payment_event
-from wallets.utils.choices import (
+from apps.wallets.models import Payment, Wallet
+from apps.wallets.services.payment.payment_event import create_payment_event
+from apps.wallets.utils.choices import (
     OwnerType,
     PaymentMethod,
     PaymentRequestStatus,
     WalletKind,
 )
-from wallets.utils.consts import (
+from apps.wallets.utils.consts import (
     CREDIT_AUTH_HOLD_EXPIRY_MINUTES,
     ESCROW_USER_NAME,
     ESCROW_WALLET_KIND,

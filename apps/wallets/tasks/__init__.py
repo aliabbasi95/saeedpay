@@ -1,4 +1,4 @@
-# wallets/tasks/__init__.py
+# apps/wallets/tasks/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -13,23 +13,23 @@ __all__ = [
 
 _MODULE_MAP = {
     "cleanup_cancelled_and_expired_requests": (
-        "wallets.tasks.payment",
+        "apps.wallets.tasks.payment",
         "cleanup_cancelled_and_expired_requests",
     ),
     "expire_pending_payment_requests": (
-        "wallets.tasks.payment",
+        "apps.wallets.tasks.payment",
         "expire_pending_payment_requests",
     ),
     "task_cleanup_cancelled_and_expired_requests": (
-        "wallets.tasks.payment",
+        "apps.wallets.tasks.payment",
         "task_cleanup_cancelled_and_expired_requests",
     ),
     "task_expire_pending_payment_requests": (
-        "wallets.tasks.payment",
+        "apps.wallets.tasks.payment",
         "task_expire_pending_payment_requests",
     ),
     "task_expire_pending_transfer_requests": (
-        "wallets.tasks.transfer",
+        "apps.wallets.tasks.transfer",
         "task_expire_pending_transfer_requests",
     ),
 }

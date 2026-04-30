@@ -1,4 +1,4 @@
-# wallets/tests/models/test_payment_request.py
+# apps/wallets/tests/models/test_payment_request.py
 
 from unittest.mock import patch
 
@@ -7,8 +7,8 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.utils import timezone
 
-from wallets.models import PaymentRequest
-from wallets.utils.choices import PaymentRequestStatus
+from apps.wallets.models import PaymentRequest
+from apps.wallets.utils.choices import PaymentRequestStatus
 
 
 @pytest.mark.django_db
@@ -35,7 +35,7 @@ class TestPaymentRequestModel:
         pr.mark_completed()
         assert pr.status == PaymentRequestStatus.COMPLETED
 
-        with patch("wallets.services.payment.rollback_payment") as rollback_mock:
+        with patch("apps.wallets.services.payment.rollback_payment") as rollback_mock:
             rollback_mock.return_value = None
             assert rollback_mock.called is False
 
@@ -261,7 +261,7 @@ class TestPaymentRequestModel:
             )
 
     def test_external_guid_can_repeat_on_other_store(self, store, merchant_user):
-        from store.models import Store
+        from apps.store.models import Store
 
         store2 = Store.objects.create(name="store-2", merchant=store.merchant)
 

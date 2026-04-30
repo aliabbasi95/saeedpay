@@ -1,4 +1,4 @@
-# wallets/api/public/v1/views/transfer.py
+# apps/wallets/api/public/v1/views/transfer.py
 # ViewSet for Wallet Transfers: list, create, retrieve, confirm, reject.
 
 from django.db import models
@@ -7,27 +7,27 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from wallets.api.public.v1.schema import (
+from apps.wallets.api.public.v1.schema import (
     transfer_confirm_schema,
     transfer_create_schema,
     transfer_reject_schema,
     transfer_retrieve_schema,
     transfers_list_schema,
 )
-from wallets.api.public.v1.serializers.transfer import (
+from apps.wallets.api.public.v1.serializers.transfer import (
     WalletTransferConfirmSerializer,
     WalletTransferCreateSerializer,
     WalletTransferDetailSerializer,
 )
-from wallets.models import WalletTransferRequest
-from wallets.services import (
+from apps.wallets.models import WalletTransferRequest
+from apps.wallets.services import (
     confirm_wallet_transfer_request,
     create_wallet_transfer_request,
     reject_wallet_transfer_request,
 )
-from wallets.services.transfer import check_and_expire_transfer_request
-from wallets.utils.choices import TransferStatus
+from apps.wallets.services.transfer import check_and_expire_transfer_request
+from apps.wallets.utils.choices import TransferStatus
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 
 @transfers_list_schema

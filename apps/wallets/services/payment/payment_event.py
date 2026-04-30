@@ -1,6 +1,6 @@
-# wallets/services/payment/payment_event.py
+# apps/wallets/services/payment/payment_event.py
 
-from wallets.models import PaymentEvent
+from apps.wallets.models import PaymentEvent
 
 
 def create_payment_event(

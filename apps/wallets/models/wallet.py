@@ -1,4 +1,4 @@
-# wallets/models/wallet.py
+# apps/wallets/models/wallet.py
 
 import random
 
@@ -7,8 +7,8 @@ from django.db import IntegrityError, models
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.utils.choices import WALLET_KIND_PREFIX, OwnerType, WalletKind
 from lib.erp_base.models import BaseModel
-from wallets.utils.choices import WALLET_KIND_PREFIX, OwnerType, WalletKind
 
 
 def generate_wallet_number(kind: str, length: int = 12) -> str:

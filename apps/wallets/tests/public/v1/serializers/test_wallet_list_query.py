@@ -1,7 +1,7 @@
-# wallets/tests/public/v1/serializers/test_wallet_list_query.py
+# apps/wallets/tests/public/v1/serializers/test_wallet_list_query.py
 
-from wallets.api.public.v1.serializers import WalletListQuerySerializer
-from wallets.utils.choices import OwnerType
+from apps.wallets.api.public.v1.serializers import WalletListQuerySerializer
+from apps.wallets.utils.choices import OwnerType
 
 
 class TestWalletListQuerySerializer:

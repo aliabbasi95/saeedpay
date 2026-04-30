@@ -1,4 +1,4 @@
-# wallets/services/__init__.py
+# apps/wallets/services/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -28,83 +28,83 @@ __all__ = [
 
 _MODULE_MAP = {
     "create_default_wallets_for_user": (
-        "wallets.services.create_wallet",
+        "apps.wallets.services.create_wallet",
         "create_default_wallets_for_user",
     ),
     "evaluate_user_credit": (
-        "wallets.services.credit",
+        "apps.wallets.services.credit",
         "evaluate_user_credit",
     ),
     "calculate_installments": (
-        "wallets.services.credit",
+        "apps.wallets.services.credit",
         "calculate_installments",
     ),
     "pay_installment": (
-        "wallets.services.installment",
+        "apps.wallets.services.installment",
         "pay_installment",
     ),
     "generate_installments_for_plan": (
-        "wallets.services.installment",
+        "apps.wallets.services.installment",
         "generate_installments_for_plan",
     ),
     "cancel_payment_request": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "cancel_payment_request",
     ),
     "check_and_expire_payment_request": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "check_and_expire_payment_request",
     ),
     "cleanup_cancelled_and_expired_requests_batch": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "cleanup_cancelled_and_expired_requests_batch",
     ),
     "create_payment_event": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "create_payment_event",
     ),
     "create_payment_request": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "create_payment_request",
     ),
     "expire_payment_request": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "expire_payment_request",
     ),
     "expire_pending_payment_requests_batch": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "expire_pending_payment_requests_batch",
     ),
     "list_eligible_wallets_for_payment_request": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "list_eligible_wallets_for_payment_request",
     ),
     "pay_payment_request": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "pay_payment_request",
     ),
     "rollback_payment": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "rollback_payment",
     ),
     "verify_payment_request": (
-        "wallets.services.payment",
+        "apps.wallets.services.payment",
         "verify_payment_request",
     ),
     "create_wallet_transfer_request": (
-        "wallets.services.transfer",
+        "apps.wallets.services.transfer",
         "create_wallet_transfer_request",
     ),
     "confirm_wallet_transfer_request": (
-        "wallets.services.transfer",
+        "apps.wallets.services.transfer",
         "confirm_wallet_transfer_request",
     ),
     "reject_wallet_transfer_request": (
-        "wallets.services.transfer",
+        "apps.wallets.services.transfer",
         "reject_wallet_transfer_request",
     ),
     "expire_pending_transfer_requests": (
-        "wallets.services.transfer",
+        "apps.wallets.services.transfer",
         "expire_pending_transfer_requests",
     ),
 }

@@ -1,11 +1,11 @@
-# wallets/models/installment_plan.py
+# apps/wallets/models/installment_plan.py
 
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.utils.choices import InstallmentPlanStatus, InstallmentSourceType
 from lib.erp_base.models import BaseModel
-from wallets.utils.choices import InstallmentPlanStatus, InstallmentSourceType
 
 
 class InstallmentPlan(BaseModel):
@@ -59,18 +59,18 @@ class InstallmentPlan(BaseModel):
 
     def get_source_object(self):
         if self.source_type == InstallmentSourceType.PAYMENT_REQUEST:
-            from wallets.models.payment_request import PaymentRequest
+            from apps.wallets.models.payment_request import PaymentRequest
 
             return PaymentRequest.objects.filter(id=self.source_object_id).first()
 
         # if self.source_type == InstallmentSourceType.OFFLINE_PURCHASE:
-        #     from wallets.models.offline_purchase import OfflinePurchaseRecord
+        #     from apps.wallets.models.offline_purchase import OfflinePurchaseRecord
         #     return OfflinePurchaseRecord.objects.filter(
         #         id=self.source_object_id
         #     ).first()
 
         # if self.source_type == InstallmentSourceType.STORE_ORDER:
-        #     from wallets.models.store_order import StoreOrder
+        #     from apps.wallets.models.store_order import StoreOrder
         #     return StoreOrder.objects.filter(id=self.source_object_id).first()
 
         return None

@@ -1,6 +1,6 @@
-# wallets/utils/consts.py
+# apps/wallets/utils/consts.py
 
-from wallets.utils.choices import OwnerType, WalletKind
+from apps.wallets.utils.choices import OwnerType, WalletKind
 
 ESCROW_USER_NAME = "escrow_wallet_user"
 ESCROW_WALLET_KIND = "escrow"

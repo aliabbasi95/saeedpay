@@ -1,9 +1,9 @@
-# wallets/api/public/v1/serializers/payment_pos.py
+# apps/wallets/api/public/v1/serializers/payment_pos.py
 
 from rest_framework import serializers
 
-from wallets.models import PaymentRequest
-from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
+from apps.wallets.models import PaymentRequest
+from apps.wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
 
 
 class MerchantPosPaymentRequestCreateSerializer(serializers.Serializer):

@@ -1,4 +1,4 @@
-# wallets/api/public/v1/serializers/__init__.py
+# apps/wallets/api/public/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -26,75 +26,75 @@ __all__ = [
 
 _MODULE_MAP = {
     "WalletSerializer": (
-        "wallets.api.public.v1.serializers.wallet",
+        "apps.wallets.api.public.v1.serializers.wallet",
         "WalletSerializer",
     ),
     "WalletListQuerySerializer": (
-        "wallets.api.public.v1.serializers.wallet",
+        "apps.wallets.api.public.v1.serializers.wallet",
         "WalletListQuerySerializer",
     ),
     "TransactionSerializer": (
-        "wallets.api.public.v1.serializers.transaction",
+        "apps.wallets.api.public.v1.serializers.transaction",
         "TransactionSerializer",
     ),
     "WalletTransferCreateSerializer": (
-        "wallets.api.public.v1.serializers.transfer",
+        "apps.wallets.api.public.v1.serializers.transfer",
         "WalletTransferCreateSerializer",
     ),
     "WalletTransferDetailSerializer": (
-        "wallets.api.public.v1.serializers.transfer",
+        "apps.wallets.api.public.v1.serializers.transfer",
         "WalletTransferDetailSerializer",
     ),
     "WalletTransferConfirmSerializer": (
-        "wallets.api.public.v1.serializers.transfer",
+        "apps.wallets.api.public.v1.serializers.transfer",
         "WalletTransferConfirmSerializer",
     ),
     "InstallmentPlanSerializer": (
-        "wallets.api.public.v1.serializers.installment_plan",
+        "apps.wallets.api.public.v1.serializers.installment_plan",
         "InstallmentPlanSerializer",
     ),
     "InstallmentSerializer": (
-        "wallets.api.public.v1.serializers.installment",
+        "apps.wallets.api.public.v1.serializers.installment",
         "InstallmentSerializer",
     ),
     "PaymentActionResponseSerializer": (
-        "wallets.api.public.v1.serializers.payment",
+        "apps.wallets.api.public.v1.serializers.payment",
         "PaymentActionResponseSerializer",
     ),
     "PaymentConfirmResponseSerializer": (
-        "wallets.api.public.v1.serializers.payment",
+        "apps.wallets.api.public.v1.serializers.payment",
         "PaymentConfirmResponseSerializer",
     ),
     "PaymentConfirmSerializer": (
-        "wallets.api.public.v1.serializers.payment",
+        "apps.wallets.api.public.v1.serializers.payment",
         "PaymentConfirmSerializer",
     ),
     "PaymentRequestDetailSerializer": (
-        "wallets.api.public.v1.serializers.payment",
+        "apps.wallets.api.public.v1.serializers.payment",
         "PaymentRequestDetailSerializer",
     ),
     "PaymentRequestDetailWithWalletsSerializer": (
-        "wallets.api.public.v1.serializers.payment",
+        "apps.wallets.api.public.v1.serializers.payment",
         "PaymentRequestDetailWithWalletsSerializer",
     ),
     "PaymentRequestListItemSerializer": (
-        "wallets.api.public.v1.serializers.payment",
+        "apps.wallets.api.public.v1.serializers.payment",
         "PaymentRequestListItemSerializer",
     ),
     "MerchantPosPaymentRequestCreateSerializer": (
-        "wallets.api.public.v1.serializers.payment_pos",
+        "apps.wallets.api.public.v1.serializers.payment_pos",
         "MerchantPosPaymentRequestCreateSerializer",
     ),
     "MerchantPosPaymentRequestListItemSerializer": (
-        "wallets.api.public.v1.serializers.payment_pos",
+        "apps.wallets.api.public.v1.serializers.payment_pos",
         "MerchantPosPaymentRequestListItemSerializer",
     ),
     "MerchantPosPaymentRequestDetailSerializer": (
-        "wallets.api.public.v1.serializers.payment_pos",
+        "apps.wallets.api.public.v1.serializers.payment_pos",
         "MerchantPosPaymentRequestDetailSerializer",
     ),
     "MerchantPosPaymentRequestCreateResponseSerializer": (
-        "wallets.api.public.v1.serializers.payment_pos",
+        "apps.wallets.api.public.v1.serializers.payment_pos",
         "MerchantPosPaymentRequestCreateResponseSerializer",
     ),
 }

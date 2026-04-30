@@ -1,11 +1,11 @@
-# wallets/api/partner/v1/serializers/payment.py
+# apps/wallets/api/partner/v1/serializers/payment.py
 
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
-from wallets.models import PaymentRequest
-from wallets.utils.choices import PaymentFlowType
-from wallets.utils.validators import https_only_validator
+from apps.wallets.models import PaymentRequest
+from apps.wallets.utils.choices import PaymentFlowType
+from apps.wallets.utils.validators import https_only_validator
 
 
 class PaymentRequestCreateSerializer(serializers.Serializer):

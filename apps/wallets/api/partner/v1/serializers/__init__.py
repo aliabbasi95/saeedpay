@@ -1,4 +1,4 @@
-# wallets/api/partner/v1/serializers/__init__.py
+# apps/wallets/api/partner/v1/serializers/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -13,23 +13,23 @@ __all__ = [
 
 _MODULE_MAP = {
     "PaymentActionResponseSerializer": (
-        "wallets.api.partner.v1.serializers.payment",
+        "apps.wallets.api.partner.v1.serializers.payment",
         "PaymentActionResponseSerializer",
     ),
     "PaymentRequestCreateResponseSerializer": (
-        "wallets.api.partner.v1.serializers.payment",
+        "apps.wallets.api.partner.v1.serializers.payment",
         "PaymentRequestCreateResponseSerializer",
     ),
     "PaymentRequestCreateSerializer": (
-        "wallets.api.partner.v1.serializers.payment",
+        "apps.wallets.api.partner.v1.serializers.payment",
         "PaymentRequestCreateSerializer",
     ),
     "PaymentRequestPartnerDetailSerializer": (
-        "wallets.api.partner.v1.serializers.payment",
+        "apps.wallets.api.partner.v1.serializers.payment",
         "PaymentRequestPartnerDetailSerializer",
     ),
     "PaymentVerifyResponseSerializer": (
-        "wallets.api.partner.v1.serializers.payment",
+        "apps.wallets.api.partner.v1.serializers.payment",
         "PaymentVerifyResponseSerializer",
     ),
 }

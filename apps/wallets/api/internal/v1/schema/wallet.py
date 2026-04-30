@@ -1,8 +1,8 @@
-# wallets/api/internal/v1/schema/wallet.py
+# apps/wallets/api/internal/v1/schema/wallet.py
 
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 
-from wallets.api.internal.v1.serializers import (
+from apps.wallets.api.internal.v1.serializers import (
     NationalIdInputSerializer,
     WalletSerializer,
 )

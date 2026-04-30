@@ -1,17 +1,16 @@
-# wallets/services/payment/payment_processing_service.py
+# apps/wallets/services/payment/payment_processing_service.py
 
 import logging
 
 from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ValidationError
 
-from saeedpay.logging import log_event
-from wallets.models import Payment, PaymentRequest, Wallet
-from wallets.services.payment.payment_authorization_service import (
+from apps.wallets.models import Payment, PaymentRequest, Wallet
+from apps.wallets.services.payment.payment_authorization_service import (
     authorize_cash_payment,
     authorize_credit_payment,
 )
-from wallets.services.payment.payment_request_service import (
+from apps.wallets.services.payment.payment_request_service import (
     check_and_expire_payment_request,
     ensure_no_active_payment_exists,
     ensure_request_can_be_paid,
@@ -19,27 +18,28 @@ from wallets.services.payment.payment_request_service import (
     validate_payment_request_payer_access,
     validate_wallet_ownership,
 )
-from wallets.services.payment.payment_rollback_service import (
+from apps.wallets.services.payment.payment_rollback_service import (
     rollback_cash_payment,
     rollback_credit_payment,
 )
-from wallets.services.payment.payment_settlement_service import (
+from apps.wallets.services.payment.payment_settlement_service import (
     settle_cash_payment,
     settle_credit_payment,
 )
-from wallets.services.payment.payment_shared import (
+from apps.wallets.services.payment.payment_shared import (
     create_event,
     ensure_payment_request_status,
     get_latest_payment_for_request,
     merchant_confirm_expiry,
 )
-from wallets.utils.choices import (
+from apps.wallets.utils.choices import (
     PaymentEventType,
     PaymentFlowType,
     PaymentMethod,
     PaymentRequestStatus,
     PaymentStatus,
 )
+from saeedpay.logging import log_event
 
 logger = logging.getLogger("saeedpay.wallets.payment")
 

@@ -1,4 +1,4 @@
-# wallets/api/internal/v1/schema/__init__.py
+# apps/wallets/api/internal/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -9,7 +9,7 @@ __all__ = [
 
 _MODULE_MAP = {
     "internal_customer_wallets_by_national_id_schema": (
-        "wallets.api.internal.v1.schema.payment",
+        "apps.wallets.api.internal.v1.schema.payment",
         "internal_customer_wallets_by_national_id_schema",
     ),
 }

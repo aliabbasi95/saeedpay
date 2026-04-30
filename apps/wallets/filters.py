@@ -1,8 +1,8 @@
-# wallets/filters.py
+# apps/wallets/filters.py
 
 from django_filters import rest_framework as filters
 
-from wallets.models import Installment, InstallmentPlan
+from apps.wallets.models import Installment, InstallmentPlan
 
 
 class InstallmentFilter(filters.FilterSet):

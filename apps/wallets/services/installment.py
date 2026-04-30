@@ -1,10 +1,10 @@
-# wallets/services/installment.py
+# apps/wallets/services/installment.py
 
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 
-from wallets.models import Installment, InstallmentPlan, Transaction
-from wallets.utils.choices import InstallmentStatus
+from apps.wallets.models import Installment, InstallmentPlan, Transaction
+from apps.wallets.utils.choices import InstallmentStatus
 
 
 def pay_installment(

@@ -1,13 +1,13 @@
-# wallets/tests/services/test_payment_request_payment_guard_service.py
+# apps/wallets/tests/services/test_payment_request_payment_guard_service.py
 
 import pytest
 from rest_framework.exceptions import ValidationError
 
-from wallets.models import Payment, PaymentRequest
-from wallets.services.payment.payment_request_service import (
+from apps.wallets.models import Payment, PaymentRequest
+from apps.wallets.services.payment.payment_request_service import (
     ensure_no_active_payment_exists,
 )
-from wallets.utils.choices import (
+from apps.wallets.utils.choices import (
     PaymentFlowType,
     PaymentMethod,
     PaymentRequestStatus,

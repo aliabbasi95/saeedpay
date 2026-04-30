@@ -1,26 +1,26 @@
-# wallets/services/payment/payment_settlement_service.py
+# apps/wallets/services/payment/payment_settlement_service.py
 
 import logging
 
 from rest_framework.exceptions import ValidationError
 
-from credit.models.authorization import CreditAuthorization
-from credit.models.statement import Statement
-from credit.models.statement_line import StatementLine
-from credit.utils.choices import StatementLineType
-from saeedpay.logging import log_event
-from wallets.models import Payment, Transaction, Wallet
-from wallets.services.payment.payment_shared import (
+from apps.credit.models.authorization import CreditAuthorization
+from apps.credit.models.statement import Statement
+from apps.credit.models.statement_line import StatementLine
+from apps.credit.utils.choices import StatementLineType
+from apps.wallets.models import Payment, Transaction, Wallet
+from apps.wallets.services.payment.payment_shared import (
     create_event,
     get_merchant_gateway_wallet,
 )
-from wallets.services.payment.payment_shared import (
+from apps.wallets.services.payment.payment_shared import (
     logger as shared_logger,
 )
-from wallets.utils.choices import (
+from apps.wallets.utils.choices import (
     PaymentEventType,
     TransactionPurpose,
 )
+from saeedpay.logging import log_event
 
 logger = logging.getLogger("saeedpay.wallets.payment")
 

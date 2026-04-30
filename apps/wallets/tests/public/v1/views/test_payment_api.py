@@ -1,17 +1,17 @@
-# wallets/tests/public/v1/views/test_payment_api.py
+# apps/wallets/tests/public/v1/views/test_payment_api.py
 
 import pytest
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from auth_api.models import PhoneOTP
-from credit.models.credit_limit import CreditLimit
-from customers.models import Customer
-from profiles.models import Profile
-from wallets.models import Payment, PaymentRequest, Wallet
-from wallets.services.payment import verify_payment_request
-from wallets.utils.choices import (
+from apps.auth_api.models import PhoneOTP
+from apps.credit.models.credit_limit import CreditLimit
+from apps.customers.models import Customer
+from apps.profiles.models import Profile
+from apps.wallets.models import Payment, PaymentRequest, Wallet
+from apps.wallets.services.payment import verify_payment_request
+from apps.wallets.utils.choices import (
     OwnerType,
     PaymentFlowType,
     PaymentMethod,
@@ -19,7 +19,7 @@ from wallets.utils.choices import (
     PaymentStatus,
     WalletKind,
 )
-from wallets.utils.escrow import ensure_escrow_wallet_exists
+from apps.wallets.utils.escrow import ensure_escrow_wallet_exists
 
 
 @pytest.mark.django_db

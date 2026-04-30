@@ -1,10 +1,10 @@
-# wallets/tests/models/test_payment_constraints.py
+# apps/wallets/tests/models/test_payment_constraints.py
 
 import pytest
 from django.db import IntegrityError
 
-from wallets.models import Payment, PaymentRequest
-from wallets.utils.choices import (
+from apps.wallets.models import Payment, PaymentRequest
+from apps.wallets.utils.choices import (
     PaymentFlowType,
     PaymentMethod,
     PaymentRequestStatus,

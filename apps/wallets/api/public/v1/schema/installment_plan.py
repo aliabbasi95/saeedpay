@@ -1,4 +1,4 @@
-# wallets/api/public/v1/schema/installment_plan.py
+# apps/wallets/api/public/v1/schema/installment_plan.py
 
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -8,7 +8,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 
-from wallets.api.public.v1.serializers import (
+from apps.wallets.api.public.v1.serializers import (
     InstallmentPlanSerializer,
     InstallmentSerializer,
 )

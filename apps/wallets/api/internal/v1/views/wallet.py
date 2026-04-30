@@ -1,19 +1,19 @@
-# wallets/api/internal/v1/views/wallet.py
+# apps/wallets/api/internal/v1/views/wallet.py
 
 from rest_framework import status
 from rest_framework.response import Response
 
-from lib.cas_auth.views import CasAuthAPIView
-from profiles.models import Profile
-from wallets.api.internal.v1.schema.wallet import (
+from apps.profiles.models import Profile
+from apps.wallets.api.internal.v1.schema.wallet import (
     internal_customer_wallets_by_national_id_schema,
 )
-from wallets.api.internal.v1.serializers import (
+from apps.wallets.api.internal.v1.serializers import (
     NationalIdInputSerializer,
     WalletSerializer,
 )
-from wallets.models import Wallet
-from wallets.utils.choices import OwnerType
+from apps.wallets.models import Wallet
+from apps.wallets.utils.choices import OwnerType
+from lib.cas_auth.views import CasAuthAPIView
 
 
 class InternalCustomerWalletListByNationalIdView(CasAuthAPIView):

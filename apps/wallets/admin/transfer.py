@@ -1,13 +1,13 @@
-# wallets/admin/transfer.py
+# apps/wallets/admin/transfer.py
 
 from django.contrib import admin, messages
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.models import WalletTransferRequest
+from apps.wallets.utils.choices import TransferStatus
 from lib.erp_base.admin import BaseAdmin
-from wallets.models import WalletTransferRequest
-from wallets.utils.choices import TransferStatus
 
 
 @admin.register(WalletTransferRequest)

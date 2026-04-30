@@ -1,13 +1,13 @@
-# wallets/admin/transaction.py
+# apps/wallets/admin/transaction.py
 
 from django.contrib import admin
 from django.urls import NoReverseMatch, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.models import Transaction
+from apps.wallets.utils.choices import TransactionStatus
 from lib.erp_base.admin import BaseAdmin
-from wallets.models import Transaction
-from wallets.utils.choices import TransactionStatus
 
 
 @admin.register(Transaction)

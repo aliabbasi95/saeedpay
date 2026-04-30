@@ -1,4 +1,4 @@
-# wallets/models/__init__.py
+# apps/wallets/models/__init__.py
 
 from .installment import Installment
 from .installment_plan import InstallmentPlan

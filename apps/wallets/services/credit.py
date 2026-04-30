@@ -1,4 +1,4 @@
-# wallets/services/credit.py
+# apps/wallets/services/credit.py
 
 from decimal import ROUND_HALF_UP, Decimal, getcontext
 

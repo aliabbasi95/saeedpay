@@ -1,11 +1,13 @@
-# wallets/tests/services/test_payment_verify_service.py
+# apps/wallets/tests/services/test_payment_verify_service.py
 
 import pytest
 from rest_framework.exceptions import ValidationError
 
-from wallets.models import PaymentRequest
-from wallets.services.payment.payment_processing_service import verify_payment_request
-from wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
+from apps.wallets.models import PaymentRequest
+from apps.wallets.services.payment.payment_processing_service import (
+    verify_payment_request,
+)
+from apps.wallets.utils.choices import PaymentFlowType, PaymentRequestStatus
 
 
 @pytest.mark.django_db

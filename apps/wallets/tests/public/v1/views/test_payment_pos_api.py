@@ -1,13 +1,13 @@
-# wallets/tests/public/v1/views/test_payment_pos_api.py
+# apps/wallets/tests/public/v1/views/test_payment_pos_api.py
 
 import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from merchants.models import Merchant
-from store.models import Store
-from wallets.models import PaymentEvent, PaymentRequest, Wallet
-from wallets.utils.choices import (
+from apps.merchants.models import Merchant
+from apps.store.models import Store
+from apps.wallets.models import PaymentEvent, PaymentRequest, Wallet
+from apps.wallets.utils.choices import (
     OwnerType,
     PaymentEventType,
     PaymentFlowType,

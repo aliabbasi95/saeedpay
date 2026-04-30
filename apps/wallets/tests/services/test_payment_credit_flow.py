@@ -1,17 +1,17 @@
-# wallets/tests/services/test_payment_credit_flow.py
+# apps/wallets/tests/services/test_payment_credit_flow.py
 
 import pytest
 
-from credit.models import CreditAuthorization, Statement
-from credit.models.credit_limit import CreditLimit
-from wallets.models import Wallet
-from wallets.services.payment import (
+from apps.credit.models import CreditAuthorization, Statement
+from apps.credit.models.credit_limit import CreditLimit
+from apps.wallets.models import Wallet
+from apps.wallets.services.payment import (
     create_payment_request,
     pay_payment_request,
     rollback_payment,
     verify_payment_request,
 )
-from wallets.utils.choices import (
+from apps.wallets.utils.choices import (
     OwnerType,
     PaymentFlowType,
     PaymentRequestStatus,

@@ -1,14 +1,14 @@
-# wallets/api/public/v1/views/wallet.py
+# apps/wallets/api/public/v1/views/wallet.py
 
 from rest_framework import mixins, viewsets
 
-from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from wallets.api.public.v1.schema import wallets_list_schema
-from wallets.api.public.v1.serializers import (
+from apps.wallets.api.public.v1.schema import wallets_list_schema
+from apps.wallets.api.public.v1.serializers import (
     WalletListQuerySerializer,
     WalletSerializer,
 )
-from wallets.models import Wallet
+from apps.wallets.models import Wallet
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 
 class WalletViewSet(

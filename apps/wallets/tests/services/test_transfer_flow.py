@@ -1,18 +1,18 @@
-# wallets/tests/services/test_transfer_flow.py
+# apps/wallets/tests/services/test_transfer_flow.py
 
 import pytest
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from wallets.models import Wallet
-from wallets.services.transfer import (
+from apps.wallets.models import Wallet
+from apps.wallets.services.transfer import (
     check_and_expire_transfer_request,
     confirm_wallet_transfer_request,
     create_wallet_transfer_request,
     expire_pending_transfer_requests,
     reject_wallet_transfer_request,
 )
-from wallets.utils.choices import OwnerType, TransferStatus, WalletKind
+from apps.wallets.utils.choices import OwnerType, TransferStatus, WalletKind
 
 
 @pytest.mark.django_db

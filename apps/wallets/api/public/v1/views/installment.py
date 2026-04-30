@@ -1,14 +1,14 @@
-# wallets/api/public/v1/views/installment.py
+# apps/wallets/api/public/v1/views/installment.py
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, viewsets
 from rest_framework.filters import OrderingFilter
 
+from apps.wallets.api.public.v1.schema import installment_viewset_schema
+from apps.wallets.api.public.v1.serializers import InstallmentSerializer
+from apps.wallets.filters import InstallmentFilter
+from apps.wallets.models import Installment
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from wallets.api.public.v1.schema import installment_viewset_schema
-from wallets.api.public.v1.serializers import InstallmentSerializer
-from wallets.filters import InstallmentFilter
-from wallets.models import Installment
 
 
 @installment_viewset_schema

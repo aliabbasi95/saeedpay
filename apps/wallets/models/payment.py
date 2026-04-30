@@ -1,4 +1,4 @@
-# wallets/models/payment.py
+# apps/wallets/models/payment.py
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -6,10 +6,10 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from apps.wallets.models.wallet import Wallet
+from apps.wallets.utils.choices import PaymentFlowType, PaymentMethod, PaymentStatus
 from lib.erp_base.models import BaseModel
 from utils.reference import generate_reference_code
-from wallets.models.wallet import Wallet
-from wallets.utils.choices import PaymentFlowType, PaymentMethod, PaymentStatus
 
 
 class Payment(BaseModel):

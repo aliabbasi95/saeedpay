@@ -1,4 +1,4 @@
-# wallets/api/partner/v1/views/payment.py
+# apps/wallets/api/partner/v1/views/payment.py
 
 import logging
 
@@ -8,35 +8,35 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
-from merchants.permissions import IsMerchant
-from profiles.models import Profile
-from saeedpay.logging import log_event
-from store.authentication import StoreApiKeyAuthentication
-from wallets.api.partner.v1.schema.payment import (
+from apps.merchants.permissions import IsMerchant
+from apps.profiles.models import Profile
+from apps.store.authentication import StoreApiKeyAuthentication
+from apps.wallets.api.partner.v1.schema.payment import (
     partner_payment_request_viewset_schema,
     partner_payment_verify_schema,
 )
-from wallets.api.partner.v1.serializers import (
+from apps.wallets.api.partner.v1.serializers import (
     PaymentActionResponseSerializer,
     PaymentRequestCreateResponseSerializer,
     PaymentRequestCreateSerializer,
     PaymentRequestPartnerDetailSerializer,
 )
-from wallets.api.payment_responses import (
+from apps.wallets.api.payment_responses import (
     build_payment_response_payload,
     payment_error_response,
     payment_internal_error_response,
     payment_success_response,
 )
-from wallets.models import PaymentRequest
-from wallets.services.payment import (
+from apps.wallets.models import PaymentRequest
+from apps.wallets.services.payment import (
     check_and_expire_payment_request,
     create_payment_request,
     verify_payment_request,
 )
-from wallets.utils.choices import PaymentFlowType
-from wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
+from apps.wallets.utils.choices import PaymentFlowType
+from apps.wallets.utils.consts import FRONTEND_PAYMENT_DETAIL_URL
+from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
+from saeedpay.logging import log_event
 
 logger = logging.getLogger("saeedpay.wallets.payment")
 

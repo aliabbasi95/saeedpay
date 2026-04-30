@@ -1,4 +1,4 @@
-# wallets/api/public/v1/schema/installment.py
+# apps/wallets/api/public/v1/schema/installment.py
 
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -9,7 +9,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 
-from wallets.api.public.v1.serializers import InstallmentSerializer
+from apps.wallets.api.public.v1.serializers import InstallmentSerializer
 
 WALLET_INSTALLMENTS_TAG = "Wallet · Installments"
 

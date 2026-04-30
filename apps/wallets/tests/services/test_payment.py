@@ -1,19 +1,19 @@
-# wallets/tests/services/test_payment.py
+# apps/wallets/tests/services/test_payment.py
 
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import ValidationError
 
-from customers.models import Customer
-from wallets.models import PaymentRequest, Wallet
-from wallets.services.payment import (
+from apps.customers.models import Customer
+from apps.wallets.models import PaymentRequest, Wallet
+from apps.wallets.services.payment import (
     check_and_expire_payment_request,
     create_payment_request,
     pay_payment_request,
     rollback_payment,
     verify_payment_request,
 )
-from wallets.utils.choices import (
+from apps.wallets.utils.choices import (
     OwnerType,
     PaymentFlowType,
     PaymentRequestStatus,
@@ -22,7 +22,7 @@ from wallets.utils.choices import (
     TransactionStatus,
     WalletKind,
 )
-from wallets.utils.consts import ESCROW_USER_NAME, ESCROW_WALLET_KIND
+from apps.wallets.utils.consts import ESCROW_USER_NAME, ESCROW_WALLET_KIND
 
 
 @pytest.mark.django_db
