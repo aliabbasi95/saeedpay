@@ -1,9 +1,9 @@
-# contact/admin/contact.py
+# apps/contact/admin/contact.py
 
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
-from contact.models.contact import Contact
+from apps.contact.models.contact import Contact
 from lib.erp_base.admin import BaseAdmin
 
 

@@ -1,10 +1,10 @@
-# contact/api/public/v1/views/contact.py
+# apps/contact/api/public/v1/views/contact.py
 
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny
 
-from contact.api.public.v1.schema import contact_create_schema
-from contact.api.public.v1.serializers.contact import ContactCreateSerializer
+from apps.contact.api.public.v1.schema import contact_create_schema
+from apps.contact.api.public.v1.serializers.contact import ContactCreateSerializer
 from lib.erp_base.rest.throttling import ScopedThrottleByActionMixin
 
 

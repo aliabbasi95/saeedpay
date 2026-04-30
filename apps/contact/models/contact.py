@@ -1,4 +1,4 @@
-# contact/models/contact.py
+# apps/contact/models/contact.py
 
 from django.core.validators import RegexValidator
 from django.db import models

@@ -1,8 +1,8 @@
-# contact/api/public/v1/serializers/contact.py
+# apps/contact/api/public/v1/serializers/contact.py
 
 from rest_framework import serializers
 
-from contact.models.contact import Contact
+from apps.contact.models.contact import Contact
 
 
 class ContactCreateSerializer(serializers.ModelSerializer):

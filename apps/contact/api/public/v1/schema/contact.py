@@ -1,9 +1,9 @@
-# contact/api/public/v1/schema/contact.py
+# apps/contact/api/public/v1/schema/contact.py
 
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework import status
 
-from contact.api.public.v1.serializers.contact import ContactCreateSerializer
+from apps.contact.api.public.v1.serializers.contact import ContactCreateSerializer
 
 CONTACT_TAG = "Public · Contact"
 

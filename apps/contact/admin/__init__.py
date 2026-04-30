@@ -1,4 +1,4 @@
-# contact/admin/__init__.py
+# apps/contact/admin/__init__.py
 
 from .contact import ContactAdmin
 

@@ -1,4 +1,4 @@
-# contact/api/public/v1/schema/__init__.py
+# apps/contact/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -9,7 +9,7 @@ __all__ = [
 
 _MODULE_MAP = {
     "contact_create_schema": (
-        "contact.api.public.v1.schema.contact",
+        "apps.contact.api.public.v1.schema.contact",
         "contact_create_schema",
     ),
 }

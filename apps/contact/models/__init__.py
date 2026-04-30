@@ -1,4 +1,4 @@
-# contact/models/__init__.py
+# apps/contact/models/__init__.py
 
 from .contact import Contact
 
