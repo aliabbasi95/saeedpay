@@ -1,8 +1,8 @@
-# customers/admin/customer.py
+# apps/customers/admin/customer.py
 
 from django.contrib import admin
 
-from customers.models import Customer
+from apps.customers.models import Customer
 from lib.erp_base.admin import BaseAdmin
 
 

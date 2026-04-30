@@ -1,4 +1,4 @@
-# customers/api/public/v1/schema/simple_status.py
+# apps/customers/api/public/v1/schema/simple_status.py
 
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework import serializers

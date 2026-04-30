@@ -1,4 +1,4 @@
-# customers/models/__init__.py
+# apps/customers/models/__init__.py
 
 from .customer import Customer
 

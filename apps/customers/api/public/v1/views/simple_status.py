@@ -1,14 +1,14 @@
-# customers/api/public/v1/views/simple_status.py
+# apps/customers/api/public/v1/views/simple_status.py
 
 from django.db import models
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from blogs.models.comment import Comment
-from customers.api.public.v1.schema.simple_status import simple_status_schema
-from customers.models.customer import Customer
-from merchants.models.merchant import Merchant
+from apps.blogs.models.comment import Comment
+from apps.customers.api.public.v1.schema.simple_status import simple_status_schema
+from apps.customers.models.customer import Customer
+from apps.merchants.models.merchant import Merchant
 
 
 class SimpleStatusView(APIView):

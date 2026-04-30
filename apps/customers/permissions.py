@@ -1,4 +1,4 @@
-# customers/permissions.py
+# apps/customers/permissions.py
 from rest_framework import permissions
 
 

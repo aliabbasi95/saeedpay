@@ -1,4 +1,4 @@
-# customers/api/public/v1/schema/__init__.py
+# apps/customers/api/public/v1/schema/__init__.py
 
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
@@ -9,7 +9,7 @@ __all__ = [
 
 _MODULE_MAP = {
     "simple_status_schema": (
-        "customers.api.public.v1.schema.simple_status",
+        "apps.customers.api.public.v1.schema.simple_status",
         "simple_status_schema",
     ),
 }
