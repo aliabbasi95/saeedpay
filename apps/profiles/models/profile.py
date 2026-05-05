@@ -7,9 +7,9 @@ from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from apps.profiles.utils.choices import AuthenticationStage, KYCStatus
 from lib.erp_base.models import BaseModel
 from lib.erp_base.validators import validate_national_id
-from apps.profiles.utils.choices import AuthenticationStage, KYCStatus
 
 
 class Profile(BaseModel):
