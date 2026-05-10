@@ -9,7 +9,6 @@ from apps.auth_api.api.public.v1.serializers import (
     RegisterMerchantSerializer,
     ResetPasswordSerializer,
     SendOTPSerializer,
-    SendUserOTPSerializer,
 )
 
 AUTH_TAG = "Authentication"
@@ -162,40 +161,6 @@ SEND_OTP_SCHEMA = extend_schema(
     },
 )
 
-SEND_USER_OTP_SCHEMA = extend_schema(
-    tags=[AUTH_TAG],
-    summary="Send OTP for current user",
-    description="Send a verification code to the authenticated user's phone number.",
-    request=SendUserOTPSerializer,
-    responses={
-        200: OpenApiResponse(
-            description="OTP sent successfully.",
-            examples=[
-                OpenApiExample(
-                    "Sent",
-                    value={"detail": "کد تأیید با موفقیت ارسال شد."},
-                )
-            ],
-        ),
-        400: OpenApiResponse(
-            description="Validation error or OTP already active.",
-            examples=[
-                OpenApiExample(
-                    "AlreadySent",
-                    value={"phone_number": ["کد تایید شما ارسال شده است."]},
-                ),
-                OpenApiExample(
-                    "InvalidPhoneNumber",
-                    value={"phone_number": ["شماره تلفن معتبر نیست."]},
-                ),
-                OpenApiExample(
-                    "SendFailed",
-                    value={"phone_number": ["ارسال کد با خطا مواجه شد."]},
-                ),
-            ],
-        ),
-    },
-)
 
 REGISTER_CUSTOMER_SCHEMA = extend_schema(
     tags=[AUTH_TAG],

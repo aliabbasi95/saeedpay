@@ -12,7 +12,6 @@ __all__ = [
     "REGISTER_MERCHANT_SCHEMA",
     "RESET_PASSWORD_SCHEMA",
     "SEND_OTP_SCHEMA",
-    "SEND_USER_OTP_SCHEMA",
 ]
 
 _MODULE_MAP = {
@@ -32,10 +31,7 @@ _MODULE_MAP = {
         "apps.auth_api.api.public.v1.schema.auth",
         "SEND_OTP_SCHEMA",
     ),
-    "SEND_USER_OTP_SCHEMA": (
-        "apps.auth_api.api.public.v1.schema.auth",
-        "SEND_USER_OTP_SCHEMA",
-    ),
+
     "REGISTER_CUSTOMER_SCHEMA": (
         "apps.auth_api.api.public.v1.schema.auth",
         "REGISTER_CUSTOMER_SCHEMA",
@@ -64,7 +60,6 @@ if TYPE_CHECKING:
         REGISTER_MERCHANT_SCHEMA,
         RESET_PASSWORD_SCHEMA,
         SEND_OTP_SCHEMA,
-        SEND_USER_OTP_SCHEMA,
     )
 
 

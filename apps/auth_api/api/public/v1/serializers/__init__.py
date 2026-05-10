@@ -7,7 +7,6 @@ __all__ = [
     "ChangePasswordSerializer",
     "LoginSerializer",
     "SendOTPSerializer",
-    "SendUserOTPSerializer",
     "RegisterCustomerSerializer",
     "RegisterMerchantSerializer",
     "ResetPasswordSerializer",
@@ -26,10 +25,6 @@ _MODULE_MAP = {
         "apps.auth_api.api.public.v1.serializers.otp",
         "SendOTPSerializer",
     ),
-    "SendUserOTPSerializer": (
-        "apps.auth_api.api.public.v1.serializers.otp",
-        "SendUserOTPSerializer",
-    ),
     "RegisterCustomerSerializer": (
         "apps.auth_api.api.public.v1.serializers.register_customer",
         "RegisterCustomerSerializer",
@@ -47,7 +42,7 @@ _MODULE_MAP = {
 if TYPE_CHECKING:
     from .change_password import ChangePasswordSerializer
     from .login import LoginSerializer
-    from .otp import SendOTPSerializer, SendUserOTPSerializer
+    from .otp import SendOTPSerializer
     from .register_customer import RegisterCustomerSerializer
     from .register_merchant import RegisterMerchantSerializer
     from .reset_password import ResetPasswordSerializer
