@@ -5,13 +5,13 @@ import re
 from django.db import transaction
 from rest_framework import serializers
 
-from apps.auth_api.api.public.v1.serializers.mixins import OTPValidationMixin
 from apps.profiles.models.profile import Profile
 from apps.profiles.tasks import verify_identity_phone_national_id
 from apps.profiles.utils.choices import AuthenticationStage
+from lib.erp_base.otp.services import OtpService
 
 
-class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
+class ProfileSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(max_length=11, min_length=11, required=False)
     email = serializers.EmailField(required=False, allow_blank=True)
     national_id = serializers.CharField(max_length=10, min_length=10, required=False)
@@ -95,7 +95,16 @@ class ProfileSerializer(serializers.ModelSerializer, OTPValidationMixin):
                 raise serializers.ValidationError(
                     {"otp_code": "کد تایید الزامی است هنگام تغییر شماره تلفن."}
                 )
-            self.validate_phone_otp(phone_number, otp_code)
+            ok = OtpService.verify(
+                identity=phone_number,
+                purpose="CHANGE_NUMBER",
+                code=otp_code,
+                channel="sms",
+            )
+            if not ok:
+                raise serializers.ValidationError(
+                    {"otp_code": "Invalid or expired OTP"},
+                )
 
         return data
 

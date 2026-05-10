@@ -6,7 +6,7 @@ from rest_framework import serializers
 
 from lib.erp_base.otp.services import OtpService
 
-PURPOSE_MAP = {1: "SIGNUP", 2: "RESET_PASSWORD"}
+PURPOSE_MAP = {1: "SIGNUP", 2: "RESET_PASSWORD", 3: "CHANGE_NUMBER"}
 
 class SendOTPSerializer(serializers.Serializer):
     phone_number = serializers.CharField(
