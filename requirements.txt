@@ -34,3 +34,5 @@ freezegun
 Faker
 Pillow
 python-decouple
+
+django-environ
