@@ -47,9 +47,12 @@ REFRESH_COOKIE_SECURE = False
 
 # ───────────────────────── SMS / OTP (dev uses dummy backend) ─────────────────────────
 
-OTP_SMS_BACKEND = "lib.erp_base.otp.sms.dummy.DummySMSBackend"
 KAVENEGAR_API_KEY = env("KAVENEGAR_API_KEY", default="")
 KAVENEGAR_NUMBER = env("KAVENEGAR_NUMBER", default="")
 
-# ───────────────────────── Feature flags ─────────────────────────
-CARD_VALIDATOR_MOCK = True
+
+# ───────────────────────── Redis / Celery ─────────────────────────
+
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+

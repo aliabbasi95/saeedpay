@@ -51,10 +51,6 @@ CAS_DEBUG = env.bool("CAS_DEBUG", default=False)
 CAS_SAME_ORIGIN = env.bool("CAS_SAME_ORIGIN", default=False)
 
 # ───────────────────────── SMS / OTP ─────────────────────────
-OTP_SMS_BACKEND = env(
-    "OTP_SMS_BACKEND",
-    default="lib.erp_base.otp.sms.kavenegar_backend.KavenegarBackend",
-)
 KAVENEGAR_API_KEY = env("KAVENEGAR_API_KEY")
 KAVENEGAR_NUMBER = env("KAVENEGAR_NUMBER")
 

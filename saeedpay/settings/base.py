@@ -159,7 +159,7 @@ def _redis_url(db: int) -> str:
     pwd = f":{REDIS_PASSWORD}@" if REDIS_PASSWORD else ""
     return f"redis://{pwd}{REDIS_HOST}:{REDIS_PORT}/{db}"
 
-
+REDIS_URL = _redis_url(REDIS_BROKER_DB)
 CELERY_BROKER_URL = _redis_url(REDIS_BROKER_DB)
 CELERY_RESULT_BACKEND = _redis_url(REDIS_BACKEND_DB)
 
@@ -578,3 +578,8 @@ RECAPTCHA_ACTION = "submit"  # Default action name for v3 (ignored when v2)
 LLM_BASE_URL = env("LLM_BASE_URL", default="http://localhost:8001")
 CHATBOT_HISTORY_LIMIT = env("CHATBOT_HISTORY_LIMIT", cast=int, default=4)
 CHATBOT_SESSION_LIMIT = env("CHATBOT_SESSION_LIMIT", cast=int, default=2)
+
+OTP_SMS_BACKEND = env(
+    "OTP_SMS_BACKEND",
+    default="lib.erp_base.otp.sms.dummy.DummySMSBackend",
+)
