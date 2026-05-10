@@ -1,10 +1,5 @@
 # apps/auth_api/api/public/v1/serializers/mixins.py
 
-from rest_framework import serializers
-
-from apps.auth_api.models import PhoneOTP
-
-
 class UserPublicPayloadMixin:
     @staticmethod
     def build_user_public_payload(user):
@@ -23,15 +18,3 @@ class UserPublicPayloadMixin:
         }
 
 
-class OTPValidationMixin:
-    def validate_phone_otp(self, phone_number: str, code: str):
-        try:
-            otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
-        except PhoneOTP.DoesNotExist as e:
-            raise serializers.ValidationError(
-                {"code": "کد تایید یافت نشد یا منقضی شده است."}
-            ) from e
-        if not otp_instance.verify(code):
-            raise serializers.ValidationError(
-                {"code": "کد تایید اشتباه یا منقضی شده است."}
-            )

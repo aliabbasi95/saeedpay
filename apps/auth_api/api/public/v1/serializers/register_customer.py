@@ -7,7 +7,6 @@ from django.db import transaction
 from rest_framework import serializers
 
 from apps.auth_api.api.public.v1.serializers.mixins import (
-    OTPValidationMixin,
     UserPublicPayloadMixin,
 )
 from apps.customers.models import Customer
@@ -17,12 +16,12 @@ from apps.wallets.utils.choices import OwnerType
 from lib.erp_base.serializers.persian_error_message import (
     PersianValidationErrorMessages,
 )
+from lib.erp_base.otp.services import OtpService
 
 
 class RegisterCustomerSerializer(
     PersianValidationErrorMessages,
     UserPublicPayloadMixin,
-    OTPValidationMixin,
     serializers.Serializer,
 ):
     phone_number = serializers.CharField(
@@ -43,19 +42,27 @@ class RegisterCustomerSerializer(
         return password
 
     def validate(self, data):
+        phone_number = data["phone_number"]
+        
         if data["password"] != data["confirm_password"]:
             raise serializers.ValidationError(
                 {"confirm_password": "رمز عبور و تکرار آن یکسان نیستند."}
             )
-
-        phone_number = data.get("phone_number")
 
         if Customer.objects.filter(user__username=phone_number).exists():
             raise serializers.ValidationError(
                 {"phone_number": "این شماره تلفن قبلاً به عنوان مشتری ثبت شده است."}
             )
 
-        self.validate_phone_otp(phone_number, data["code"])
+        ok = OtpService.verify(
+            identity=phone_number,
+            purpose="SIGNUP",
+            code=data["code"],
+            channel="sms",
+        )
+
+        if not ok:
+            raise serializers.ValidationError({"otp_code": "Invalid or expired OTP"})
 
         return data
 

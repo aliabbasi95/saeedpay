@@ -8,6 +8,7 @@ from apps.auth_api.models import PhoneOTP
 from lib.erp_base.serializers.persian_error_message import (
     PersianValidationErrorMessages,
 )
+from lib.erp_base.otp.services import OtpService
 
 
 class ResetPasswordSerializer(PersianValidationErrorMessages, serializers.Serializer):
@@ -49,16 +50,16 @@ class ResetPasswordSerializer(PersianValidationErrorMessages, serializers.Serial
 
         # Validate OTP
         code = data.get("code")
-        try:
-            otp_instance = PhoneOTP.objects.get(phone_number=phone_number)
-        except PhoneOTP.DoesNotExist as e:
+        
+        ok = OtpService.verify(
+            identity=phone_number,
+            purpose="RESET_PASSWORD",
+            code=code,
+            channel="sms",
+        )
+        if not ok:
             raise serializers.ValidationError(
-                {"code": "کد تایید یافت نشد یا منقضی شده است."}
-            ) from e
-
-        if not otp_instance.verify(code):
-            raise serializers.ValidationError(
-                {"code": "کد تایید اشتباه یا منقضی شده است."}
+                {"otp_code": "Invalid or expired OTP"},
             )
 
         return data

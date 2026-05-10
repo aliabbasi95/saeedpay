@@ -18,7 +18,6 @@ from apps.auth_api.api.public.v1.schema import (
     REGISTER_MERCHANT_SCHEMA,
     RESET_PASSWORD_SCHEMA,
     SEND_OTP_SCHEMA,
-    SEND_USER_OTP_SCHEMA,
 )
 from apps.auth_api.api.public.v1.serializers import (
     ChangePasswordSerializer,
@@ -27,7 +26,6 @@ from apps.auth_api.api.public.v1.serializers import (
     RegisterMerchantSerializer,
     ResetPasswordSerializer,
     SendOTPSerializer,
-    SendUserOTPSerializer,
 )
 from apps.auth_api.api.public.v1.views.mixins import IssueTokensResponseMixin
 from apps.auth_api.services.tokens import rotate_refresh_cookie
@@ -49,7 +47,6 @@ class AuthViewSet(
     - /auth/logout/
     - /auth/token/refresh/
     - /auth/send-otp/
-    - /auth/user/send-otp/              (requires auth)
     - /auth/register/customer/
     - /auth/register/merchant/
     - /auth/change-password/            (requires auth)
@@ -89,7 +86,6 @@ class AuthViewSet(
         return {
             "login": LoginSerializer,
             "send_otp": SendOTPSerializer,
-            "send_user_otp": SendUserOTPSerializer,
             "register_customer": RegisterCustomerSerializer,
             "register_merchant": RegisterMerchantSerializer,
             "change_password": ChangePasswordSerializer,
@@ -177,13 +173,6 @@ class AuthViewSet(
         ser.save()
         return self._ok("کد تأیید با موفقیت ارسال شد.")
 
-    @SEND_USER_OTP_SCHEMA
-    @action(detail=False, methods=["post"], url_path="user/send-otp")
-    def send_user_otp(self, request):
-        ser = self.get_serializer(data=request.data)
-        ser.is_valid(raise_exception=True)
-        ser.save()
-        return self._ok("کد تأیید با موفقیت ارسال شد.")
 
     @REGISTER_CUSTOMER_SCHEMA
     @action(detail=False, methods=["post"], url_path="register/customer")
