@@ -233,8 +233,10 @@ else:
     MEDIA_URL = "/media/"
 
 STATIC_ROOT = env("STATIC_ROOT", default=str(PROJECT_ROOT / "staticfiles"))
-MEDIA_ROOT = PROJECT_ROOT / "media"
 
+MEDIA_ROOT = Path(
+    env("MEDIA_ROOT", default=str(PROJECT_ROOT / "media"))
+)
 STATICFILES_DIRS = [
     PROJECT_ROOT / "static",
 ]
