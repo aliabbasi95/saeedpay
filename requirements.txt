@@ -5,6 +5,8 @@
 # Django and core dependencies
 dj-database-url
 psycopg2-binary
+django-environ
+whitenoise
 
 # Celery and Redis
 celery
@@ -35,4 +37,3 @@ Faker
 Pillow
 python-decouple
 
-django-environ
