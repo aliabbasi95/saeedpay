@@ -149,17 +149,20 @@ if LIB_PATH.exists() and str(LIB_PATH) not in sys.path:
 
 REDIS_HOST = env("REDIS_HOST", default="localhost")
 REDIS_PORT = env("REDIS_PORT", default=6379, cast=int)
+REDIS_PASSWORD = env("REDIS_PASSWORD", default="")
 
 REDIS_BROKER_DB = env("REDIS_BROKER_DB", default=0, cast=int)
 REDIS_BACKEND_DB = env("REDIS_BACKEND_DB", default=1, cast=int)
-REDIS_PASSWORD = env("REDIS_PASSWORD", default="")
+REDIS_CACHE_DB = env("REDIS_CACHE_DB", default=2, cast=int)
 
 
 def _redis_url(db: int) -> str:
     pwd = f":{REDIS_PASSWORD}@" if REDIS_PASSWORD else ""
     return f"redis://{pwd}{REDIS_HOST}:{REDIS_PORT}/{db}"
 
+
 REDIS_URL = _redis_url(REDIS_BROKER_DB)
+REDIS_CACHE_URL = _redis_url(REDIS_CACHE_DB)
 CELERY_BROKER_URL = _redis_url(REDIS_BROKER_DB)
 CELERY_RESULT_BACKEND = _redis_url(REDIS_BACKEND_DB)
 

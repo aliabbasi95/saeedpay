@@ -67,3 +67,15 @@ LOGGING["root"]["level"] = LOG_LEVEL
 LOGGING["handlers"]["console"]["formatter"] = (
     "structured_json" if LOG_JSON else "structured_console"
 )
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_CACHE_URL,
+        "KEY_PREFIX": "saeedpay",      
+        "TIMEOUT": 300,                
+        "OPTIONS": {
+            # "ssl_cert_reqs": None,
+        },
+    }
+}
