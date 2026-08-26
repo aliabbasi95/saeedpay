@@ -195,6 +195,8 @@ class StatementLineSerializer(serializers.ModelSerializer):
     """
 
     transaction = serializers.PrimaryKeyRelatedField(read_only=True)
+    type_display = serializers.CharField(source="get_type_display", read_only=True)
+    amount_abs = serializers.SerializerMethodField()
 
     class Meta:
         model = StatementLine
@@ -202,7 +204,9 @@ class StatementLineSerializer(serializers.ModelSerializer):
             "id",
             "statement",
             "type",
+            "type_display",
             "amount",
+            "amount_abs",
             "transaction",
             "created_at",
             "description",
@@ -219,6 +223,9 @@ class StatementLineSerializer(serializers.ModelSerializer):
             "void_reason",
             "reverses",
         ]
+
+    def get_amount_abs(self, obj):
+        return abs(int(obj.amount or 0))
 
     # Reject zero amount early
     def validate_amount(self, value: int) -> int:
@@ -311,7 +318,10 @@ class StatementDetailSerializer(serializers.ModelSerializer):
     """Detail view with read-only nested lines."""
 
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    lines = serializers.SerializerMethodField(read_only=True)
+    lines = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    period_label = serializers.SerializerMethodField()
+    transaction_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Statement
@@ -320,11 +330,15 @@ class StatementDetailSerializer(serializers.ModelSerializer):
             "user",
             "year",
             "month",
+            "period_label",
             "reference_code",
+            "status",
+            "status_display",
             "opening_balance",
             "closing_balance",
             "total_debit",
             "total_credit",
+            "transaction_count",
             "due_date",
             "paid_at",
             "closed_at",
@@ -332,11 +346,22 @@ class StatementDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "reference_code", "created_at", "updated_at", "lines"]
+        read_only_fields = [
+            "id",
+            "reference_code",
+            "created_at",
+            "updated_at",
+            "lines",
+        ]
 
-    @extend_schema_field(StatementLineSerializer(many=True))
     def get_lines(self, obj):
         return StatementLineSerializer(obj.lines.all(), many=True).data
+
+    def get_period_label(self, obj):
+        return f"{obj.get_month_display()} {obj.year}"
+
+    def get_transaction_count(self, obj):
+        return obj.lines.filter(is_voided=False).count()
 
 
 class CloseStatementResponseSerializer(serializers.Serializer):
