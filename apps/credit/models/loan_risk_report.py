@@ -139,9 +139,9 @@ class LoanRiskReport(BaseModel):
 
     def mark_completed(
         self,
-        credit_score: int,
+        credit_score: int | None,
         risk_level: str,
-        grade_description: str,
+        grade_description: str | None,
         report_data: dict,
         report_timestamp: str = None,
         report_types: list = None,
@@ -225,13 +225,24 @@ class LoanRiskReport(BaseModel):
 
     @property
     def is_low_risk(self) -> bool:
-        """Check if credit risk is low (A1, A2, B1)."""
-        return self.risk_level in [LoanRiskLevel.A1, LoanRiskLevel.A2, LoanRiskLevel.B1]
+        """Check if credit risk is very low/low (A* or B*)."""
+        return self.risk_level in [
+            LoanRiskLevel.A1,
+            LoanRiskLevel.A2,
+            LoanRiskLevel.A3,
+            LoanRiskLevel.B1,
+            LoanRiskLevel.B2,
+            LoanRiskLevel.B3,
+        ]
 
     @property
     def is_medium_risk(self) -> bool:
-        """Check if credit risk is medium (B2, C1, C2)."""
-        return self.risk_level in [LoanRiskLevel.B2, LoanRiskLevel.C1, LoanRiskLevel.C2]
+        """Check if credit risk is medium (C1, C2, C3)."""
+        return self.risk_level in [
+            LoanRiskLevel.C1,
+            LoanRiskLevel.C2,
+            LoanRiskLevel.C3,
+        ]
 
     @property
     def is_high_risk(self) -> bool:

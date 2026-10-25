@@ -494,15 +494,12 @@ class IdentityAuthService:
             otp_code, unique_id, access_token
         )
 
-    def loan_get_report_result(self, unique_id: str) -> dict:
+    def loan_get_report_result(self, unique_id: str, otp_code: str) -> dict:
         """
         Get credit report result with automatic token management.
 
-        Args:
-            unique_id: Unique ID from verify_otp_and_request_report step
-
-        Returns:
-            Dict with report data, score, risk level, etc.
+        The new provider flow polls ``request-report`` and therefore requires
+        the original OTP code in addition to the report unique ID.
         """
         access_token, _ = self.get_valid_tokens()
         if not access_token:
@@ -513,7 +510,11 @@ class IdentityAuthService:
                 "error_code": "AUTH_FAILED",
             }
 
-        return self.loan_validation.get_report_result(unique_id, access_token)
+        return self.loan_validation.get_report_result(
+            unique_id=unique_id,
+            otp_code=otp_code,
+            access_token=access_token,
+        )
 
 
 def get_identity_auth_service() -> IdentityAuthService:

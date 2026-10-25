@@ -244,8 +244,8 @@ def maybe_grant_credit_after_risk_report(*, profile, risk_level: str) -> dict:
     eligible = {
         LoanRiskLevel.A1,
         LoanRiskLevel.A2,
+        LoanRiskLevel.A3,
         LoanRiskLevel.B1,
-        LoanRiskLevel.B3,
         LoanRiskLevel.B2,
         LoanRiskLevel.B3,
     }
