@@ -15,7 +15,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # PROJECT_ROOT points to the repository root directory (outer).
 PROJECT_ROOT = BASE_DIR.parent
 
-
 env = environ.Env(
     DJANGO_DEBUG=(bool, False),
     DJANGO_ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
@@ -120,7 +119,6 @@ DATABASES = {
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
 # ───────────────────────── Templates ─────────────────────────
 TEMPLATES = [
     {
@@ -143,7 +141,6 @@ TEMPLATES = [
 LIB_PATH = PROJECT_ROOT / "lib"
 if LIB_PATH.exists() and str(LIB_PATH) not in sys.path:
     sys.path.insert(0, str(LIB_PATH))
-
 
 # ───────────────────────── Redis/Celery ─────────────────────────
 
@@ -226,7 +223,6 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-
 # ───────────────────────── Static & media ─────────────────────────
 if URL_PREFIX:
     STATIC_URL = f"/{URL_PREFIX}/static/"
@@ -237,9 +233,7 @@ else:
 
 STATIC_ROOT = env("STATIC_ROOT", default=str(PROJECT_ROOT / "staticfiles"))
 
-MEDIA_ROOT = Path(
-    env("MEDIA_ROOT", default=str(PROJECT_ROOT / "media"))
-)
+MEDIA_ROOT = Path(env("MEDIA_ROOT", default=str(PROJECT_ROOT / "media")))
 STATICFILES_DIRS = [
     PROJECT_ROOT / "static",
 ]
@@ -254,7 +248,6 @@ def whitenoise_immutable_file_test(path, url):
 
 # WhiteNoise expects a callable assigned to this name
 WHITENOISE_IMMUTABLE_FILE_TEST = whitenoise_immutable_file_test
-
 
 REST_FRAMEWORK = {
     # ── Auth / Permissions / Schema ───────────────────────────────────────────
@@ -408,12 +401,10 @@ REFRESH_COOKIE_SAMESITE = "Strict"
 
 MAX_SESSION_LIFETIME = timedelta(hours=24)
 
-
 # ───────────────────────── Security baselines (tightened in prod) ─────────────────────────
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
-
 
 REQUEST_ID_HEADER = "X-Request-ID"
 LOG_LEVEL = env("LOG_LEVEL", default="INFO")
@@ -484,7 +475,6 @@ OTP_DAILY_ISSUE_CAP_PER_IDENTITY = int(
 )
 OTP_CODE_LENGTH = int(env("OTP_CODE_LENGTH", default=6))
 
-
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
 
 # Password validation
@@ -516,7 +506,9 @@ LOAN_VALIDATION_REPORT_MAX_RETRIES = env(
     "LOAN_VALIDATION_REPORT_MAX_RETRIES", default=24, cast=int
 )
 LOAN_VALIDATION_OTP_CACHE_TTL = env(
-    "LOAN_VALIDATION_OTP_CACHE_TTL", default=15 * 60, cast=int
+    "LOAN_VALIDATION_OTP_CACHE_TTL",
+    default=3600,
+    cast=int,
 )
 CREDIT_DEFAULT_APPROVED_LIMIT = env(
     "CREDIT_DEFAULT_APPROVED_LIMIT", default=5000000, cast=int
@@ -584,7 +576,6 @@ RECAPTCHA_SECRET_KEY = env(
 RECAPTCHA_V3 = False  # Set to False for reCAPTCHA v2
 RECAPTCHA_V3_THRESHOLD = 0.5  # Score threshold for v3 (ignored when v2)
 RECAPTCHA_ACTION = "submit"  # Default action name for v3 (ignored when v2)
-
 
 # -----------------------------------------------------------------------------
 # Chatbot

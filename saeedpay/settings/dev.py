@@ -3,7 +3,7 @@
 from .base import *  # noqa: F401,F403  # isort: skip_file
 
 from .base import CSRF_TRUSTED_ORIGINS as BASE_CSRF_TRUSTED_ORIGINS
-from .base import env
+from .base import REDIS_CACHE_URL, env
 
 # ───────────────────────── Core dev toggles ─────────────────────────
 DEBUG = True
@@ -22,11 +22,13 @@ CAS_SAME_ORIGIN = env.bool("CAS_SAME_ORIGIN", default=True)
 CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=True)
 CORS_ALLOW_CREDENTIALS = True
 
-
 # ───────────────────────── Cache ─────────────────────────
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_CACHE_URL,
+        "TIMEOUT": 3600,
+        "KEY_PREFIX": "saeedpay",
     }
 }
 
@@ -50,9 +52,7 @@ REFRESH_COOKIE_SECURE = False
 KAVENEGAR_API_KEY = env("KAVENEGAR_API_KEY", default="")
 KAVENEGAR_NUMBER = env("KAVENEGAR_NUMBER", default="")
 
-
 # ───────────────────────── Redis / Celery ─────────────────────────
 
-CELERY_TASK_ALWAYS_EAGER = True
-CELERY_TASK_EAGER_PROPAGATES = True
-
+CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_EAGER_PROPAGATES = False

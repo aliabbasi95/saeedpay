@@ -173,7 +173,6 @@ class AuthViewSet(
         ser.save()
         return self._ok("کد تأیید با موفقیت ارسال شد.")
 
-
     @REGISTER_CUSTOMER_SCHEMA
     @action(detail=False, methods=["post"], url_path="register/customer")
     def register_customer(self, request):
