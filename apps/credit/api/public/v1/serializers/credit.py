@@ -5,7 +5,9 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.db.models.constants import LOOKUP_SEP
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
+from persiantools.jdatetime import JalaliDateTime
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
@@ -15,6 +17,13 @@ from apps.credit.models.statement_line import StatementLine
 from apps.credit.utils.choices import StatementLineType
 
 User = get_user_model()
+
+
+def _jalali_datetime(value):
+    if not value:
+        return None
+
+    return JalaliDateTime(timezone.localtime(value)).strftime("%Y/%m/%d %H:%M")
 
 
 # ───────────────────────────── CreditLimit ───────────────────────────── #
@@ -150,7 +159,6 @@ class PartialSafeConditionalUniqueTogetherValidator(UniqueTogetherValidator):
         filled = dict(attrs)
         needed = set(self.fields) | set(self.condition_fields or [])
 
-        # 1) برای فیلدهای شرطی، ابتدا از initial_data بخوان (حتی اگر read_only باشند)
         initial = getattr(serializer, "initial_data", {}) or {}
         for name in self.condition_fields or []:
             if name not in filled and name in initial:
@@ -163,7 +171,6 @@ class PartialSafeConditionalUniqueTogetherValidator(UniqueTogetherValidator):
                 if name not in filled:
                     filled[name] = getattr(instance, name, None)
 
-        # 3) اگر باز هم در فیلدهای شرطی چیزی کم بود، از default مدل پر کن (CREATE)
         for name in self.condition_fields or []:
             if name in filled:
                 continue
@@ -174,7 +181,6 @@ class PartialSafeConditionalUniqueTogetherValidator(UniqueTogetherValidator):
                 default = None
             filled[name] = default
 
-        # 4) اگر شرط روی ورودی فعلی برقرار نیست، چک یونیک را skip کن
         if getattr(self, "condition", None) and not _condition_matches_q(
             self.condition, filled
         ):
@@ -290,38 +296,18 @@ class StatementLineSerializer(serializers.ModelSerializer):
 
 
 class StatementListSerializer(serializers.ModelSerializer):
-    """Minimal list view of statements (no nested lines)."""
-
     user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
-    class Meta:
-        model = Statement
-        fields = [
-            "id",
-            "user",
-            "year",
-            "month",
-            "reference_code",
-            "status",
-            "opening_balance",
-            "closing_balance",
-            "total_debit",
-            "total_credit",
-            "due_date",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = ["id", "reference_code", "created_at", "updated_at"]
+    status_display = serializers.CharField(
+        source="get_status_display",
+        read_only=True,
+    )
 
-
-class StatementDetailSerializer(serializers.ModelSerializer):
-    """Detail view with read-only nested lines."""
-
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    lines = serializers.SerializerMethodField()
-    status_display = serializers.CharField(source="get_status_display", read_only=True)
     period_label = serializers.SerializerMethodField()
     transaction_count = serializers.SerializerMethodField()
+
+    created_at_jalali = serializers.SerializerMethodField()
+    due_date_jalali = serializers.SerializerMethodField()
 
     class Meta:
         model = Statement
@@ -340,12 +326,84 @@ class StatementDetailSerializer(serializers.ModelSerializer):
             "total_credit",
             "transaction_count",
             "due_date",
-            "paid_at",
-            "closed_at",
-            "lines",
+            "due_date_jalali",
+            "created_at",
+            "created_at_jalali",
+            "updated_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "reference_code",
             "created_at",
             "updated_at",
         ]
+
+    @extend_schema_field(serializers.CharField())
+    def get_period_label(self, obj):
+        return f"{obj.get_month_display()} {obj.year}"
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_transaction_count(self, obj):
+        return obj.lines.filter(is_voided=False).count()
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_created_at_jalali(self, obj):
+        return _jalali_datetime(obj.created_at)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_due_date_jalali(self, obj):
+        return _jalali_datetime(obj.due_date)
+
+
+class StatementDetailSerializer(serializers.ModelSerializer):
+    """Detail view with read-only nested lines."""
+
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+    lines = serializers.SerializerMethodField(read_only=True)
+
+    status_display = serializers.CharField(
+        source="get_status_display",
+        read_only=True,
+    )
+
+    period_label = serializers.SerializerMethodField()
+    transaction_count = serializers.SerializerMethodField()
+
+    created_at_jalali = serializers.SerializerMethodField()
+    due_date_jalali = serializers.SerializerMethodField()
+    paid_at_jalali = serializers.SerializerMethodField()
+    closed_at_jalali = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Statement
+        fields = [
+            "id",
+            "user",
+            "year",
+            "month",
+            "period_label",
+            "reference_code",
+            "status",
+            "status_display",
+            "opening_balance",
+            "closing_balance",
+            "total_debit",
+            "total_credit",
+            "transaction_count",
+            "due_date",
+            "due_date_jalali",
+            "paid_at",
+            "paid_at_jalali",
+            "closed_at",
+            "closed_at_jalali",
+            "lines",
+            "created_at",
+            "created_at_jalali",
+            "updated_at",
+        ]
+
         read_only_fields = [
             "id",
             "reference_code",
@@ -354,14 +412,36 @@ class StatementDetailSerializer(serializers.ModelSerializer):
             "lines",
         ]
 
+    @extend_schema_field(StatementLineSerializer(many=True))
     def get_lines(self, obj):
-        return StatementLineSerializer(obj.lines.all(), many=True).data
+        return StatementLineSerializer(
+            obj.lines.all(),
+            many=True,
+        ).data
 
+    @extend_schema_field(serializers.CharField())
     def get_period_label(self, obj):
         return f"{obj.get_month_display()} {obj.year}"
 
+    @extend_schema_field(serializers.IntegerField())
     def get_transaction_count(self, obj):
         return obj.lines.filter(is_voided=False).count()
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_created_at_jalali(self, obj):
+        return _jalali_datetime(obj.created_at)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_due_date_jalali(self, obj):
+        return _jalali_datetime(obj.due_date)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_paid_at_jalali(self, obj):
+        return _jalali_datetime(obj.paid_at)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_closed_at_jalali(self, obj):
+        return _jalali_datetime(obj.closed_at)
 
 
 class CloseStatementResponseSerializer(serializers.Serializer):
