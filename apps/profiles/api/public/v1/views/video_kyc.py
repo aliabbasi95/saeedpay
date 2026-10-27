@@ -65,7 +65,7 @@ class VideoKYCSubmitView(generics.GenericAPIView):
                 birth_date=profile.birth_date.replace("/", ""),
                 selfie_video_path=tmp_file_path,
                 rand_action=rand_action,
-                national_serial=profile.birth_certificate_serial.strip(),
+                national_serial=profile.national_card_serial.strip(),
                 matching_thr=90,
                 liveness_thr=50,
                 durable_asset_id=asset_id,

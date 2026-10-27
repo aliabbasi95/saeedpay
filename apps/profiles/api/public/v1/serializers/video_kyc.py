@@ -48,9 +48,14 @@ class VideoKYCSerializer(serializers.Serializer):
                 {"non_field_errors": ["تاریخ تولد در پروفایل شما ثبت نشده است."]}
             )
 
-        if not (profile.birth_certificate_serial or "").strip():
+        serial = (profile.national_card_serial or "").strip()
+        if len(serial) != 10 or not serial.isascii() or not serial.isalnum():
             raise serializers.ValidationError(
-                {"non_field_errors": ["سریال شناسنامه در پروفایل ثبت نشده است."]}
+                {
+                    "national_card_serial": [
+                        "سریال ۱۰ کاراکتری پشت کارت ملی را در پروفایل ثبت کنید."
+                    ]
+                }
             )
 
         if not profile.can_submit_video_auth():

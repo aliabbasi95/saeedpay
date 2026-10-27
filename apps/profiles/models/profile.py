@@ -41,6 +41,18 @@ class Profile(BaseModel):
         default="",
         verbose_name=_("سریال شناسنامه"),
     )
+    national_card_serial = models.CharField(
+        max_length=10,
+        blank=True,
+        default="",
+        validators=[
+            RegexValidator(
+                r"^[A-Za-z0-9]{10}$",
+                "سریال پشت کارت ملی باید دقیقاً ۱۰ کاراکتر شامل حروف انگلیسی و اعداد باشد",
+            )
+        ],
+        verbose_name=_("سریال پشت کارت ملی"),
+    )
     first_name = models.CharField(
         blank=True,
         max_length=255,

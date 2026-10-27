@@ -67,6 +67,18 @@ class VideoIdentityVerificationService:
                 "status": "validation_error",
             }
 
+        national_serial = national_serial.strip()
+        if (
+            len(national_serial) != 10
+            or not national_serial.isascii()
+            or not national_serial.isalnum()
+        ):
+            return {
+                "success": False,
+                "error": "invalid_national_card_serial",
+                "status": "validation_error",
+            }
+
         if not selfie_video_path or not selfie_video_path.strip():
             logger.error("Selfie video file path is empty or None")
             return {

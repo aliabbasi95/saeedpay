@@ -108,6 +108,7 @@ class ProfileAdmin(admin.ModelAdmin):
                     "phone_number",
                     "national_id",
                     "birth_certificate_serial",
+                    "national_card_serial",
                     ("first_name", "last_name"),
                     "email",
                     "birth_date",

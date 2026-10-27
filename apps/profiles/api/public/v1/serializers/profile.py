@@ -18,6 +18,15 @@ class ProfileSerializer(serializers.ModelSerializer):
     birth_certificate_serial = serializers.CharField(
         required=False, allow_blank=True, max_length=6
     )
+    national_card_serial = serializers.RegexField(
+        regex=r"^[A-Za-z0-9]{10}$",
+        required=False,
+        allow_blank=True,
+        max_length=10,
+        error_messages={
+            "invalid": "سریال پشت کارت ملی باید دقیقاً ۱۰ کاراکتر شامل حروف انگلیسی و اعداد باشد."
+        },
+    )
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
     birth_date = serializers.CharField(required=False)
@@ -41,6 +50,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             "email",
             "national_id",
             "birth_certificate_serial",
+            "national_card_serial",
             "first_name",
             "last_name",
             "birth_date",
@@ -71,6 +81,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             "last_name",
             "national_id",
             "birth_certificate_serial",
+            "national_card_serial",
             "birth_date",
             "email",
         }
