@@ -323,10 +323,7 @@ class LoanValidationService:
         if not isinstance(report_information, dict):
             report_information = {}
 
-        report_level = (
-            report_information.get("reportLevel")
-            or json_data.get("level")
-        )
+        report_level = report_information.get("reportLevel") or json_data.get("level")
         report_types = report_data.get("reportTypes")
         if not report_types and report_level:
             report_types = [report_level]
@@ -352,9 +349,7 @@ class LoanValidationService:
             "raw": resp_json,
         }
 
-    def _request_report(
-        self, otp_code: str, unique_id: str, access_token: str
-    ) -> dict:
+    def _request_report(self, otp_code: str, unique_id: str, access_token: str) -> dict:
         if not all([otp_code, unique_id, access_token]):
             return {
                 "success": False,

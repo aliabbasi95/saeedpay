@@ -48,6 +48,11 @@ class VideoKYCSerializer(serializers.Serializer):
                 {"non_field_errors": ["تاریخ تولد در پروفایل شما ثبت نشده است."]}
             )
 
+        if not (profile.birth_certificate_serial or "").strip():
+            raise serializers.ValidationError(
+                {"non_field_errors": ["سریال شناسنامه در پروفایل ثبت نشده است."]}
+            )
+
         if not profile.can_submit_video_auth():
             raise serializers.ValidationError(
                 {

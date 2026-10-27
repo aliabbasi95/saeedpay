@@ -298,6 +298,7 @@ class IdentityAuthService:
         rand_action,
         matching_thr=None,
         liveness_thr=None,
+        national_serial=None,
     ):
         """Proxy for video-based identity verification using a valid access token."""
         access_token, _ = self.get_valid_tokens()
@@ -317,6 +318,7 @@ class IdentityAuthService:
             access_token=access_token,
             matching_thr=matching_thr,
             liveness_thr=liveness_thr,
+            national_serial=national_serial,
         )
 
     def get_video_verification_result(self, unique_id):

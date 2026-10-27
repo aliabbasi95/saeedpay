@@ -4,11 +4,10 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from apps.auth_api.models import PhoneOTP
+from lib.erp_base.otp.services import OtpService
 from lib.erp_base.serializers.persian_error_message import (
     PersianValidationErrorMessages,
 )
-from lib.erp_base.otp.services import OtpService
 
 
 class ResetPasswordSerializer(PersianValidationErrorMessages, serializers.Serializer):
@@ -50,7 +49,7 @@ class ResetPasswordSerializer(PersianValidationErrorMessages, serializers.Serial
 
         # Validate OTP
         code = data.get("code")
-        
+
         ok = OtpService.verify(
             identity=phone_number,
             purpose="RESET_PASSWORD",

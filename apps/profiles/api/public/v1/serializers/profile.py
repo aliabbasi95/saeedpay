@@ -15,6 +15,9 @@ class ProfileSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(max_length=11, min_length=11, required=False)
     email = serializers.EmailField(required=False, allow_blank=True)
     national_id = serializers.CharField(max_length=10, min_length=10, required=False)
+    birth_certificate_serial = serializers.CharField(
+        required=False, allow_blank=True, max_length=6
+    )
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
     birth_date = serializers.CharField(required=False)
@@ -37,6 +40,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             "phone_number",
             "email",
             "national_id",
+            "birth_certificate_serial",
             "first_name",
             "last_name",
             "birth_date",
@@ -66,6 +70,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "national_id",
+            "birth_certificate_serial",
             "birth_date",
             "email",
         }

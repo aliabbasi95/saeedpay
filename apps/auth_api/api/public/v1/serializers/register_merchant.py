@@ -12,11 +12,11 @@ from apps.merchants.models import Merchant
 from apps.profiles.models import Profile
 from apps.wallets.services import create_default_wallets_for_user
 from apps.wallets.utils.choices import OwnerType
+from lib.erp_base.otp.services import OtpService
 from lib.erp_base.serializers.persian_error_message import (
     PersianValidationErrorMessages,
 )
 
-from lib.erp_base.otp.services import OtpService
 
 class RegisterMerchantSerializer(
     PersianValidationErrorMessages,
@@ -42,7 +42,7 @@ class RegisterMerchantSerializer(
 
     def validate(self, data):
         phone_number = data["phone_number"]
-        
+
         if data["password"] != data["confirm_password"]:
             raise serializers.ValidationError(
                 {"confirm_password": "رمز عبور و تکرار آن یکسان نیستند."}
@@ -51,7 +51,7 @@ class RegisterMerchantSerializer(
             raise serializers.ValidationError(
                 {"phone_number": "این شماره تلفن قبلاً به عنوان فروشنده ثبت شده است."}
             )
-        
+
         ok = OtpService.verify(
             identity=phone_number,
             purpose="SIGNUP",
@@ -62,7 +62,6 @@ class RegisterMerchantSerializer(
             raise serializers.ValidationError(
                 {"otp_code": "Invalid or expired OTP"},
             )
-
 
         return data
 

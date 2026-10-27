@@ -3,7 +3,7 @@
 from copy import deepcopy
 
 from .base import *  # noqa: F401,F403  # isort: skip_file
-from .base import LOG_JSON, LOG_LEVEL, env
+from .base import LOG_JSON, LOG_LEVEL, REDIS_CACHE_URL, env
 from .base import LOGGING as BASE_LOGGING
 from .base import MIDDLEWARE as BASE_MIDDLEWARE
 from .base import SPECTACULAR_SETTINGS as BASE_SPECTACULAR_SETTINGS
@@ -20,7 +20,6 @@ CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 # Keep base middleware intact and add WhiteNoise right after SecurityMiddleware
 MIDDLEWARE = deepcopy(BASE_MIDDLEWARE)
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
-
 
 # ───────────────────────── HTTPS / cookies / proxy ─────────────────────────
 SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
@@ -72,8 +71,8 @@ CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_CACHE_URL,
-        "KEY_PREFIX": "saeedpay",      
-        "TIMEOUT": 300,                
+        "KEY_PREFIX": "saeedpay",
+        "TIMEOUT": 300,
         "OPTIONS": {
             # "ssl_cert_reqs": None,
         },

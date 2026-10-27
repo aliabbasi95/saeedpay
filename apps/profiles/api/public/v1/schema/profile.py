@@ -24,6 +24,7 @@ PROFILE_VIEW_SCHEMA = extend_schema(
                         "phone_number": "09123456789",
                         "email": "ali@example.com",
                         "national_id": "1234567890",
+                        "birth_certificate_serial": "123456",
                         "first_name": "Ali",
                         "last_name": "Ahmadi",
                         "birth_date": "1375/01/20",

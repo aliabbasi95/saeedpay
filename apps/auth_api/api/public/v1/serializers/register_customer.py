@@ -13,10 +13,10 @@ from apps.customers.models import Customer
 from apps.profiles.models import Profile
 from apps.wallets.services import create_default_wallets_for_user
 from apps.wallets.utils.choices import OwnerType
+from lib.erp_base.otp.services import OtpService
 from lib.erp_base.serializers.persian_error_message import (
     PersianValidationErrorMessages,
 )
-from lib.erp_base.otp.services import OtpService
 
 
 class RegisterCustomerSerializer(
@@ -43,7 +43,7 @@ class RegisterCustomerSerializer(
 
     def validate(self, data):
         phone_number = data["phone_number"]
-        
+
         if data["password"] != data["confirm_password"]:
             raise serializers.ValidationError(
                 {"confirm_password": "رمز عبور و تکرار آن یکسان نیستند."}

@@ -35,6 +35,7 @@ class VideoIdentityVerificationService:
         access_token: str,
         matching_thr: int | None = None,
         liveness_thr: int | None = None,
+        national_serial: str | None = None,
     ) -> dict[str, Any]:
         """
         Send video-based identity verification request.
@@ -46,6 +47,7 @@ class VideoIdentityVerificationService:
             access_token: Bearer token for authentication
             matching_thr: (optional) facial matching threshold
             liveness_thr: (optional) liveness threshold
+            national_serial: Birth certificate serial from the user's profile
         Returns:
             Dict with API response or error info
         """
@@ -55,6 +57,13 @@ class VideoIdentityVerificationService:
             return {
                 "success": False,
                 "error": "access_token_required",
+                "status": "validation_error",
+            }
+
+        if not national_serial or not national_serial.strip():
+            return {
+                "success": False,
+                "error": "national_serial_required",
                 "status": "validation_error",
             }
 
@@ -85,6 +94,7 @@ class VideoIdentityVerificationService:
         data = {
             "nationalCode": national_code,
             "birthDate": birth_date,
+            "nationalSerial": national_serial.strip(),
             "randAction": rand_action,
         }
 

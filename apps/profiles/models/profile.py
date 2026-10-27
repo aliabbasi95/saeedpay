@@ -35,6 +35,12 @@ class Profile(BaseModel):
         validators=[validate_national_id],
         verbose_name=_("کد ملی"),
     )
+    birth_certificate_serial = models.CharField(
+        max_length=6,
+        blank=True,
+        default="",
+        verbose_name=_("سریال شناسنامه"),
+    )
     first_name = models.CharField(
         blank=True,
         max_length=255,

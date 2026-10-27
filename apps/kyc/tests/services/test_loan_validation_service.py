@@ -3,7 +3,6 @@ from unittest.mock import Mock, patch
 
 from apps.kyc.services.loan_validation_service import LoanValidationService
 
-
 POST_PATH = "apps.kyc.services.loan_validation_service.requests.post"
 
 
@@ -42,7 +41,11 @@ class LoanValidationServiceTestCase(TestCase):
             kwargs["json"],
             {"otpCode": "123456", "uniqueId": "provider-uid"},
         )
-        self.assertTrue(mock_post.call_args.args[0].endswith("/api/inq/loan-validation/request-report"))
+        self.assertTrue(
+            mock_post.call_args.args[0].endswith(
+                "/api/inq/loan-validation/request-report"
+            )
+        )
 
     @patch(POST_PATH)
     def test_get_report_result_parses_new_done_json_schema(self, mock_post):
@@ -107,7 +110,11 @@ class LoanValidationServiceTestCase(TestCase):
             kwargs["json"],
             {"otpCode": "123456", "uniqueId": "provider-uid"},
         )
-        self.assertTrue(mock_post.call_args.args[0].endswith("/api/inq/loan-validation/request-report"))
+        self.assertTrue(
+            mock_post.call_args.args[0].endswith(
+                "/api/inq/loan-validation/request-report"
+            )
+        )
 
     def test_normalize_report_response_keeps_legacy_schema_compatible(self):
         result = self.service._normalize_report_response(
@@ -121,9 +128,7 @@ class LoanValidationServiceTestCase(TestCase):
                             "score": {
                                 "score": 604,
                                 "risk": "B2",
-                                "personInformation": {
-                                    "gradeDescription": "ریسک پایین"
-                                },
+                                "personInformation": {"gradeDescription": "ریسک پایین"},
                             },
                             "reportTypes": ["Base", "Score"],
                         }

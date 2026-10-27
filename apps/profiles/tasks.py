@@ -188,6 +188,7 @@ def submit_profile_video_auth(
     matching_thr: int | None = None,
     liveness_thr: int | None = None,
     durable_asset_id: int | None = None,
+    national_serial: str | None = None,
 ) -> dict:
     """
     Submit video authentication for a profile and persist tracking fields.
@@ -280,6 +281,7 @@ def submit_profile_video_auth(
             rand_action=rand_action,
             matching_thr=matching_thr,
             liveness_thr=liveness_thr,
+            national_serial=national_serial,
         )
     except Exception as e:
         _cleanup_temp_file(selfie_video_path)
